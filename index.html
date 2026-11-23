@@ -1,29 +1,94 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
+<meta charset="UTF-8">
 <!-- Supabase CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
-  // Ganti dengan Project URL & anon key Anda
-  const SUPABASE_URL = 'https://xxxxxxxx.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+// ===== KONFIGURASI SUPABASE =====
+// Isi SUPABASE_URL dengan Project URL (Project Settings > API), contoh: https://bvawuvwbfctyauyotbhk.supabase.co
+const SUPABASE_URL = 'https://GANTI-PROJECT-ID.supabase.co';
+// Publishable key (aman untuk browser). JANGAN pernah taruh secret key di file ini.
+const SUPABASE_KEY = 'sb_publishable_tRMH0ktU7RxbqHAq5Fp61g_GuyL6Rbl';
 
-  const { createClient } = supabase;
-  const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ===== LAPISAN SINKRONISASI =====
+// App tetap memakai localStorage (cepat & sinkron); setiap perubahan otomatis di-upsert ke tabel kv_store.
+const SYNC = (function(){
+  const P = 'kopkarin_';
+  const client = (!/GANTI/.test(SUPABASE_URL) && window.supabase) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+  const pending = {};
+  let timer = null, state = client ? 'connecting' : 'local', stateMsg = '';
 
-  // Contoh test koneksi
-  async function testKoneksi() {
-    const { data, error } = await _supabase.from('anggota').select('count');
-    if (error) {
-      console.error('Gagal konek:', error.message);
-    } else {
-      console.log('Berhasil terhubung ke Supabase!');
+  function paint(){
+    if (!document.body) return;
+    let b = document.getElementById('syncBadge');
+    if (!b){
+      b = document.createElement('div'); b.id = 'syncBadge';
+      b.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99999;font:600 11px system-ui,sans-serif;padding:4px 10px;border-radius:20px;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:default';
+      document.body.appendChild(b);
+    }
+    const map = {
+      ok:['#198754','☁ Tersinkron'], connecting:['#6c757d','☁ Menghubungkan…'],
+      local:['#6c757d','💾 Mode lokal'], error:['#dc3545','⚠ Gagal sync']
+    };
+    b.style.background = map[state][0]; b.textContent = map[state][1]; b.title = stateMsg || '';
+  }
+  function setState(s, m){ state = s; stateMsg = m || ''; paint(); }
+
+  async function flush(){
+    if (!client) return;
+    clearTimeout(timer); timer = null;
+    const keys = Object.keys(pending); if (!keys.length) return;
+    const now = new Date().toISOString();
+    const rows = keys.map(k => ({key:k, value:pending[k], updated_at:now}));
+    keys.forEach(k => delete pending[k]);
+    const { error } = await client.from('kv_store').upsert(rows, {onConflict:'key'});
+    if (error){
+      console.error('Sync gagal:', error.message);
+      rows.forEach(r => { if (!(r.key in pending)) pending[r.key] = r.value; });
+      setState('error', error.message);
+      timer = setTimeout(flush, 15000);
+    } else if (!Object.keys(pending).length) setState('ok');
+  }
+  function push(k, v){
+    if (!client) return;
+    pending[k] = v; clearTimeout(timer); timer = setTimeout(flush, 400);
+  }
+  async function hydrate(){
+    if (!client){ paint(); return; }
+    try{
+      const { data, error } = await client.from('kv_store').select('key,value');
+      if (error) throw error;
+      if (data.length){
+        data.forEach(r => localStorage.setItem(P + r.key, JSON.stringify(r.value)));
+      } else {
+        // pertama kali: unggah data lokal yang sudah ada di browser
+        const rows = [];
+        for (let i = 0; i < localStorage.length; i++){
+          const lk = localStorage.key(i);
+          if (lk && lk.startsWith(P)){ try{ rows.push({key:lk.slice(P.length), value:JSON.parse(localStorage.getItem(lk))}); }catch(e){} }
+        }
+        if (rows.length){
+          const { error: e2 } = await client.from('kv_store').upsert(rows, {onConflict:'key'});
+          if (e2) throw e2;
+        }
+      }
+      setState('ok');
+    } catch(e){
+      console.warn('Supabase tidak terjangkau, memakai data lokal:', e.message || e);
+      setState('error', e.message || String(e));
     }
   }
-  testKoneksi();
+  async function wipe(){
+    if (!client) return;
+    const { error } = await client.from('kv_store').delete().neq('key', '');
+    if (error) alert('Gagal menghapus data di server: ' + error.message);
+  }
+  addEventListener('pagehide', flush);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+  return { push, flush, hydrate, wipe, paint, enabled: !!client };
+})();
 </script>
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KOPKARIN v4.1 - Sistem Informasi Koperasi Karyawan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1135,7 +1200,7 @@ body{background:var(--bg);margin:0}
   <div class="modal-footer"><button class="btn btn-light" data-bs-dismiss="modal">Batal</button><button class="btn btn-warning" onclick="prosesPelunasan()">Proses Pelunasan</button></div>
 </div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script><script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script><script type="text/plain" id="appMain">
 /* ============================================================
    KOPKARIN v3.3 - DATA KARYAWAN LENGKAP
    ============================================================ */
@@ -1219,9 +1284,9 @@ function hitungMasaKerja(tglMasuk){
 
 const DB = {
   load(k){ try { return JSON.parse(localStorage.getItem('kopkarin_'+k) || '[]'); } catch(e){ return []; } },
-  save(k,v){ localStorage.setItem('kopkarin_'+k, JSON.stringify(v)); },
+  save(k,v){ localStorage.setItem('kopkarin_'+k, JSON.stringify(v)); SYNC.push(k,v); },
   get(k,d){ const v = localStorage.getItem('kopkarin_'+k); return v ? JSON.parse(v) : d; },
-  set(k,v){ localStorage.setItem('kopkarin_'+k, JSON.stringify(v)); }
+  set(k,v){ localStorage.setItem('kopkarin_'+k, JSON.stringify(v)); SYNC.push(k,v); }
 };
 
 // ============ SEED DATA (v4: tanpa data contoh anggota) ============
@@ -3027,9 +3092,10 @@ function exportData(){
   ['users','anggota','bank','mutasi','pinjaman','angsuran','pengaturan','kas'].forEach(k => all[k] = DB.get(k, null));
   downloadFile('kopkarin-backup-'+new Date().toISOString().slice(0,10)+'.json', JSON.stringify(all, null, 2), 'application/json');
 }
-function resetData(){
+async function resetData(){
   if (!confirm('⚠️ Hapus SEMUA data? Tidak bisa dibatalkan!')) return;
   if (!confirm('Yakin 100%?')) return;
+  await SYNC.wipe();
   Object.keys(localStorage).filter(k => k.startsWith('kopkarin_')).forEach(k => localStorage.removeItem(k));
   location.reload();
 }
@@ -3557,6 +3623,19 @@ loadDashboard = function(){ _ld(); renderDashDana(); };
   checkSession();
   // 4. Default tab
   switchLoginTab('admin');
+})();
+</script>
+<script>
+// Muat data dari Supabase dulu, baru jalankan aplikasi
+(async function(){
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99998;background:#0a1e3f;color:#fff;display:flex;align-items:center;justify-content:center;font:600 14px system-ui,sans-serif';
+  ov.textContent = 'Memuat data…'; document.body.appendChild(ov);
+  try { await Promise.race([SYNC.hydrate(), new Promise(r => setTimeout(r, 8000))]); } catch(e){}
+  const sc = document.createElement('script');
+  sc.text = document.getElementById('appMain').textContent;
+  document.body.appendChild(sc);
+  ov.remove(); SYNC.paint();
 })();
 </script>
 </body>
