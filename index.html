@@ -6,8 +6,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ===== KONFIGURASI SUPABASE =====
-// Isi SUPABASE_URL dengan Project URL (Project Settings > API), contoh: https://bvawuvwbfctyauyotbhk.supabase.co
-const SUPABASE_URL = 'https://bvawuvwbfctyauyotbhk.supabase.co/rest/v1/';
+// Isi SUPABASE_URL dengan Project URL (Project Settings > API), contoh: https://abcdxyz.supabase.co
+const SUPABASE_URL = (function(u){ try { return new URL(u).origin; } catch(e){ return u; } })('https://bvawuvwbfctyauyotbhk.supabase.co');
 // Publishable key (aman untuk browser). JANGAN pernah taruh secret key di file ini.
 const SUPABASE_KEY = 'sb_publishable_tRMH0ktU7RxbqHAq5Fp61g_GuyL6Rbl';
 
@@ -28,8 +28,8 @@ const SYNC = (function(){
       document.body.appendChild(b);
     }
     const map = {
-      ok:['#198754','? Tersinkron'], connecting:['#6c757d','? Menghubungkan�'],
-      local:['#6c757d','?? Mode lokal'], error:['#dc3545','? Gagal sync']
+      ok:['#198754','☁ Tersinkron'], connecting:['#6c757d','☁ Menghubungkan…'],
+      local:['#6c757d','💾 Mode lokal'], error:['#dc3545','⚠ Gagal sync']
     };
     b.style.background = map[state][0]; b.textContent = map[state][1]; b.title = stateMsg || '';
   }
@@ -226,7 +226,7 @@ body{background:var(--bg);margin:0}
 .print-header{display:none;text-align:center;padding:10px 0;border-bottom:3px double var(--navy);margin-bottom:15px}
 .print-header h4{margin:0;color:var(--navy);font-weight:800}
 .print-header p{margin:2px 0;font-size:11px;color:var(--gray)}
-/* ===================== v3.3 � UI & DATA KARYAWAN ===================== */
+/* ===================== v3.3 — UI & DATA KARYAWAN ===================== */
 *{font-family:'Plus Jakarta Sans','Segoe UI',system-ui,-apple-system,sans-serif}
 .login-wrap{background:radial-gradient(circle at 12% 18%,rgba(201,162,39,.28),transparent 38%),radial-gradient(circle at 88% 85%,rgba(255,255,255,.09),transparent 42%),linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 60%,#1a3d7a 100%)}
 .login-card{animation:fadeUp .5s ease}
@@ -463,11 +463,11 @@ body{background:var(--bg);margin:0}
         <div class="panel-body">
           <div class="hr-stats" id="statKaryawan"></div>
           <div class="filter-bar">
-            <input type="text" class="form-control search" id="searchAnggota" placeholder="?? Cari nama, NIK, no. karyawan, jabatan, tempat lahir..." oninput="renderAnggota()">
+            <input type="text" class="form-control search" id="searchAnggota" placeholder="🔍 Cari nama, NIK, no. karyawan, jabatan, tempat lahir..." oninput="renderAnggota()">
             <select class="form-select" id="filterDept" onchange="renderAnggota()"><option value="">Semua Dept</option></select>
             <select class="form-select" id="filterStatusKar" onchange="renderAnggota()"><option value="">Semua Status Kerja</option></select>
             <select class="form-select" id="filterStatus" onchange="renderAnggota()"><option value="">Semua Status</option><option value="aktif">Aktif</option><option value="keluar">Keluar</option></select>
-            <select class="form-select" id="sortAnggota" onchange="renderAnggota()"><option value="nama">Urut: Nama A�Z</option><option value="nomor">Urut: No. Anggota</option><option value="masuk_baru">Urut: Masuk Terbaru</option><option value="masuk_lama">Urut: Masa Kerja Terlama</option><option value="umur">Urut: Umur Tertua</option></select>
+            <select class="form-select" id="sortAnggota" onchange="renderAnggota()"><option value="nama">Urut: Nama A–Z</option><option value="nomor">Urut: No. Anggota</option><option value="masuk_baru">Urut: Masuk Terbaru</option><option value="masuk_lama">Urut: Masa Kerja Terlama</option><option value="umur">Urut: Umur Tertua</option></select>
           </div>
           <div class="emp-meta mb-2" id="countAnggota"></div>
           <div class="table-responsive d-none d-md-block">
@@ -989,8 +989,8 @@ body{background:var(--bg);margin:0}
       <div class="alert alert-info py-2 mb-3" style="font-size:12px" id="infoSukarela">Saldo sukarela: -</div>
       <div class="mb-3"><label class="form-label">Jenis Transaksi *</label>
         <select class="form-select" id="sukTrx">
-          <option value="setor">?? Setor Sukarela</option>
-          <option value="tarik">?? Ambil Sukarela</option>
+          <option value="setor">💰 Setor Sukarela</option>
+          <option value="tarik">💸 Ambil Sukarela</option>
         </select>
       </div>
       <div class="mb-3"><label class="form-label">Jumlah (Rp) *</label><input type="number" class="form-control" id="sukJumlah" min="1000"></div>
@@ -1154,7 +1154,7 @@ body{background:var(--bg);margin:0}
   </div></div>
 </div>
 
-<!-- SCRIPTS (hanya 1x � TIDAK duplikat) -->
+<!-- SCRIPTS (hanya 1x — TIDAK duplikat) -->
 
 <div class="modal fade" id="modalArusKas" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
   <div class="modal-header"><h6 class="modal-title">Transaksi Pos Dana</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
@@ -1170,7 +1170,7 @@ body{background:var(--bg);margin:0}
 <div class="modal fade" id="modalPeng" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
   <div class="modal-header"><h6 class="modal-title">Pengumuman</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
   <div class="modal-body"><input type="hidden" id="pgId">
-    <div class="mb-3"><label class="form-label">Judul</label><input class="form-control" id="pgJudul" placeholder="?? Judul pengumuman"></div>
+    <div class="mb-3"><label class="form-label">Judul</label><input class="form-control" id="pgJudul" placeholder="📢 Judul pengumuman"></div>
     <div class="mb-3"><label class="form-label">Isi</label><textarea class="form-control" id="pgIsi" rows="4"></textarea></div>
     <div class="row g-2"><div class="col-6"><label class="form-label">Tipe / Warna</label><select class="form-select" id="pgTipe"><option value="info">Info (biru)</option><option value="warning">Penting (kuning)</option><option value="success">Kabar baik (hijau)</option><option value="danger">Mendesak (merah)</option></select></div>
     <div class="col-6 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" id="pgAktif" checked><label class="form-check-label" for="pgAktif">Tampilkan ke anggota</label></div></div></div>
@@ -1423,7 +1423,7 @@ function migrateData(){
 function forceMigrate(){
   migrateData();
   const users = DB.load('users');
-  alert('? Migrasi selesai!\nTotal user: ' + users.length);
+  alert('✅ Migrasi selesai!\nTotal user: ' + users.length);
   renderUsers();
 }
 // ============ AUTH ============
@@ -1472,10 +1472,10 @@ function initLoginForm(){
     const found = users.find(x => x.username === u && x.password === p && x.active && x.type === tipeLogin);
     if (!found){
       const ue = users.find(x => x.username === u);
-      if (!ue) err.textContent = '? Username tidak ditemukan.';
-      else if (ue.password !== p) err.textContent = '? Password salah.';
-      else if (!ue.active) err.textContent = '? Akun tidak aktif.';
-      else if (ue.type !== tipeLogin) err.textContent = '? Gunakan tab "' + (ue.type === 'admin' ? 'Petugas' : 'Anggota') + '".';
+      if (!ue) err.textContent = '❌ Username tidak ditemukan.';
+      else if (ue.password !== p) err.textContent = '❌ Password salah.';
+      else if (!ue.active) err.textContent = '❌ Akun tidak aktif.';
+      else if (ue.type !== tipeLogin) err.textContent = '❌ Gunakan tab "' + (ue.type === 'admin' ? 'Petugas' : 'Anggota') + '".';
       err.classList.remove('d-none');
       return;
     }
@@ -1605,7 +1605,7 @@ function uploadLogo(e){
       c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
       const set = DB.get('pengaturan', {}); set.logo = c.toDataURL('image/png'); DB.set('pengaturan', set);
-      applyLogo(); toast('? Logo berhasil diganti.');
+      applyLogo(); toast('✅ Logo berhasil diganti.');
     };
     img.onerror = () => alert('File gambar tidak valid.');
     img.src = ev.target.result;
@@ -1727,7 +1727,7 @@ function renderStatKaryawan(all){
     + box('bi-gender-male','i-blue',L,'Laki-laki')
     + box('bi-gender-female','i-pink',P,'Perempuan')
     + box('bi-patch-check-fill','i-gold',tetap+' / '+kontrak,'Tetap / Kontrak')
-    + box('bi-hourglass-split','i-red',avg.toFixed(1).replace('.',',')+' th','Rata� Masa Kerja');
+    + box('bi-hourglass-split','i-red',avg.toFixed(1).replace('.',',')+' th','Rata² Masa Kerja');
 }
 
 function aksiAnggota(id){
@@ -1758,12 +1758,12 @@ function renderAnggota(){
     return '<tr>'
       + '<td>'+avatarHTML(a)+'</td>'
       + '<td class="text-nowrap"><code style="font-size:11px">'+esc(a.nomor)+'</code><div class="emp-meta">NIP: '+esc(val(a.noKaryawan))+'</div></td>'
-      + '<td class="col-nama"><div class="emp-name">'+esc(a.nama)+'</div><div class="emp-meta">NIK: '+esc(a.nik)+' � '+jkLabel(a.jk)+'</div></td>'
+      + '<td class="col-nama"><div class="emp-name">'+esc(a.nama)+'</div><div class="emp-meta">NIK: '+esc(a.nik)+' • '+jkLabel(a.jk)+'</div></td>'
       + '<td class="col-ttl"><div style="font-size:12.5px">'+esc(ttl(a))+'</div><div class="emp-meta">Umur: '+hitungUmur(a.tglLahir)+'</div></td>'
       + '<td><div class="fw-semibold" style="font-size:12.5px">'+esc(val(a.jabatan))+'</div><div class="emp-meta">'+esc(val(a.dept))+'</div></td>'
       + '<td>'+chip(a)+'</td>'
       + '<td class="text-nowrap"><div style="font-size:12.5px">'+tgl(mk)+'</div><div class="emp-meta">'+hitungMasaKerja(mk)+'</div></td>'
-      + '<td class="text-nowrap"><div style="font-size:12.5px">'+esc(val(a.hp))+'</div><div class="emp-meta">'+esc(val(a.bank))+(a.rek ? ' � '+esc(a.rek) : '')+'</div></td>'
+      + '<td class="text-nowrap"><div style="font-size:12.5px">'+esc(val(a.hp))+'</div><div class="emp-meta">'+esc(val(a.bank))+(a.rek ? ' • '+esc(a.rek) : '')+'</div></td>'
       + '<td>'+badge(a)+'</td>'
       + '<td class="text-end text-nowrap">'+aksiAnggota(a.id)+'</td>'
       + '</tr>';
@@ -1773,7 +1773,7 @@ function renderAnggota(){
     const mk = tglMasukOf(a);
     const cell = (k,v) => '<div><div class="k">'+k+'</div><div class="v">'+v+'</div></div>';
     return '<div class="emp-card"><div class="top">'+avatarHTML(a)
-      + '<div class="flex-grow-1" style="min-width:0"><div class="emp-name">'+esc(a.nama)+'</div><div class="emp-meta">'+esc(a.nomor)+' � '+esc(val(a.jabatan))+'</div></div>'+badge(a)+'</div>'
+      + '<div class="flex-grow-1" style="min-width:0"><div class="emp-name">'+esc(a.nama)+'</div><div class="emp-meta">'+esc(a.nomor)+' • '+esc(val(a.jabatan))+'</div></div>'+badge(a)+'</div>'
       + '<div class="grid">'
       + cell('Tempat, Tgl Lahir', esc(ttl(a))) + cell('Umur', hitungUmur(a.tglLahir))
       + cell('Tgl Masuk', tgl(mk)) + cell('Masa Kerja', hitungMasaKerja(mk))
@@ -1784,8 +1784,8 @@ function renderAnggota(){
 
 function updateInfoTgl(){
   const tl = document.getElementById('angTglLahir').value, tm = document.getElementById('angTglMasuk').value;
-  document.getElementById('hintUmur').textContent = tl ? '? Umur: ' + hitungUmur(tl) : '';
-  document.getElementById('hintMasaKerja').textContent = tm ? '? Masa kerja: ' + hitungMasaKerja(tm) : '';
+  document.getElementById('hintUmur').textContent = tl ? '✓ Umur: ' + hitungUmur(tl) : '';
+  document.getElementById('hintMasaKerja').textContent = tm ? '✓ Masa kerja: ' + hitungMasaKerja(tm) : '';
 }
 function showAngTab(t){ const b = document.querySelector('#angTabs [data-bs-target="#'+t+'"]'); if (b) bootstrap.Tab.getOrCreateInstance(b).show(); }
 function ensureOption(sel, v){
@@ -1868,7 +1868,7 @@ function simpanAnggota(){
     const users = DB.load('users');
     users.forEach(u => { if (u.anggotaId == id) u.nama = nama; });
     DB.save('users', users);
-    toast('? Data <b>' + esc(nama) + '</b> berhasil diperbarui.');
+    toast('✅ Data <b>' + esc(nama) + '</b> berhasil diperbarui.');
   } else {
     const num = nextNomorAnggota(data);
     const newId = uid();
@@ -1876,7 +1876,7 @@ function simpanAnggota(){
     const users = DB.load('users');
     users.push({id: uid(), username: num, password: 'password123', nama, role: 'Anggota', type: 'anggota', anggotaId: newId, active: 1, lastLogin: null});
     DB.save('users', users);
-    alert('? Anggota ditambahkan.\nLogin portal:\nUsername: ' + num + '\nPassword: password123');
+    alert('✅ Anggota ditambahkan.\nLogin portal:\nUsername: ' + num + '\nPassword: password123');
   }
   DB.save('anggota', data);
   bootstrap.Modal.getInstance(document.getElementById('modalAnggota')).hide();
@@ -1898,7 +1898,7 @@ function profilGroups(a){
       ['No. Anggota', a.nomor], ['Tgl Bergabung Koperasi', tglPanjang(a.tgl)], ['Lama Keanggotaan', hitungMasaKerja(a.tgl || '')], ['Status Anggota', a.status]]},
     {t:'Kontak & Alamat', i:'bi-geo-alt', rows:[
       ['No. HP / WA', a.hp], ['Email', a.email], ['Alamat (KTP)', a.alamat], ['Domisili', a.domisili],
-      ['Kontak Darurat', (a.daruratNama || '') + (a.daruratHp ? ' � ' + a.daruratHp : '')]]},
+      ['Kontak Darurat', (a.daruratNama || '') + (a.daruratHp ? ' • ' + a.daruratHp : '')]]},
     {t:'Bank, Pajak & BPJS', i:'bi-bank', rows:[
       ['Bank', a.bank], ['No. Rekening', a.rek], ['NPWP', a.npwp], ['BPJS Ketenagakerjaan', a.bpjsTk], ['BPJS Kesehatan', a.bpjsKes]]},
     {t:'Ahli Waris', i:'bi-heart', rows:[
@@ -1911,13 +1911,13 @@ function buildProfilHTML(a){
   const tags = [a.nomor, a.noKaryawan ? 'NIP ' + a.noKaryawan : '', a.statusKaryawan, a.status === 'aktif' ? 'Anggota Aktif' : 'Status: ' + a.status].filter(Boolean);
   const hu = hariMenujuUltah(a.tglLahir);
   let h = '<div class="emp-hero"><div class="ph">' + (a.foto ? '<img src="'+a.foto+'" alt="">' : esc(a.nama.charAt(0).toUpperCase())) + '</div>'
-    + '<div style="position:relative;z-index:1;min-width:0"><h5>' + esc(a.nama) + '</h5><div class="role">' + esc([a.jabatan, a.dept].filter(Boolean).join(' � ') || '-') + '</div>'
+    + '<div style="position:relative;z-index:1;min-width:0"><h5>' + esc(a.nama) + '</h5><div class="role">' + esc([a.jabatan, a.dept].filter(Boolean).join(' • ') || '-') + '</div>'
     + '<div class="tags">' + tags.map(t => '<span>' + esc(t) + '</span>').join('') + '</div></div></div>';
   h += '<div class="emp-quick">'
     + '<div><b>' + hitungUmur(a.tglLahir) + '</b><small>Umur</small></div>'
     + '<div><b>' + hitungMasaKerja(mk) + '</b><small>Masa Kerja</small></div>'
     + '<div><b>' + tgl(mk) + '</b><small>Tgl Masuk</small></div>'
-    + '<div><b>' + (hu === null ? '-' : (hu === 0 ? '?? Hari ini' : hu + ' hari')) + '</b><small>Menuju Ultah</small></div></div>';
+    + '<div><b>' + (hu === null ? '-' : (hu === 0 ? '🎉 Hari ini' : hu + ' hari')) + '</b><small>Menuju Ultah</small></div></div>';
   h += '<div class="info-grid">' + profilGroups(a).map(gr => '<div class="info-box"><h6><i class="bi ' + gr.i + '"></i>' + gr.t + '</h6>'
     + gr.rows.map(r => '<div class="info-row"><div class="k">' + r[0] + '</div><div class="v">' + esc(val(r[1])) + '</div></div>').join('') + '</div>').join('') + '</div>';
   return h;
@@ -1959,7 +1959,7 @@ table{font-size:8.5px;border-collapse:collapse}td{padding:1.5px 0;vertical-align
 .ft{position:absolute;bottom:0;left:0;right:0;background:#c9a227;color:#0a1e3f;font-size:8px;font-weight:700;padding:4px 14px;display:flex;justify-content:space-between}
 body{padding-top:70px!important}.noprint{position:fixed;top:0;left:0;right:0;background:#0a1e3f;padding:8px 14px;display:flex;gap:8px;justify-content:center;z-index:9}.noprint button{border:0;border-radius:8px;padding:6px 16px;font-weight:700;cursor:pointer;background:#c9a227;color:#0a1e3f}@media print{.noprint{display:none!important}body{padding-top:0!important}}
 </style></head><body>
-<div class="noprint"><button onclick="window.close()">? Tutup</button><button onclick="window.print()">?? Cetak</button></div>
+<div class="noprint"><button onclick="window.close()">✕ Tutup</button><button onclick="window.print()">🖨 Cetak</button></div>
 <div class="card"><div class="hd"><div class="lg">${p.logo ? '<img src="'+p.logo+'" style="width:100%;height:100%;object-fit:contain">' : 'K'}</div><div><b>KARTU ANGGOTA ${esc(p.nama || 'KOPKARIN')}</b><small>KOPERASI KARYAWAN ${esc(p.pt || 'PT. INSANSANDANG INTERNUSA')}</small></div></div>
 <div class="bd"><div class="ph">${foto}</div><div><div class="nm">${esc(a.nama)}</div><table>
 <tr><td>No. Anggota</td><td>: ${esc(a.nomor)}</td></tr>
@@ -1980,8 +1980,8 @@ function cetakProfil(id){
   if (!a) return;
   const p = DB.get('pengaturan', {});
   const foto = a.foto ? '<img src="'+a.foto+'" style="width:90px;height:110px;object-fit:cover;border-radius:8px">' : '<div style="width:90px;height:110px;border-radius:8px;background:#c9a227;color:#0a1e3f;font-size:40px;font-weight:800;display:flex;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact">'+esc(a.nama.charAt(0).toUpperCase())+'</div>';
-  let html = '<div class="print-header"><h4>PROFIL ANGGOTA / KARYAWAN</h4><p>' + esc(p.nama || 'KOPKARIN') + ' � Koperasi Karyawan ' + esc(p.pt || 'PT. INSANSANDANG INTERNUSA') + '</p></div>';
-  html += '<div style="display:flex;gap:16px;align-items:center;margin-bottom:10px">' + foto + '<div><h4 style="margin:0;color:#0a1e3f">' + esc(a.nama) + '</h4><div>' + esc([a.jabatan, a.dept].filter(Boolean).join(' � ') || '-') + '</div><div style="font-size:12px;color:#555">' + esc(a.nomor) + (a.noKaryawan ? ' � NIP ' + esc(a.noKaryawan) : '') + '</div></div></div>';
+  let html = '<div class="print-header"><h4>PROFIL ANGGOTA / KARYAWAN</h4><p>' + esc(p.nama || 'KOPKARIN') + ' — Koperasi Karyawan ' + esc(p.pt || 'PT. INSANSANDANG INTERNUSA') + '</p></div>';
+  html += '<div style="display:flex;gap:16px;align-items:center;margin-bottom:10px">' + foto + '<div><h4 style="margin:0;color:#0a1e3f">' + esc(a.nama) + '</h4><div>' + esc([a.jabatan, a.dept].filter(Boolean).join(' • ') || '-') + '</div><div style="font-size:12px;color:#555">' + esc(a.nomor) + (a.noKaryawan ? ' • NIP ' + esc(a.noKaryawan) : '') + '</div></div></div>';
   profilGroups(a).forEach(gr => {
     html += '<div style="background:#0a1e3f;color:#fff;padding:5px 10px;margin-top:12px;font-size:12px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">' + gr.t.toUpperCase() + '</div>'
       + '<table class="table table-sm table-bordered" style="font-size:12px;margin:0">' + gr.rows.map(r => '<tr><td style="width:35%;background:#f8fafc">' + r[0] + '</td><td>' + esc(val(r[1])) + '</td></tr>').join('') + '</table>';
@@ -2002,7 +2002,7 @@ function renderDashKaryawan(){
   elU.innerHTML = ultah.length ? ultah.map(a => {
     const d = +a.tglLahir.split('-')[2];
     return '<div class="mini-item' + (d === hari ? ' today' : '') + '">' + avatarHTML(a) + '<div style="min-width:0"><div class="emp-name" style="font-size:13px">' + esc(a.nama) + '</div><div class="emp-meta">' + esc(val(a.dept)) + '</div></div>'
-      + '<div class="date"><b>' + d + ' ' + bulanTxt.slice(0,3) + '</b>' + (d === hari ? '?? Hari ini' : 'ke-' + (th - +a.tglLahir.slice(0,4))) + '</div></div>';
+      + '<div class="date"><b>' + d + ' ' + bulanTxt.slice(0,3) + '</b>' + (d === hari ? '🎉 Hari ini' : 'ke-' + (th - +a.tglLahir.slice(0,4))) + '</div></div>';
   }).join('') : empty('bi-cake2', 'Tidak ada yang berulang tahun bulan ' + bulanTxt);
   const anniv = anggota.filter(a => { const m = tglMasukOf(a); return m && +m.split('-')[1] === bln && +m.slice(0,4) < th; }).sort((x,y) => +tglMasukOf(x).split('-')[2] - +tglMasukOf(y).split('-')[2]);
   document.getElementById('cntAnniv').textContent = anniv.length;
@@ -2016,7 +2016,7 @@ function renderDashKaryawan(){
   const rows = Object.entries(cnt).sort((x,y) => y[1] - x[1]);
   document.getElementById('listDept').innerHTML = rows.length ? rows.map(([k,v]) => {
     const pct = Math.round(v / anggota.length * 100);
-    return '<div class="dept-row"><div class="top"><span>' + esc(k) + '</span><span>' + v + ' org � ' + pct + '%</span></div><div class="dept-bar"><span style="width:' + pct + '%"></span></div></div>';
+    return '<div class="dept-row"><div class="top"><span>' + esc(k) + '</span><span>' + v + ' org • ' + pct + '%</span></div><div class="dept-bar"><span style="width:' + pct + '%"></span></div></div>';
   }).join('') : empty('bi-diagram-3', 'Belum ada data');
 }
 
@@ -2039,7 +2039,7 @@ function openSimpananPokokManual(id){
   mutasi.push({id: uid(), no: noTrx('SMP'), anggotaId: id, jenis: 'pokok', trx: 'setor', jumlah, ket: 'Input manual simpanan pokok', tanggal: new Date().toISOString().slice(0,10), user: currentUser.username});
   DB.save('mutasi', mutasi);
   const kas = DB.get('kas', {saldo:0}); kas.saldo += jumlah; DB.set('kas', kas);
-  alert('? Simpanan pokok '+rupiah(jumlah)+' untuk '+a.nama+' ditambahkan.');
+  alert('✅ Simpanan pokok '+rupiah(jumlah)+' untuk '+a.nama+' ditambahkan.');
   renderSimpanan(); loadDashboard();
 }
 
@@ -2055,7 +2055,7 @@ function openSimpananWajibManual(id){
   mutasi.push({id: uid(), no: noTrx('SWA'), anggotaId: id, jenis: 'wajib_awal', trx: 'setor', jumlah, ket: 'Simpanan wajib awal (input manual)', tanggal: new Date().toISOString().slice(0,10), user: currentUser.username});
   DB.save('mutasi', mutasi);
   const kas = DB.get('kas', {saldo:0}); kas.saldo += jumlah; DB.set('kas', kas);
-  alert('? Simpanan wajib awal '+rupiah(jumlah)+' untuk '+a.nama+' ditambahkan.');
+  alert('✅ Simpanan wajib awal '+rupiah(jumlah)+' untuk '+a.nama+' ditambahkan.');
   renderSimpanan(); loadDashboard();
 }
 // ============ EXPORT ANGGOTA (v3.3: kolom lengkap) ============
@@ -2090,7 +2090,7 @@ function exportAnggotaXLS(){
 function exportAnggotaPDF(){
   const data = filteredAnggota();
   const p = DB.get('pengaturan', {});
-  let html = '<div class="print-header" style="display:block"><h4>' + esc(p.nama || 'KOPKARIN') + '</h4><p>DAFTAR ANGGOTA / KARYAWAN</p><p>Dicetak: ' + tglPanjang(new Date().toISOString().slice(0,10)) + ' � ' + data.length + ' orang</p></div>';
+  let html = '<div class="print-header" style="display:block"><h4>' + esc(p.nama || 'KOPKARIN') + '</h4><p>DAFTAR ANGGOTA / KARYAWAN</p><p>Dicetak: ' + tglPanjang(new Date().toISOString().slice(0,10)) + ' • ' + data.length + ' orang</p></div>';
   html += '<table class="table table-bordered table-sm"><thead><tr><th>No</th><th>No. Anggota</th><th>No. Karyawan</th><th>Nama</th><th>JK</th><th>Tempat, Tgl Lahir</th><th>Umur</th><th>Departemen / Jabatan</th><th>Status Kary.</th><th>Tgl Masuk</th><th>Masa Kerja</th><th>Status</th></tr></thead><tbody>';
   data.forEach((a,i) => {
     const mk = tglMasukOf(a);
@@ -2113,7 +2113,7 @@ function writeXLS(wb, name){ XLSX.writeFile(wb, name); }
 function cetakHTML(html, title, landscape){
   const w = window.open('', '_blank');
   if (!w){ alert('Izinkan pop-up untuk mencetak.'); return; }
-  w.document.write('<html><head><meta charset="utf-8"><title>'+title+'</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"><style>'+(landscape ? '@page{size:A4 landscape;margin:10mm}' : '@page{margin:12mm}')+'body{padding:20px;font-family:"Segoe UI",sans-serif}.print-header{text-align:center;border-bottom:3px double #0a1e3f;margin-bottom:15px;padding-bottom:10px}.print-header h4{margin:0;color:#0a1e3f;font-weight:800}.print-header p{margin:2px 0;font-size:12px;color:#555}table{font-size:11px}thead th{background:#0a1e3f!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}@media print{.noprint{display:none!important}}</style></head><body>'+'<div class="noprint" style="position:sticky;top:0;background:#0a1e3f;padding:8px 14px;margin:-20px -20px 14px;display:flex;gap:8px;z-index:9"><button onclick="window.close()" style="background:#c9a227;border:0;border-radius:8px;padding:6px 16px;font-weight:700;color:#0a1e3f;cursor:pointer">? Tutup</button><button onclick="window.print()" style="background:#fff;border:0;border-radius:8px;padding:6px 16px;font-weight:600;color:#0a1e3f;cursor:pointer">?? Cetak</button></div>'+html+'<script>window.onload=function(){setTimeout(function(){window.print()},500)};<\/script></body></html>');
+  w.document.write('<html><head><meta charset="utf-8"><title>'+title+'</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"><style>'+(landscape ? '@page{size:A4 landscape;margin:10mm}' : '@page{margin:12mm}')+'body{padding:20px;font-family:"Segoe UI",sans-serif}.print-header{text-align:center;border-bottom:3px double #0a1e3f;margin-bottom:15px;padding-bottom:10px}.print-header h4{margin:0;color:#0a1e3f;font-weight:800}.print-header p{margin:2px 0;font-size:12px;color:#555}table{font-size:11px}thead th{background:#0a1e3f!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}@media print{.noprint{display:none!important}}</style></head><body>'+'<div class="noprint" style="position:sticky;top:0;background:#0a1e3f;padding:8px 14px;margin:-20px -20px 14px;display:flex;gap:8px;z-index:9"><button onclick="window.close()" style="background:#c9a227;border:0;border-radius:8px;padding:6px 16px;font-weight:700;color:#0a1e3f;cursor:pointer">✕ Tutup</button><button onclick="window.print()" style="background:#fff;border:0;border-radius:8px;padding:6px 16px;font-weight:600;color:#0a1e3f;cursor:pointer">🖨 Cetak</button></div>'+html+'<script>window.onload=function(){setTimeout(function(){window.print()},500)};<\/script></body></html>');
   w.document.close();
 }
 
@@ -2137,7 +2137,7 @@ function previewImport(e){
       const ws = wb.Sheets[wb.SheetNames[0]];
       const json = XLSX.utils.sheet_to_json(ws);
       importDataPreview = json;
-      let html = '<div class="alert alert-success py-2 mb-2" style="font-size:12px">? '+json.length+' baris terbaca</div>';
+      let html = '<div class="alert alert-success py-2 mb-2" style="font-size:12px">✅ '+json.length+' baris terbaca</div>';
       html += '<div class="table-responsive" style="max-height:300px;overflow-y:auto"><table class="table table-sm"><thead><tr>';
       if (json[0]) Object.keys(json[0]).forEach(k => html += '<th>'+k+'</th>');
       html += '</tr></thead><tbody>';
@@ -2192,7 +2192,7 @@ function prosesImport(){
   });
   DB.save('anggota', anggota);
   DB.save('users', users);
-  alert('? Import selesai!\nBerhasil: '+success+'\nDilewati: '+skip+' (nama/NIK kosong atau NIK sudah terdaftar)');
+  alert('✅ Import selesai!\nBerhasil: '+success+'\nDilewati: '+skip+' (nama/NIK kosong atau NIK sudah terdaftar)');
   bootstrap.Modal.getInstance(document.getElementById('modalImport')).hide();
   initKaryawanUI(); renderAnggota(); fillAnggotaDropdowns(); loadDashboard();
 }
@@ -2242,7 +2242,7 @@ function simpanSimpanan(){
   const kas = DB.get('kas', {saldo:0}); kas.saldo += trx === 'setor' ? jumlah : -jumlah; DB.set('kas', kas);
   bootstrap.Modal.getInstance(document.getElementById('modalSimpanan')).hide();
   renderSimpanan(); renderSukarela(); loadDashboard();
-  alert('? Transaksi berhasil: ' + m.no);
+  alert('✅ Transaksi berhasil: ' + m.no);
 }
 
 function exportSimpananXLS(){
@@ -2313,7 +2313,7 @@ function simpanSukarela(){
   const kas = DB.get('kas', {saldo:0}); kas.saldo += trx === 'setor' ? jumlah : -jumlah; DB.set('kas', kas);
   bootstrap.Modal.getInstance(document.getElementById('modalSukarela')).hide();
   renderSukarela(); renderSimpanan(); loadDashboard();
-  alert('? Transaksi sukarela: ' + m.no);
+  alert('✅ Transaksi sukarela: ' + m.no);
 }
 
 // ============ TABUNGAN ============
@@ -2340,7 +2340,7 @@ function renderTabungan(){
     saldo = m.trx === 'setor' ? saldo + m.jumlah : saldo - m.jumlah;
     rows += '<tr><td>'+(i+1)+'</td><td>'+tgl(m.tanggal)+'</td><td><code style="font-size:11px">'+m.no+'</code></td><td>'+(m.ket || m.jenis + ' - ' + m.trx)+'</td><td class="text-end">'+(m.trx === 'tarik' ? rupiah(m.jumlah) : '-')+'</td><td class="text-end">'+(m.trx === 'setor' ? rupiah(m.jumlah) : '-')+'</td><td class="text-end fw-bold">'+rupiah(saldo)+'</td></tr>';
   });
-  document.getElementById('hasilTabungan').innerHTML = '<div class="print-header" style="display:block"><h4>BUKU TABUNGAN</h4><p>'+anggota.nama+' - '+anggota.nomor+'</p></div><div class="d-flex justify-content-between mb-2"><div><b>'+anggota.nama+'</b><br><small>'+anggota.nomor+' � '+anggota.dept+'</small></div><div class="text-end"><small class="text-muted">Saldo Akhir</small><br><b>'+rupiah(saldo)+'</b></div></div><div class="table-responsive"><table class="table table-bordered table-sm"><thead><tr><th style="width:40px">No</th><th>Tanggal</th><th>Kode</th><th>Keterangan</th><th class="text-end">Debit</th><th class="text-end">Kredit</th><th class="text-end">Saldo</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  document.getElementById('hasilTabungan').innerHTML = '<div class="print-header" style="display:block"><h4>BUKU TABUNGAN</h4><p>'+anggota.nama+' - '+anggota.nomor+'</p></div><div class="d-flex justify-content-between mb-2"><div><b>'+anggota.nama+'</b><br><small>'+anggota.nomor+' • '+anggota.dept+'</small></div><div class="text-end"><small class="text-muted">Saldo Akhir</small><br><b>'+rupiah(saldo)+'</b></div></div><div class="table-responsive"><table class="table table-bordered table-sm"><thead><tr><th style="width:40px">No</th><th>Tanggal</th><th>Kode</th><th>Keterangan</th><th class="text-end">Debit</th><th class="text-end">Kredit</th><th class="text-end">Saldo</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 // ============ PINJAMAN (v4: 5 jenis, persetujuan admin, edit) ============
 function statusBadgeClass(s){ return ({pengajuan:'pending', disetujui:'info', cair:'active', lunas:'active', ditolak:'inactive'})[s] || 'pending'; }
@@ -2396,7 +2396,7 @@ function previewAngsuran(){
   const tenor = +document.getElementById('pinTenor').value || 1;
   const bunga = +document.getElementById('pinBunga').value || 0;
   const c = cicilanOf({jumlah, tenor, bunga});
-  document.getElementById('previewAngsuran').innerHTML = '<b>Estimasi angsuran/bulan: '+rupiah(c.total)+'</b><br>Pokok: '+rupiah(c.pokok)+' � Jasa: '+rupiah(c.jasa)+'<br><span class="text-muted">Jumlah, tenor &amp; jasa final ditetapkan saat persetujuan.</span>';
+  document.getElementById('previewAngsuran').innerHTML = '<b>Estimasi angsuran/bulan: '+rupiah(c.total)+'</b><br>Pokok: '+rupiah(c.pokok)+' • Jasa: '+rupiah(c.jasa)+'<br><span class="text-muted">Jumlah, tenor &amp; jasa final ditetapkan saat persetujuan.</span>';
 }
 
 function simpanPinjaman(){
@@ -2415,7 +2415,7 @@ function simpanPinjaman(){
   DB.save('pinjaman', data);
   bootstrap.Modal.getInstance(document.getElementById('modalPinjaman')).hide();
   renderPinjaman(); renderPersetujuan();
-  alert('? Pengajuan tercatat: ' + p.no + '\nSilakan proses di menu Persetujuan Pengajuan.');
+  alert('✅ Pengajuan tercatat: ' + p.no + '\nSilakan proses di menu Persetujuan Pengajuan.');
 }
 
 // ---------- Persetujuan ----------
@@ -2449,7 +2449,7 @@ function openSetuju(id){
   const diaj = p.jumlahPengajuan !== undefined ? p.jumlahPengajuan : p.jumlah;
   const tn = p.tenorPengajuan !== undefined ? p.tenorPengajuan : p.tenor;
   document.getElementById('stId').value = id;
-  document.getElementById('stInfo').innerHTML = '<div><b>'+esc(a.nama || '-')+'</b> <span class="emp-meta">('+esc(a.nomor || '')+')</span></div><div class="emp-meta">'+esc(jenisOf(p))+' � No. '+esc(p.no)+'</div><div class="mt-2" style="font-size:13px">Diajukan: <b>'+rupiah(diaj)+'</b> � Tenor <b>'+tn+' bln</b> � Tgl '+tgl(p.tanggal)+'</div>';
+  document.getElementById('stInfo').innerHTML = '<div><b>'+esc(a.nama || '-')+'</b> <span class="emp-meta">('+esc(a.nomor || '')+')</span></div><div class="emp-meta">'+esc(jenisOf(p))+' • No. '+esc(p.no)+'</div><div class="mt-2" style="font-size:13px">Diajukan: <b>'+rupiah(diaj)+'</b> • Tenor <b>'+tn+' bln</b> • Tgl '+tgl(p.tanggal)+'</div>';
   document.getElementById('stJumlah').value = diaj;
   document.getElementById('stTenor').value = tn;
   document.getElementById('stBunga').value = p.bunga || DB.get('pengaturan', {}).bunga || 1.5;
@@ -2461,7 +2461,7 @@ function openSetuju(id){
 function hitungSetuju(){
   const j = +document.getElementById('stJumlah').value || 0, t = Math.max(1, +document.getElementById('stTenor').value || 1), b = +document.getElementById('stBunga').value || 0;
   const c = cicilanOf({jumlah:j, tenor:t, bunga:b});
-  document.getElementById('stPreview').innerHTML = '<b>Cicilan per bulan: '+rupiah(c.total)+'</b><br>Pokok: '+rupiah(c.pokok)+' � Jasa: '+rupiah(c.jasa)+'<br>Total jasa: '+rupiah(c.jasa * t)+' � Total yang dibayar: '+rupiah(j + c.jasa * t);
+  document.getElementById('stPreview').innerHTML = '<b>Cicilan per bulan: '+rupiah(c.total)+'</b><br>Pokok: '+rupiah(c.pokok)+' • Jasa: '+rupiah(c.jasa)+'<br>Total jasa: '+rupiah(c.jasa * t)+' • Total yang dibayar: '+rupiah(j + c.jasa * t);
 }
 function simpanSetuju(){
   const id = +document.getElementById('stId').value;
@@ -2481,7 +2481,7 @@ function simpanSetuju(){
   bootstrap.Modal.getInstance(document.getElementById('modalSetuju')).hide();
   renderPersetujuan(); renderPinjaman(); renderPencairan(); renderPayroll(); renderJadwalSelect();
   const c = cicilanOf(p);
-  toast('? <b>'+esc(p.no)+'</b> disetujui: '+rupiah(jumlah)+' / '+tenor+' bln � cicilan '+rupiah(c.total));
+  toast('✅ <b>'+esc(p.no)+'</b> disetujui: '+rupiah(jumlah)+' / '+tenor+' bln • cicilan '+rupiah(c.total));
 }
 function tolakPengajuan(){
   if (!confirm('Tolak pengajuan ini?')) return;
@@ -2520,7 +2520,7 @@ function hitungEdit(){
   const c = cicilanOf({jumlah:j, tenor:t, bunga:b});
   document.getElementById('epPreview').innerHTML = isApproved(document.getElementById('epStatus').value)
     ? '<b>Cicilan/bulan: '+rupiah(c.total)+'</b> (Pokok '+rupiah(c.pokok)+' + Jasa '+rupiah(c.jasa)+')'
-    : 'Status belum disetujui � jumlah &amp; tenor mengikuti data pengajuan.';
+    : 'Status belum disetujui — jumlah &amp; tenor mengikuti data pengajuan.';
 }
 function simpanEditPinjaman(){
   const g = id => document.getElementById(id).value;
@@ -2563,7 +2563,7 @@ function simpanEditPinjaman(){
   if (newDisb !== oldDisb){ const kas = DB.get('kas', {saldo:0}); kas.saldo -= (newDisb - oldDisb); DB.set('kas', kas); }
   bootstrap.Modal.getInstance(document.getElementById('modalEditPinjaman')).hide();
   renderPinjaman(); renderPersetujuan(); renderPencairan(); renderJadwalSelect(); renderPayroll(); renderAngsuran(); loadDashboard();
-  toast('? Pinjaman <b>'+esc(p.no)+'</b> berhasil dikoreksi.');
+  toast('✅ Pinjaman <b>'+esc(p.no)+'</b> berhasil dikoreksi.');
 }
 
 // ---------- Pencairan ----------
@@ -2580,7 +2580,7 @@ function cairkanPinjaman(id){
   DB.save('pinjaman', data);
   const kas = DB.get('kas', {saldo:0}); kas.saldo -= p.jumlah; DB.set('kas', kas);
   renderPinjaman(); renderPencairan(); loadDashboard();
-  alert('? Pinjaman dicairkan. Kas berkurang ' + rupiah(p.jumlah));
+  alert('✅ Pinjaman dicairkan. Kas berkurang ' + rupiah(p.jumlah));
 }
 function renderPencairan(){
   const pinjaman = DB.load('pinjaman').filter(p => p.status === 'disetujui');
@@ -2607,7 +2607,7 @@ function prosesCairMasal(){
   DB.save('pinjaman', data);
   const kas = DB.get('kas', {saldo:0}); kas.saldo -= total; DB.set('kas', kas);
   renderPencairan(); renderPinjaman(); loadDashboard();
-  alert('? '+n+' pinjaman dicairkan. Total kas keluar: '+rupiah(total));
+  alert('✅ '+n+' pinjaman dicairkan. Total kas keluar: '+rupiah(total));
 }
 
 // ============ POTONG WAJIB BULANAN ============
@@ -2626,7 +2626,7 @@ function renderPotongWajib(){
   const mutasi = DB.load('mutasi');
   const done = new Set(mutasi.filter(m => m.jenis === 'wajib' && m.sumber === 'potong' && m.periode === periode).map(m => m.anggotaId));
   const belum = anggota.filter(a => !done.has(a.id));
-  document.getElementById('pwInfo').innerHTML = '<b>'+periodeLabel(periode)+'</b>: '+belum.length+' anggota belum dipotong � '+done.size+' sudah dipotong � Total yang akan diproses: <b>'+rupiah(belum.length * nominal)+'</b>';
+  document.getElementById('pwInfo').innerHTML = '<b>'+periodeLabel(periode)+'</b>: '+belum.length+' anggota belum dipotong • '+done.size+' sudah dipotong • Total yang akan diproses: <b>'+rupiah(belum.length * nominal)+'</b>';
   document.getElementById('tblPotongWajib').innerHTML = anggota.length ? anggota.map(a => {
     const d = done.has(a.id);
     return '<tr><td><input type="checkbox" class="check-pw" value="'+a.id+'"'+(d ? ' disabled' : ' checked')+'></td><td><code style="font-size:11px">'+esc(a.nomor)+'</code></td><td>'+esc(a.nama)+'</td><td>'+esc(val(a.dept))+'</td><td class="text-end">'+rupiah(nominal)+'</td><td>'+(d ? '<span class="badge-soft active">Sudah dipotong</span>' : '<span class="badge-soft pending">Belum</span>')+'</td></tr>';
@@ -2660,7 +2660,7 @@ function prosesPotongWajib(){
   const kas = DB.get('kas', {saldo:0}); kas.saldo += n * nominal; DB.set('kas', kas);
   const set = DB.get('pengaturan', {}); set.wajib = nominal; DB.set('pengaturan', set);
   renderPotongWajib(); renderSimpanan(); renderPayroll(); loadDashboard();
-  toast('? Potongan wajib '+periodeLabel(periode)+': '+n+' anggota � '+rupiah(n * nominal));
+  toast('✅ Potongan wajib '+periodeLabel(periode)+': '+n+' anggota • '+rupiah(n * nominal));
 }
 function batalPotongWajib(periode){
   if (!confirm('Batalkan SEMUA potongan simpanan wajib periode '+periodeLabel(periode)+'?')) return;
@@ -2742,7 +2742,7 @@ function exportPayrollPDF(){
   const d = payrollData();
   if (!d.rows.length){ alert('Tidak ada data potongan untuk periode ini.'); return; }
   const p = DB.get('pengaturan', {});
-  let html = '<div class="print-header"><h4>DAFTAR POTONGAN PAYROLL � '+esc(periodeLabel(d.periode)).toUpperCase()+'</h4><p>'+esc(p.nama || 'KOPKARIN')+' � '+d.rows.length+' anggota</p></div>';
+  let html = '<div class="print-header"><h4>DAFTAR POTONGAN PAYROLL — '+esc(periodeLabel(d.periode)).toUpperCase()+'</h4><p>'+esc(p.nama || 'KOPKARIN')+' • '+d.rows.length+' anggota</p></div>';
   html += '<table class="table table-bordered table-sm"><thead><tr><th>No</th><th>No. Anggota</th><th>NIP</th><th>Nama</th><th>Dept</th><th>Pinjaman</th><th>Pokok</th><th>Jasa</th><th>Angsuran</th><th>S. Wajib</th><th>Total</th></tr></thead><tbody>';
   d.rows.forEach((r,i) => { html += '<tr><td>'+(i+1)+'</td><td>'+esc(r.a.nomor)+'</td><td>'+esc(val(r.a.noKaryawan))+'</td><td>'+esc(r.a.nama)+'</td><td>'+esc(val(r.a.dept))+'</td><td>'+esc(r.items.map(x => jenisOf(x.p).replace('Pinjaman ','')+' ke-'+x.j.ke+'/'+x.p.tenor).join(', ') || '-')+'</td><td align="right">'+rupiah(r.pokok)+'</td><td align="right">'+rupiah(r.jasa)+'</td><td align="right">'+rupiah(r.angsuran)+'</td><td align="right">'+rupiah(r.wajib)+'</td><td align="right"><b>'+rupiah(r.total)+'</b></td></tr>'; });
   html += '<tr><td colspan="6" align="right"><b>TOTAL</b></td><td align="right"><b>'+rupiah(d.rows.reduce((s,r)=>s+r.pokok,0))+'</b></td><td align="right"><b>'+rupiah(d.rows.reduce((s,r)=>s+r.jasa,0))+'</b></td><td align="right"><b>'+rupiah(d.rows.reduce((s,r)=>s+r.angsuran,0))+'</b></td><td align="right"><b>'+rupiah(d.rows.reduce((s,r)=>s+r.wajib,0))+'</b></td><td align="right"><b>'+rupiah(d.rows.reduce((s,r)=>s+r.total,0))+'</b></td></tr></tbody></table>';
@@ -2752,7 +2752,7 @@ function catatPayroll(){
   const d = payrollData();
   const nA = d.rows.reduce((s,r) => s + r.items.length, 0);
   if (!nA && !d.inclW){ alert('Tidak ada potongan untuk dicatat.'); return; }
-  if (!confirm('Catat potongan periode '+periodeLabel(d.periode)+' sebagai TERBAYAR?\n� '+nA+' angsuran pinjaman'+(d.inclW ? '\n� Simpanan wajib '+rupiah(d.wajibNom)+'/anggota (yang belum tercatat pada periode ini)' : '')+'\n\nLakukan hanya setelah payroll benar-benar memotong gaji.')) return;
+  if (!confirm('Catat potongan periode '+periodeLabel(d.periode)+' sebagai TERBAYAR?\n• '+nA+' angsuran pinjaman'+(d.inclW ? '\n• Simpanan wajib '+rupiah(d.wajibNom)+'/anggota (yang belum tercatat pada periode ini)' : '')+'\n\nLakukan hanya setelah payroll benar-benar memotong gaji.')) return;
   const pinAll = DB.load('pinjaman'), angs = DB.load('angsuran'), mutasi = DB.load('mutasi');
   const today = todayStr();
   let masuk = 0, cA = 0, cW = 0;
@@ -2775,7 +2775,7 @@ function catatPayroll(){
   DB.save('pinjaman', pinAll); DB.save('angsuran', angs); DB.save('mutasi', mutasi);
   const kas = DB.get('kas', {saldo:0}); kas.saldo += masuk; DB.set('kas', kas);
   renderPayroll(); renderPinjaman(); renderAngsuran(); renderSimpanan(); renderPotongWajib(); loadDashboard();
-  toast('? Tercatat: '+cA+' angsuran & '+cW+' simpanan wajib � '+rupiah(masuk));
+  toast('✅ Tercatat: '+cA+' angsuran & '+cW+' simpanan wajib • '+rupiah(masuk));
 }
 
 // ============ ANGSURAN ============
@@ -2840,7 +2840,7 @@ function simpanAngsuran(){
   const kas = DB.get('kas', {saldo:0}); kas.saldo += pokok + bunga; DB.set('kas', kas);
   bootstrap.Modal.getInstance(document.getElementById('modalAngsuran')).hide();
   renderAngsuran(); renderPinjaman(); loadDashboard();
-  alert('? Angsuran diterima: ' + a.no);
+  alert('✅ Angsuran diterima: ' + a.no);
 }
 
 // ============ JADWAL ============
@@ -2892,7 +2892,7 @@ function onPilihKeluarAnggota(){
     + '<h6>'+a.nama+' ('+a.nomor+')</h6>'
     + '<p class="mb-1">Total Simpanan: <b>'+rupiah(simpanan)+'</b></p>'
     + '<p class="mb-1">Sisa Pinjaman: <b>'+rupiah(pinjaman)+'</b></p>'
-    + (pinjaman > 0 ? '<div class="alert alert-danger py-2 mt-2" style="font-size:12px">?? Anggota masih punya pinjaman. Tidak bisa keluar.</div>' : '<button class="btn btn-danger mt-2" onclick="prosesKeluar('+id+')">Proses Keluar</button>')
+    + (pinjaman > 0 ? '<div class="alert alert-danger py-2 mt-2" style="font-size:12px">⚠️ Anggota masih punya pinjaman. Tidak bisa keluar.</div>' : '<button class="btn btn-danger mt-2" onclick="prosesKeluar('+id+')">Proses Keluar</button>')
     + '</div></div>';
 }
 function prosesKeluar(id){
@@ -2902,7 +2902,7 @@ function prosesKeluar(id){
   a.status = 'keluar';
   DB.save('anggota', data);
   renderAnggota(); renderMutasiKeluar();
-  alert('? Anggota '+a.nama+' telah keluar.');
+  alert('✅ Anggota '+a.nama+' telah keluar.');
 }
 
 // ============ BANK ============
@@ -2989,7 +2989,7 @@ function hapusUser(id){
 function laporanAnggota(){
   const anggota = DB.load('anggota');
   const aktif = anggota.filter(a => a.status === 'aktif').length;
-  let html = '<div class="print-header" style="display:block"><h4>LAPORAN DATA ANGGOTA / KARYAWAN</h4><p>Total: '+anggota.length+' � Aktif: '+aktif+' � Per '+tglPanjang(new Date().toISOString().slice(0,10))+'</p></div>';
+  let html = '<div class="print-header" style="display:block"><h4>LAPORAN DATA ANGGOTA / KARYAWAN</h4><p>Total: '+anggota.length+' • Aktif: '+aktif+' • Per '+tglPanjang(new Date().toISOString().slice(0,10))+'</p></div>';
   html += '<div class="table-responsive"><table class="table table-bordered table-sm"><thead><tr><th>No</th><th>No. Anggota</th><th>No. Karyawan</th><th>Nama</th><th>JK</th><th>Tempat, Tgl Lahir</th><th>Umur</th><th>Departemen</th><th>Jabatan</th><th>Status Kary.</th><th>Tgl Masuk</th><th>Masa Kerja</th><th>Status</th></tr></thead><tbody>';
   anggota.forEach((a,i) => {
     const mk = tglMasukOf(a);
@@ -3019,7 +3019,7 @@ function laporanPinjaman(jenis){
   const all = DB.load('pinjaman').filter(p => !jenis || jenisOf(p) === jenis);
   const aktif = p => isApproved(p.status);
   const jenisList = jenis ? [jenis] : JENIS_PINJAMAN;
-  const judul = jenis ? 'LAPORAN PINJAMAN � ' + jenis.toUpperCase() : 'LAPORAN PINJAMAN GLOBAL (SEMUA JENIS)';
+  const judul = jenis ? 'LAPORAN PINJAMAN — ' + jenis.toUpperCase() : 'LAPORAN PINJAMAN GLOBAL (SEMUA JENIS)';
   let html = '<div class="print-header" style="display:block"><h4>'+judul+'</h4><p>Per '+tglPanjang(todayS)+'</p></div>';
   // ringkasan per jenis
   html += '<h6 class="fw-bold mt-2">Ringkasan</h6><table class="table table-bordered table-sm" data-sheet="Ringkasan"><thead><tr><th>Jenis Pinjaman</th><th class="text-end">Jml Pinjaman</th><th class="text-end">Total Disetujui</th><th class="text-end">Total Terbayar</th><th class="text-end">Sisa Pokok (Cair)</th><th class="text-end">Menunggu</th><th class="text-end">Ditolak</th></tr></thead><tbody>';
@@ -3085,7 +3085,7 @@ function simpanPengaturan(){
     bunga: +document.getElementById('setBunga').value,
     admin: +document.getElementById('setAdmin').value
   }));
-  alert('? Pengaturan disimpan');
+  alert('✅ Pengaturan disimpan');
 }
 function exportData(){
   const all = {};
@@ -3093,7 +3093,7 @@ function exportData(){
   downloadFile('kopkarin-backup-'+new Date().toISOString().slice(0,10)+'.json', JSON.stringify(all, null, 2), 'application/json');
 }
 async function resetData(){
-  if (!confirm('?? Hapus SEMUA data? Tidak bisa dibatalkan!')) return;
+  if (!confirm('⚠️ Hapus SEMUA data? Tidak bisa dibatalkan!')) return;
   if (!confirm('Yakin 100%?')) return;
   await SYNC.wipe();
   Object.keys(localStorage).filter(k => k.startsWith('kopkarin_')).forEach(k => localStorage.removeItem(k));
@@ -3126,7 +3126,7 @@ function switchMemberTab(tab){
 function renderMemberHome(a){
   document.getElementById('mAvatar').innerHTML = a.foto ? '<img src="'+a.foto+'" alt="">' : esc(a.nama.charAt(0));
   document.getElementById('mName').textContent = a.nama;
-  document.getElementById('mDept').textContent = [a.jabatan, a.dept].filter(Boolean).join(' � ') || '-';
+  document.getElementById('mDept').textContent = [a.jabatan, a.dept].filter(Boolean).join(' • ') || '-';
   renderMemberInfo(a);
   document.getElementById('mNo').textContent = a.nomor;
   const mutasi = DB.load('mutasi').filter(m => m.anggotaId === a.id);
@@ -3165,13 +3165,13 @@ function renderMemberPinjaman(a){
     const tn = p.tenorPengajuan !== undefined ? p.tenorPengajuan : p.tenor;
     const next = (p.jadwal || []).find(j => j.status === 'belum');
     const cls = p.status === 'lunas' ? 'lunas' : (p.status === 'ditolak' ? 'overdue' : '');
-    let d = '<div class="detail">'+esc(jenisOf(p))+' � Diajukan '+tgl(p.tanggal)+': '+rupiah(diaj)+' / '+tn+' bln</div>';
+    let d = '<div class="detail">'+esc(jenisOf(p))+' • Diajukan '+tgl(p.tanggal)+': '+rupiah(diaj)+' / '+tn+' bln</div>';
     if (ok){
-      d += '<div class="detail">Disetujui '+tgl(p.tanggalSetuju)+': <b>'+rupiah(p.jumlah)+'</b> / <b>'+p.tenor+' bln</b> � Jasa '+p.bunga+'%/bln</div>'
+      d += '<div class="detail">Disetujui '+tgl(p.tanggalSetuju)+': <b>'+rupiah(p.jumlah)+'</b> / <b>'+p.tenor+' bln</b> • Jasa '+p.bunga+'%/bln</div>'
         + '<div class="detail">Cicilan/bulan: <b>'+rupiah(c.total)+'</b> (Pokok '+rupiah(c.pokok)+' + Jasa '+rupiah(c.jasa)+')</div>'
-        + '<div class="detail">Sisa pokok: '+rupiah(p.sisaPokok || 0)+(next ? ' � Jatuh tempo berikutnya: '+tgl(next.tanggal) : '')+'</div>';
+        + '<div class="detail">Sisa pokok: '+rupiah(p.sisaPokok || 0)+(next ? ' • Jatuh tempo berikutnya: '+tgl(next.tanggal) : '')+'</div>';
     } else if (p.status === 'pengajuan'){
-      d += '<div class="detail">? Menunggu persetujuan pengurus.</div>';
+      d += '<div class="detail">⏳ Menunggu persetujuan pengurus.</div>';
     } else if (p.status === 'ditolak'){
       d += '<div class="detail">Pengajuan ditolak.'+(p.catatan ? ' Catatan: '+esc(p.catatan) : '')+'</div>';
     }
@@ -3197,20 +3197,20 @@ function ajukanPinjamanAnggota(){
   document.getElementById('mpJumlah').value = '';
   document.getElementById('mpTenor').value = 12;
   renderMemberPinjaman(a);
-  toast('? Pengajuan <b>'+esc(p.no)+'</b> terkirim. Menunggu persetujuan pengurus.');
+  toast('✅ Pengajuan <b>'+esc(p.no)+'</b> terkirim. Menunggu persetujuan pengurus.');
 }
 
 function renderMemberAngsuran(a){
   const pinjaman = DB.load('pinjaman').filter(p => p.anggotaId === a.id);
   const angsuran = DB.load('angsuran').filter(g => pinjaman.some(p => p.id === g.pinjamanId));
   if (!angsuran.length){ document.getElementById('mListAngsuran').innerHTML = '<p class="text-muted">Belum ada angsuran.</p>'; return; }
-  document.getElementById('mListAngsuran').innerHTML = angsuran.slice().reverse().map(g => '<div class="loan-schedule-box lunas"><div class="row-1"><span class="ke">'+g.no+'</span><span class="tgl">'+tgl(g.tanggal)+'</span></div><div class="jumlah">'+rupiah(g.total)+'</div><div class="detail">Pokok: '+rupiah(g.pokok)+' � Bunga: '+rupiah(g.bunga)+'</div></div>').join('');
+  document.getElementById('mListAngsuran').innerHTML = angsuran.slice().reverse().map(g => '<div class="loan-schedule-box lunas"><div class="row-1"><span class="ke">'+g.no+'</span><span class="tgl">'+tgl(g.tanggal)+'</span></div><div class="jumlah">'+rupiah(g.total)+'</div><div class="detail">Pokok: '+rupiah(g.pokok)+' • Bunga: '+rupiah(g.bunga)+'</div></div>').join('');
 }
 
 function renderMemberInfo(a){
   const el = document.getElementById('mInfoKaryawan'); if (!el) return;
   const mk = tglMasukOf(a), hu = hariMenujuUltah(a.tglLahir);
-  el.innerHTML = '<div><small>Tgl Masuk</small><b>'+tgl(mk)+'</b></div><div><small>Masa Kerja</small><b>'+hitungMasaKerja(mk)+'</b></div><div><small>Ulang Tahun</small><b>'+(hu === null ? '-' : (hu === 0 ? '?? Hari ini!' : hu + ' hari lagi'))+'</b></div>';
+  el.innerHTML = '<div><small>Tgl Masuk</small><b>'+tgl(mk)+'</b></div><div><small>Masa Kerja</small><b>'+hitungMasaKerja(mk)+'</b></div><div><small>Ulang Tahun</small><b>'+(hu === null ? '-' : (hu === 0 ? '🎉 Hari ini!' : hu + ' hari lagi'))+'</b></div>';
 }
 
 function renderMemberProfil(a){
@@ -3230,7 +3230,7 @@ function sisaInfo(p){ const j = (p.jadwal || generateJadwalFromPinjaman(p)).filt
 // ---------- mesin laporan (Print / PDF / Excel) ----------
 function rptGet(k){
   const d = $g('rpd-'+k), s = $g('rps-'+k), r = REP[k](d, s);
-  r.k = k; r.sub = [r.sub, document.getElementById('rpd-'+k) ? perLabel(d, s) : ''].filter(Boolean).join(' � ');
+  r.k = k; r.sub = [r.sub, document.getElementById('rpd-'+k) ? perLabel(d, s) : ''].filter(Boolean).join(' • ');
   return r;
 }
 function fmtRows(r){ return r.rows.map(row => row.map((v,i) => r.money && r.money.includes(i) ? rupiah(v) : (v ?? ''))); }
@@ -3241,7 +3241,7 @@ function footRow(r, raw){
 function rptPrint(k){
   const r = rptGet(k); if (!r.rows.length){ alert('Tidak ada data pada periode/filter ini.'); return; }
   const p = PNG(), f = footRow(r), mi = i => r.money && r.money.includes(i) ? ' align="right"' : '';
-  let h = '<div class="print-header"><h4>' + esc(r.title.toUpperCase()) + '</h4><p>' + esc(p.nama || 'KOPKARIN') + ' � Koperasi Karyawan ' + esc(p.pt || '') + '</p><p>' + esc(r.sub) + '</p></div>';
+  let h = '<div class="print-header"><h4>' + esc(r.title.toUpperCase()) + '</h4><p>' + esc(p.nama || 'KOPKARIN') + ' — Koperasi Karyawan ' + esc(p.pt || '') + '</p><p>' + esc(r.sub) + '</p></div>';
   h += '<table class="table table-bordered table-sm"><thead><tr>' + r.head.map(x => '<th>' + esc(x) + '</th>').join('') + '</tr></thead><tbody>';
   h += fmtRows(r).map(row => '<tr>' + row.map((c,i) => '<td' + mi(i) + '>' + esc(c) + '</td>').join('') + '</tr>').join('');
   if (f) h += '<tr style="font-weight:800;background:#f1f5f9">' + f.map((c,i) => '<td' + mi(i) + '>' + esc(c) + '</td>').join('') + '</tr>';
@@ -3351,7 +3351,7 @@ function renderJadwalAngsuran(){
   if (!list.length){ box.innerHTML = '<p class="text-muted">Pilih anggota peminjam, jenis pinjaman, atau satu pinjaman untuk menampilkan jadwal.</p>'; return; }
   box.innerHTML = list.map(p => {
     const a = ANGF(p.anggotaId), si = sisaInfo(p), jd = p.jadwal || generateJadwalFromPinjaman(p), bx = (t,v) => '<div class="col-6 col-md-2"><div style="background:#f8fafc;border-radius:10px;padding:10px"><div style="font-size:10px;color:#6b7280">'+t+'</div><div style="font-weight:700;font-size:13px">'+v+'</div></div></div>';
-    return '<div class="mb-4"><div class="fw-bold mb-2" style="color:#0a1e3f">'+esc(a.nama || '-')+' <small class="text-muted">� '+esc(p.no)+' � '+esc(jenisOf(p))+'</small></div><div class="row g-2 mb-2">'+bx('PINJAMAN',rupiah(p.jumlah))+bx('TENOR',p.tenor+' bln')+bx('JASA',p.bunga+'%/bln')+bx('SISA POKOK',rupiah(si.pokok))+bx('SISA TENOR',si.n+' bln')+bx('SISA ANGSURAN',rupiah(si.tagihan))+'</div>'
+    return '<div class="mb-4"><div class="fw-bold mb-2" style="color:#0a1e3f">'+esc(a.nama || '-')+' <small class="text-muted">• '+esc(p.no)+' • '+esc(jenisOf(p))+'</small></div><div class="row g-2 mb-2">'+bx('PINJAMAN',rupiah(p.jumlah))+bx('TENOR',p.tenor+' bln')+bx('JASA',p.bunga+'%/bln')+bx('SISA POKOK',rupiah(si.pokok))+bx('SISA TENOR',si.n+' bln')+bx('SISA ANGSURAN',rupiah(si.tagihan))+'</div>'
       + '<div class="table-responsive"><table class="table table-bordered table-sm"><thead><tr><th>Ke</th><th>Tanggal</th><th class="text-end">Pokok</th><th class="text-end">Jasa</th><th class="text-end">Total</th><th class="text-end">Sisa Pokok</th><th>Status</th></tr></thead><tbody>'
       + jd.map(j => '<tr><td>'+j.ke+'</td><td>'+tgl(j.tanggal)+'</td><td class="text-end">'+rupiah(j.pokok)+'</td><td class="text-end">'+rupiah(j.jasa)+'</td><td class="text-end fw-bold">'+rupiah(j.total)+'</td><td class="text-end">'+rupiah(j.sisaPokok)+'</td><td><span class="badge-soft '+(j.status === 'lunas' ? 'active' : 'pending')+'">'+j.status+'</span></td></tr>').join('') + '</tbody></table></div></div>';
   }).join('');
@@ -3400,7 +3400,7 @@ function importSimpanan(ev){
       if (!confirm('Import ' + ok.length + ' transaksi (total ' + rupiah(ok.reduce((s,x) => s + x.jumlah, 0)) + ')?' + (err.length ? '\n\n' + err.length + ' baris dilewati:\n' + err.slice(0, 10).join('\n') : ''))) return;
       DB.save('mutasi', mut.concat(ok));
       const kas = DB.get('kas', {saldo:0}); kas.saldo += ok.reduce((s,x) => s + x.jumlah, 0); DB.set('kas', kas);
-      renderSimpanan(); loadDashboard(); toast('? ' + ok.length + ' simpanan berhasil diimport' + (err.length ? ', ' + err.length + ' dilewati' : ''));
+      renderSimpanan(); loadDashboard(); toast('✅ ' + ok.length + ' simpanan berhasil diimport' + (err.length ? ', ' + err.length + ' dilewati' : ''));
     } catch (x) { alert('File tidak dapat dibaca: ' + x.message); }
     ev.target.value = '';
   };
@@ -3456,7 +3456,7 @@ function autoPotongData(per){
 }
 function previewPotongAuto(){
   const per = $g('paPeriode'), done = DB.load('potongAuto').find(x => x.periode === per), list = per ? autoPotongData(per) : [];
-  document.getElementById('paInfo').innerHTML = done ? '<div class="alert alert-danger py-2 mb-2" style="font-size:12px">? Periode <b>'+periodeLabel(per)+'</b> sudah diproses pada '+tgl(done.tanggal)+' ('+done.jumlah+' angsuran, '+rupiah(done.total)+'). Tidak dapat diproses dua kali.</div>' : '<div class="alert alert-info py-2 mb-2" style="font-size:12px">Akan memotong <b>'+list.length+' angsuran</b> (satu angsuran jatuh tempo per pinjaman) senilai <b>'+rupiah(list.reduce((s,x) => s + x.j.total, 0))+'</b>.</div>';
+  document.getElementById('paInfo').innerHTML = done ? '<div class="alert alert-danger py-2 mb-2" style="font-size:12px">⛔ Periode <b>'+periodeLabel(per)+'</b> sudah diproses pada '+tgl(done.tanggal)+' ('+done.jumlah+' angsuran, '+rupiah(done.total)+'). Tidak dapat diproses dua kali.</div>' : '<div class="alert alert-info py-2 mb-2" style="font-size:12px">Akan memotong <b>'+list.length+' angsuran</b> (satu angsuran jatuh tempo per pinjaman) senilai <b>'+rupiah(list.reduce((s,x) => s + x.j.total, 0))+'</b>.</div>';
   document.getElementById('paBtn').disabled = !!done || !list.length;
   document.getElementById('paList').innerHTML = list.map(x => '<tr><td>'+esc(ANGF(x.p.anggotaId).nama || '-')+'</td><td>'+esc(jenisOf(x.p))+' ke-'+x.j.ke+'/'+x.p.tenor+'</td><td class="text-end">'+rupiah(x.j.total)+'</td></tr>').join('');
 }
@@ -3473,7 +3473,7 @@ function prosesPotongAuto(){
   const pa = DB.load('potongAuto'); pa.push({periode: per, tanggal: today, jumlah: list.length, total: tot, user: currentUser.username}); DB.save('potongAuto', pa);
   const kas = DB.get('kas', {saldo:0}); kas.saldo += tot; DB.set('kas', kas);
   bootstrap.Modal.getInstance(document.getElementById('modalPotongAuto')).hide();
-  renderAngsuran(); renderPinjaman(); loadDashboard(); toast('? Potong otomatis ' + periodeLabel(per) + ': ' + list.length + ' angsuran � ' + rupiah(tot));
+  renderAngsuran(); renderPinjaman(); loadDashboard(); toast('✅ Potong otomatis ' + periodeLabel(per) + ': ' + list.length + ' angsuran • ' + rupiah(tot));
 }
 function openPelunasan(){
   const pj = DB.load('pinjaman').filter(p => p.status === 'cair'); if (!pj.length){ alert('Tidak ada pinjaman aktif.'); return; }
@@ -3483,7 +3483,7 @@ function openPelunasan(){
 }
 function infoPelunasan(){
   const p = DB.load('pinjaman').find(x => x.id === +$g('plPin')); if (!p) return; const si = sisaInfo(p);
-  document.getElementById('plInfo').innerHTML = 'Sisa pokok: <b>'+rupiah(si.pokok)+'</b> � Sisa tenor: <b>'+si.n+' bln</b><br>Sisa tagihan terjadwal (pokok+jasa): '+rupiah(si.tagihan)+'<br><b>Total pelunasan = sisa pokok + jasa pelunasan: '+rupiah(si.pokok + (+$g('plJasa') || 0))+'</b>';
+  document.getElementById('plInfo').innerHTML = 'Sisa pokok: <b>'+rupiah(si.pokok)+'</b> • Sisa tenor: <b>'+si.n+' bln</b><br>Sisa tagihan terjadwal (pokok+jasa): '+rupiah(si.tagihan)+'<br><b>Total pelunasan = sisa pokok + jasa pelunasan: '+rupiah(si.pokok + (+$g('plJasa') || 0))+'</b>';
 }
 function prosesPelunasan(){
   const data = DB.load('pinjaman'), p = data.find(x => x.id === +$g('plPin')); if (!p || p.status !== 'cair'){ alert('Pinjaman tidak valid.'); return; }
@@ -3497,7 +3497,7 @@ function prosesPelunasan(){
   if (rehab) data.push({id: uid() + 1, no: noTrx('PJM'), anggotaId: p.anggotaId, jenis: jenisOf(p), jumlah: rj, tenor: rt, bunga: PNG().bunga || 1.5, status: 'pengajuan', tanggal, jumlahPengajuan: rj, tenorPengajuan: rt, tanggalPengajuan: tanggal, sisaPokok: rj, totalBayar: 0, user: currentUser.username, sumber: 'rehab', ket: 'Rehab dari ' + p.no});
   DB.save('pinjaman', data); const kas = DB.get('kas', {saldo:0}); kas.saldo += tot; DB.set('kas', kas);
   bootstrap.Modal.getInstance(document.getElementById('modalPelunasan')).hide();
-  renderAngsuran(); renderPinjaman(); renderPersetujuan(); loadDashboard(); toast('? Pelunasan ' + esc(p.no) + ' ' + rupiah(tot) + (rehab ? ' � pengajuan rehab dibuat' : ''));
+  renderAngsuran(); renderPinjaman(); renderPersetujuan(); loadDashboard(); toast('✅ Pelunasan ' + esc(p.no) + ' ' + rupiah(tot) + (rehab ? ' • pengajuan rehab dibuat' : ''));
 }
 
 // ---------- Payroll: rincian per jenis potongan ----------
@@ -3553,7 +3553,7 @@ function simpanArusKas(){
   if (!tanggal || !jumlah || jumlah < 1){ alert('Tanggal & jumlah wajib diisi.'); return; }
   if (trx === 'keluar' && jumlah > danaSaldo()[dana]){ alert('Saldo ' + dana + ' tidak cukup: ' + rupiah(danaSaldo()[dana])); return; }
   const l = DB.load('aruskas'); l.push({id: uid(), no: noTrx('AK'), tanggal, dana, trx, jumlah, ket: $g('akKet'), user: currentUser.username}); DB.save('aruskas', l);
-  bootstrap.Modal.getInstance(document.getElementById('modalArusKas')).hide(); renderArusKas(); loadDashboard(); toast('? Transaksi ' + dana + ' tersimpan');
+  bootstrap.Modal.getInstance(document.getElementById('modalArusKas')).hide(); renderArusKas(); loadDashboard(); toast('✅ Transaksi ' + dana + ' tersimpan');
 }
 function hapusArusKas(id){ if (!confirm('Hapus transaksi ini?')) return; DB.save('aruskas', DB.load('aruskas').filter(t => t.id !== id)); renderArusKas(); loadDashboard(); }
 function renderDashDana(){
@@ -3562,7 +3562,7 @@ function renderDashDana(){
 }
 
 // ---------- Pengumuman ----------
-if (DB.get('pengumuman', null) === null) DB.set('pengumuman', [{id:1, judul:'?? RAT', isi:'Rapat Anggota Tahunan: 20 Desember 2025', tipe:'info', aktif:true, tgl:todayStr()}, {id:2, judul:'?? Info', isi:'Simpanan wajib dipotong via payroll tiap bulan.', tipe:'warning', aktif:true, tgl:todayStr()}]);
+if (DB.get('pengumuman', null) === null) DB.set('pengumuman', [{id:1, judul:'📢 RAT', isi:'Rapat Anggota Tahunan: 20 Desember 2025', tipe:'info', aktif:true, tgl:todayStr()}, {id:2, judul:'💡 Info', isi:'Simpanan wajib dipotong via payroll tiap bulan.', tipe:'warning', aktif:true, tgl:todayStr()}]);
 function renderPengumuman(){
   const l = DB.load('pengumuman').slice().reverse();
   document.getElementById('tblPengumuman').innerHTML = l.length ? l.map(x => '<tr><td>'+tgl(x.tgl)+'</td><td class="fw-semibold">'+esc(x.judul)+'</td><td style="max-width:360px">'+esc(x.isi)+'</td><td><span class="badge bg-'+({info:'info',warning:'warning',success:'success',danger:'danger'}[x.tipe] || 'info')+'">'+x.tipe+'</span></td><td><div class="form-check form-switch"><input class="form-check-input" type="checkbox" '+(x.aktif ? 'checked' : '')+' onchange="togglePeng('+x.id+')"></div></td><td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-primary btn-sm-c" onclick="openPeng('+x.id+')"><i class="bi bi-pencil"></i></button> <button class="btn btn-sm btn-outline-danger btn-sm-c" onclick="hapusPeng('+x.id+')"><i class="bi bi-trash"></i></button></td></tr>').join('') : '<tr><td colspan="6" class="text-center text-muted py-4">Belum ada pengumuman</td></tr>';
@@ -3572,7 +3572,7 @@ function simpanPeng(){
   const id = +$g('pgId'), judul = $g('pgJudul').trim(), isi = $g('pgIsi').trim(); if (!judul || !isi){ alert('Judul & isi wajib diisi.'); return; }
   const l = DB.load('pengumuman'), o = {judul, isi, tipe: $g('pgTipe'), aktif: document.getElementById('pgAktif').checked, tgl: todayStr()};
   if (id){ Object.assign(l.find(v => v.id === id), o); } else l.push(Object.assign({id: uid()}, o));
-  DB.save('pengumuman', l); bootstrap.Modal.getInstance(document.getElementById('modalPeng')).hide(); renderPengumuman(); toast('? Pengumuman tersimpan');
+  DB.save('pengumuman', l); bootstrap.Modal.getInstance(document.getElementById('modalPeng')).hide(); renderPengumuman(); toast('✅ Pengumuman tersimpan');
 }
 function togglePeng(id){ const l = DB.load('pengumuman'), x = l.find(v => v.id === id); x.aktif = !x.aktif; DB.save('pengumuman', l); }
 function hapusPeng(id){ if (!confirm('Hapus pengumuman ini?')) return; DB.save('pengumuman', DB.load('pengumuman').filter(v => v.id !== id)); renderPengumuman(); }
@@ -3587,7 +3587,7 @@ renderMemberAngsuran = function(a){
   _rma(a);
   const ps = DB.load('pinjaman').filter(p => p.anggotaId === a.id && p.status === 'cair'), el = document.getElementById('mListAngsuran');
   if (!ps.length) return;
-  el.insertAdjacentHTML('afterbegin', '<h6 class="fw-bold mb-2" style="font-size:13px">Sisa Angsuran yang Harus Dibayar</h6>' + ps.map(p => { const si = sisaInfo(p), c = cicilanOf(p); return '<div class="loan-schedule-box"><div class="row-1"><span class="ke">'+esc(p.no)+'</span><span class="badge-soft pending">'+esc(jenisOf(p))+'</span></div><div class="jumlah text-danger">'+rupiah(si.tagihan)+'</div><div class="detail">Sisa tenor: <b>'+si.n+' dari '+p.tenor+' bulan</b> � Sisa pokok: '+rupiah(si.pokok)+'</div><div class="detail">Cicilan/bulan: '+rupiah(c.total)+(si.next ? ' � Jatuh tempo berikutnya: '+tgl(si.next) : '')+'</div></div>'; }).join('') + '<h6 class="fw-bold mb-2 mt-3" style="font-size:13px">Riwayat Pembayaran</h6>');
+  el.insertAdjacentHTML('afterbegin', '<h6 class="fw-bold mb-2" style="font-size:13px">Sisa Angsuran yang Harus Dibayar</h6>' + ps.map(p => { const si = sisaInfo(p), c = cicilanOf(p); return '<div class="loan-schedule-box"><div class="row-1"><span class="ke">'+esc(p.no)+'</span><span class="badge-soft pending">'+esc(jenisOf(p))+'</span></div><div class="jumlah text-danger">'+rupiah(si.tagihan)+'</div><div class="detail">Sisa tenor: <b>'+si.n+' dari '+p.tenor+' bulan</b> • Sisa pokok: '+rupiah(si.pokok)+'</div><div class="detail">Cicilan/bulan: '+rupiah(c.total)+(si.next ? ' • Jatuh tempo berikutnya: '+tgl(si.next) : '')+'</div></div>'; }).join('') + '<h6 class="fw-bold mb-2 mt-3" style="font-size:13px">Riwayat Pembayaran</h6>');
 };
 const _rmh = renderMemberHome;
 renderMemberHome = function(a){ _rmh(a); renderMemberPengumuman(); };
@@ -3630,7 +3630,7 @@ loadDashboard = function(){ _ld(); renderDashDana(); };
 (async function(){
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;z-index:99998;background:#0a1e3f;color:#fff;display:flex;align-items:center;justify-content:center;font:600 14px system-ui,sans-serif';
-  ov.textContent = 'Memuat data�'; document.body.appendChild(ov);
+  ov.textContent = 'Memuat data…'; document.body.appendChild(ov);
   try { await Promise.race([SYNC.hydrate(), new Promise(r => setTimeout(r, 8000))]); } catch(e){}
   const sc = document.createElement('script');
   sc.text = document.getElementById('appMain').textContent;
