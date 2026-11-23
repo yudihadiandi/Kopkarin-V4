@@ -2,6 +2,8 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <!-- Supabase CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -31,7 +33,7 @@ const SYNC = (function(){
       ok:['#198754','☁ Tersinkron'], connecting:['#6c757d','☁ Menghubungkan…'],
       local:['#6c757d','💾 Mode lokal'], error:['#dc3545','⚠ Gagal sync']
     };
-    b.style.background = map[state][0]; b.textContent = map[state][1]; b.title = stateMsg || '';
+    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v5.1'; b.title = stateMsg || '';
   }
   function setState(s, m){ state = s; stateMsg = m || ''; paint(); }
 
@@ -84,9 +86,16 @@ const SYNC = (function(){
     const { error } = await client.from('kv_store').delete().neq('key', '');
     if (error) alert('Gagal menghapus data di server: ' + error.message);
   }
+  async function pull(k){
+    if (!client) return;
+    try{
+      const { data, error } = await client.from('kv_store').select('value').eq('key', k).maybeSingle();
+      if (!error && data && data.value !== undefined) localStorage.setItem(P + k, JSON.stringify(data.value));
+    }catch(e){ console.warn('pull gagal', k, e); }
+  }
   addEventListener('pagehide', flush);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
-  return { push, flush, hydrate, wipe, paint, enabled: !!client };
+  return { push, flush, hydrate, wipe, pull, paint, enabled: !!client };
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -177,6 +186,7 @@ body{background:var(--bg);margin:0}
 .member-hero{background:linear-gradient(135deg,var(--navy),var(--navy-2),#1a3d7a);color:#fff;padding:24px 20px;border-radius:0 0 24px 24px;position:relative;overflow:hidden}
 .member-hero .avatar{width:56px;height:56px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:var(--navy);overflow:hidden}
 .member-hero .avatar img{width:100%;height:100%;object-fit:cover}
+.avatar-cam{position:absolute;right:-4px;bottom:-4px;width:24px;height:24px;border-radius:50%;border:2px solid #fff;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;padding:0;cursor:pointer}
 .member-hero h5{margin:0;font-weight:700}
 .member-hero .sub{font-size:12px;opacity:.8}
 .member-hero .member-no{font-size:11px;background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;display:inline-block;margin-top:6px}
@@ -364,7 +374,7 @@ body{background:var(--bg);margin:0}
       </div>
       <div class="demo-box mt-3 d-none" id="demoBoxMember" style="background:#e0f2fe;border-color:#7dd3fc;color:#075985">
         <b>Login Anggota:</b><br>
-        Gunakan <b>Nomor Anggota</b> (dari petugas koperasi) sebagai username.<br>Password awal: password123
+        Gunakan <b>NIP (No. Karyawan)</b> sebagai username.<br>Password awal: password123. Koreksi password hanya dapat dilakukan oleh Super Admin.
       </div>
     </div>
   </div>
@@ -731,11 +741,11 @@ body{background:var(--bg);margin:0}
     <div class="section" id="sec-users">
       <div class="panel">
         <div class="panel-head"><h6><i class="bi bi-person-gear me-1"></i> Manajemen Pengguna</h6>
-          <button class="btn btn-sm btn-primary-c" onclick="openUserModal()" style="font-size:12px"><i class="bi bi-plus-lg"></i> Tambah User</button>
+          <button class="btn btn-sm btn-primary-c" id="btnTambahUser" onclick="openUserModal()" style="font-size:12px"><i class="bi bi-plus-lg"></i> Tambah User</button>
         </div>
         <div class="panel-body">
           <div class="alert alert-warning py-2 mb-3" style="font-size:12px">
-            <i class="bi bi-key me-1"></i> Hanya <b>Super Admin</b> yang bisa ganti username &amp; password semua user.
+            <i class="bi bi-key me-1"></i> Hanya <b>Super Admin</b> yang bisa menambah user serta mengoreksi password. Username anggota otomatis = <b>NIP</b> (ubah NIP di menu Data Anggota).
           </div>
           <div class="table-responsive"><table class="table"><thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Tipe</th><th>Password</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody id="tblUsers"></tbody></table></div>
         </div>
@@ -774,7 +784,14 @@ body{background:var(--bg);margin:0}
             <div class="col-md-6"><label class="form-label">Nama Perusahaan</label><input class="form-control" id="setPt" value="PT. INSANSANDANG INTERNUSA"></div>
             <div class="col-md-6"><label class="form-label">Simpanan Pokok (Rp)</label><input type="number" class="form-control" id="setPokok" value="50000"></div>
             <div class="col-md-6"><label class="form-label">Simpanan Wajib (Rp)</label><input type="number" class="form-control" id="setWajib" value="25000"></div>
-            <div class="col-md-6"><label class="form-label">Suku Bunga Pinjaman (%/bulan)</label><input type="number" step="0.1" class="form-control" id="setBunga" value="1.5"></div>
+            <div class="col-12"><div class="p-3 rounded" style="background:#f8fafc;border:1px solid #e2e8f0">
+              <h6 class="fw-bold mb-2" style="font-size:13px"><i class="bi bi-percent me-1"></i> Suku Bunga / Jasa Pinjaman (%/bulan)</h6>
+              <div class="row g-3">
+                <div class="col-md-4"><label class="form-label">1. Pinjaman USP, EMG &amp; Lain2</label><input type="number" step="0.1" min="0" class="form-control" id="setBungaUmum" value="1.5"><div class="emp-meta mt-1">Satu suku bunga yang sama untuk ketiga jenis pinjaman ini</div></div>
+                <div class="col-md-4"><label class="form-label">2. Pinjaman Kasbon</label><input type="number" step="0.1" min="0" class="form-control" id="setBungaKasbon" value="1.5"></div>
+                <div class="col-md-4"><label class="form-label">3. Pinjaman Barang</label><input type="number" step="0.1" min="0" class="form-control" id="setBungaBarang" value="1.5"></div>
+              </div>
+            </div></div>
             <div class="col-md-6"><label class="form-label">Biaya Administrasi (Rp)</label><input type="number" class="form-control" id="setAdmin" value="0"></div>
           </div>
           <hr class="my-4">
@@ -792,7 +809,7 @@ body{background:var(--bg);margin:0}
           <hr class="my-4">
           <h6 class="fw-bold">Data Management</h6>
           <button class="btn btn-warning" onclick="exportData()"><i class="bi bi-download me-1"></i> Backup JSON</button>
-          <button class="btn btn-danger" onclick="resetData()"><i class="bi bi-trash me-1"></i> Reset Semua</button>
+          <button class="btn btn-danger" id="btnResetAll" style="display:none" onclick="resetData()"><i class="bi bi-trash me-1"></i> Reset Semua</button>
           <button class="btn btn-info" onclick="forceMigrate()"><i class="bi bi-arrow-repeat me-1"></i> Migrasi</button>
         </div>
       </div>
@@ -805,7 +822,11 @@ body{background:var(--bg);margin:0}
   <div class="member-hero">
     <div class="d-flex justify-content-between align-items-start">
       <div class="d-flex gap-3 align-items-center">
-        <div class="avatar" id="mAvatar">B</div>
+        <div style="position:relative;flex:none">
+          <div class="avatar" id="mAvatar" style="cursor:pointer" title="Ganti foto profil" onclick="document.getElementById('mFotoFile').click()">B</div>
+          <button type="button" class="avatar-cam" title="Ganti foto profil" onclick="document.getElementById('mFotoFile').click()"><i class="bi bi-camera-fill"></i></button>
+          <input type="file" id="mFotoFile" accept="image/*" style="display:none" onchange="gantiFotoAnggota(event)">
+        </div>
         <div><h5 id="mName">Nama</h5><div class="sub" id="mDept">Dept</div><div class="member-no" id="mNo">AGT-0000</div></div>
       </div>
       <button class="btn btn-sm" onclick="logout()" style="background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:10px"><i class="bi bi-box-arrow-right"></i></button>
@@ -849,7 +870,7 @@ body{background:var(--bg);margin:0}
     <div class="msection" id="msec-pinjaman" style="display:none">
       <div class="panel"><div class="panel-head"><h6><i class="bi bi-send me-1"></i> Form Pengajuan Pinjaman</h6></div><div class="panel-body">
         <div class="row g-3">
-          <div class="col-12"><label class="form-label">Jenis Pinjaman *</label><select class="form-select" id="mpJenis"></select></div>
+          <div class="col-12"><label class="form-label">Jenis Pinjaman *</label><select class="form-select" id="mpJenis"></select><div class="emp-meta mt-1" id="mpBungaInfo"></div></div>
           <div class="col-12 col-md-4"><label class="form-label">Tanggal Pengajuan *</label><input type="date" class="form-control" id="mpTanggal"></div>
           <div class="col-6 col-md-4"><label class="form-label">Jumlah Pengajuan (Rp) *</label><input type="number" class="form-control" id="mpJumlah" min="10000" inputmode="numeric"></div>
           <div class="col-6 col-md-4"><label class="form-label">Tenor Pengajuan (bulan) *</label><input type="number" class="form-control" id="mpTenor" value="12" min="1" max="60" inputmode="numeric"></div>
@@ -866,6 +887,7 @@ body{background:var(--bg);margin:0}
       <div class="panel overflow-hidden">
         <div id="mProfilWrap"></div>
         <div class="d-flex gap-2 px-3 pb-3 flex-wrap">
+          <button class="btn btn-outline-secondary flex-fill" onclick="document.getElementById('mFotoFile').click()"><i class="bi bi-camera me-1"></i> Ganti Foto Profil</button>
           <button class="btn btn-primary-c flex-fill" onclick="cetakKartu(currentUser.anggotaId)"><i class="bi bi-person-vcard me-1"></i> Cetak Kartu Anggota</button>
           <button class="btn btn-outline-primary flex-fill" onclick="cetakProfil(currentUser.anggotaId)"><i class="bi bi-printer me-1"></i> Cetak Profil</button>
         </div>
@@ -1112,8 +1134,8 @@ body{background:var(--bg);margin:0}
           <button class="btn btn-outline-secondary" type="button" onclick="genPassword()"><i class="bi bi-dice-5"></i></button>
         </div>
       </div>
-      <div class="mb-3"><label class="form-label">Role *</label>
-        <select class="form-select" id="userRole">
+      <div class="mb-3" id="userRoleWrap"><label class="form-label">Role *</label>
+        <select class="form-select" id="userRoleSel">
           <option value="Super Admin">Super Admin</option>
           <option value="Admin Koperasi">Admin Koperasi</option>
           <option value="Bendahara">Bendahara</option>
@@ -1137,7 +1159,7 @@ body{background:var(--bg);margin:0}
     <div class="modal-header"><h5 class="modal-title">Import Data Anggota (XLS/XLSX/CSV)</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
     <div class="modal-body">
       <div class="alert alert-info py-2 mb-3" style="font-size:12px">
-        <b>Format kolom (baris pertama header):</b><br>
+        <b>Format kolom (baris pertama header):</b> <span class="text-danger">Nama, NIK &amp; No_Karyawan (NIP) wajib diisi — NIP menjadi username login anggota.</span><br>
         <code>Nama | NIK | No_Karyawan | JK | Tempat_Lahir | Tanggal_Lahir | Agama | Status_Nikah | Gol_Darah | Pendidikan | Departemen | Jabatan | Status_Karyawan | Tanggal_Masuk | Tanggal_Bergabung | HP | Email | Alamat | Domisili | Kontak_Darurat | HP_Darurat | Bank | No_Rekening | NPWP | BPJS_TK | BPJS_Kesehatan | Ahli_Waris | Hubungan_Waris | HP_Ahli_Waris</code><br><span class="text-muted">Format tanggal: YYYY-MM-DD atau DD/MM/YYYY. Klik <b>Download Template</b> untuk contoh.</span>
       </div>
       <div class="mb-3">
@@ -1292,6 +1314,18 @@ const DB = {
 // ============ SEED DATA (v4: tanpa data contoh anggota) ============
 const JENIS_PINJAMAN = ['Pinjaman USP','Pinjaman EMG','Pinjaman Lain2','Pinjaman Kasbon','Pinjaman Barang'];
 const jenisOf = p => p.jenis || 'Pinjaman USP';
+// Suku bunga default per jenis pinjaman: (USP, EMG, Lain2) | Kasbon | Barang
+function bungaDefault(jenis){
+  const st = DB.get('pengaturan', {}) || {};
+  const umum = +(st.bungaUmum ?? st.bunga ?? 1.5);
+  if (jenis === 'Pinjaman Kasbon') return +(st.bungaKasbon ?? umum);
+  if (jenis === 'Pinjaman Barang') return +(st.bungaBarang ?? umum);
+  return umum;
+}
+// Username anggota = NIP (No. Karyawan); fallback nomor anggota bila NIP kosong
+function nipOf(a){ return String((a && a.noKaryawan) || '').trim(); }
+function usernameOf(a){ return nipOf(a) || (a && a.nomor) || ''; }
+function isSuperAdmin(){ return !!currentUser && currentUser.type === 'admin' && currentUser.role === 'Super Admin'; }
 const JENIS_SIMPANAN = {pokok:'Simpanan Pokok', wajib_awal:'Simpanan Wajib Awal', wajib:'Simpanan Wajib', sukarela:'Simpanan Sukarela'};
 const jenisLabel = j => JENIS_SIMPANAN[j] || j;
 const todayStr = () => new Date().toISOString().slice(0,10);
@@ -1311,7 +1345,7 @@ function seedData(){
   DB.save('mutasi', []);
   DB.save('pinjaman', []);
   DB.save('angsuran', []);
-  DB.set('pengaturan', {nama:'KOPKARIN', pt:'PT. INSANSANDANG INTERNUSA', pokok:50000, wajib:25000, bunga:1.5, admin:0, logo:''});
+  DB.set('pengaturan', {nama:'KOPKARIN', pt:'PT. INSANSANDANG INTERNUSA', pokok:50000, wajib:25000, bunga:1.5, bungaUmum:1.5, bungaKasbon:1.5, bungaBarang:1.5, admin:0, logo:''});
   DB.set('kas', {saldo:0});
   DB.set('demo_cleaned', true);
 }
@@ -1390,16 +1424,22 @@ function migrateData(){
   users.forEach(u => {
     if (!u.type){ u.type = (adminUsernames.includes(u.username) || u.role !== 'Anggota') ? 'admin' : 'anggota'; changed = true; }
     if (u.type === 'anggota' && !u.anggotaId){
-      const ag = DB.load('anggota').find(a => a.nomor === u.username || a.nama === u.nama);
+      const ag = DB.load('anggota').find(a => a.nomor === u.username || usernameOf(a) === u.username || a.nama === u.nama);
       if (ag) { u.anggotaId = ag.id; changed = true; }
     }
   });
   const anggota = DB.load('anggota');
   anggota.forEach(a => {
-    if (!users.find(u => u.username === a.nomor && u.type === 'anggota')){
-      users.push({id: uid(), username: a.nomor, password: 'password123', nama: a.nama, role: 'Anggota', type: 'anggota', anggotaId: a.id, active: 1, lastLogin: null});
+    if (!users.find(u => u.type === 'anggota' && (u.anggotaId == a.id || u.username === usernameOf(a)))){
+      users.push({id: uid(), username: usernameOf(a), password: 'password123', nama: a.nama, role: 'Anggota', type: 'anggota', anggotaId: a.id, active: 1, lastLogin: null});
       changed = true;
     }
+  });
+  // samakan username semua akun anggota dengan NIP
+  anggota.forEach(a => {
+    const want = usernameOf(a); if (!want) return;
+    const u = users.find(x => x.type === 'anggota' && x.anggotaId == a.id);
+    if (u && u.username !== want && !users.some(x => x !== u && x.username === want)){ u.username = want; changed = true; }
   });
   if (changed) DB.save('users', users);
   const pinjaman = DB.load('pinjaman');
@@ -1448,7 +1488,7 @@ function switchLoginTab(mode){
     tabMember.style.background = 'linear-gradient(135deg,#c9a227,#e6c34b)'; tabMember.style.color = 'var(--navy)'; tabMember.style.border = '1.5px solid var(--gold)';
     tabAdmin.style.background = '#fff'; tabAdmin.style.color = 'var(--gray)'; tabAdmin.style.border = '1.5px solid #e2e8f0';
     btn.className = 'btn-member'; btn.innerHTML = '<i class="bi bi-person-heart me-1"></i> Masuk sebagai Anggota';
-    lbl.textContent = 'Nomor Anggota'; document.getElementById('username').placeholder = 'Contoh: AGT-2026-0001';
+    lbl.textContent = 'NIP (No. Karyawan)'; document.getElementById('username').placeholder = 'Masukkan NIP Anda';
     demoAdmin.classList.add('d-none'); demoMember.classList.remove('d-none');
   }
   document.getElementById('loginError').classList.add('d-none');
@@ -1577,6 +1617,10 @@ function addBackButtons(){
 function fillJenisSelects(){
   const opts = JENIS_PINJAMAN.map(j => '<option>'+j+'</option>').join('');
   ['pinJenis','epJenis','mpJenis'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = opts; });
+  const _pj = document.getElementById('pinJenis'), _ej = document.getElementById('epJenis'), _mj = document.getElementById('mpJenis');
+  if (_pj) _pj.onchange = () => { document.getElementById('pinBunga').value = bungaDefault(_pj.value); previewAngsuran(); };
+  if (_ej) _ej.onchange = () => { document.getElementById('epBunga').value = bungaDefault(_ej.value); if (typeof hitungEdit === 'function') hitungEdit(); };
+  if (_mj) _mj.onchange = updateMpBungaInfo;
   ['filterPinJenis','prJenis'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<option value="">Semua Jenis</option>' + opts; });
   const bar = document.getElementById('barLaporanJenis');
   if (bar) bar.innerHTML = '<div class="emp-meta mb-1 fw-bold">Laporan Pinjaman Terpisah per Jenis:</div><div class="d-flex flex-wrap gap-2">'
@@ -1859,6 +1903,11 @@ function simpanAnggota(){
   const data = DB.load('anggota');
   const id = document.getElementById('angId').value;
   if (data.some(x => x.nik === nik && String(x.id) !== String(id))){ showAngTab('tabPribadi'); alert('NIK ' + nik + ' sudah terdaftar atas anggota lain.'); return; }
+  const nip = g('angNoKar');
+  if (!nip){ showAngTab('tabKerja'); alert('No. Karyawan (NIP) wajib diisi.\nNIP dipakai sebagai username login anggota.'); return; }
+  if (data.some(x => nipOf(x) === nip && String(x.id) !== String(id)) || DB.load('users').some(u => u.username === nip && !(u.type === 'anggota' && String(u.anggotaId) === String(id)))){
+    showAngTab('tabKerja'); alert('NIP ' + nip + ' sudah dipakai (anggota/user lain).'); return;
+  }
   const payload = {};
   Object.entries(ANG_MAP).forEach(([el, key]) => payload[key] = g(el));
   payload.foto = document.getElementById('angFotoData').value;
@@ -1866,7 +1915,7 @@ function simpanAnggota(){
     const idx = data.findIndex(x => x.id == id);
     Object.assign(data[idx], payload);
     const users = DB.load('users');
-    users.forEach(u => { if (u.anggotaId == id) u.nama = nama; });
+    users.forEach(u => { if (u.anggotaId == id){ u.nama = nama; if (u.type === 'anggota') u.username = nip; } });
     DB.save('users', users);
     toast('✅ Data <b>' + esc(nama) + '</b> berhasil diperbarui.');
   } else {
@@ -1874,9 +1923,9 @@ function simpanAnggota(){
     const newId = uid();
     data.push({ id: newId, nomor: num, status: 'aktif', ...payload });
     const users = DB.load('users');
-    users.push({id: uid(), username: num, password: 'password123', nama, role: 'Anggota', type: 'anggota', anggotaId: newId, active: 1, lastLogin: null});
+    users.push({id: uid(), username: nip, password: 'password123', nama, role: 'Anggota', type: 'anggota', anggotaId: newId, active: 1, lastLogin: null});
     DB.save('users', users);
-    alert('✅ Anggota ditambahkan.\nLogin portal:\nUsername: ' + num + '\nPassword: password123');
+    alert('✅ Anggota ditambahkan.\nLogin portal:\nUsername (NIP): ' + nip + '\nPassword: password123');
   }
   DB.save('anggota', data);
   bootstrap.Modal.getInstance(document.getElementById('modalAnggota')).hide();
@@ -2161,8 +2210,10 @@ function prosesImport(){
     const s = keys => String(pick(row, keys)).trim();
     const nama = s(['Nama','nama','NAMA']);
     const nik = s(['NIK','nik']);
-    if (!nama || !nik){ skip++; return; }
+    const nip = s(['No_Karyawan','NIP','no_karyawan']);
+    if (!nama || !nik || !nip){ skip++; return; }
     if (anggota.find(a => a.nik === nik)){ skip++; return; }
+    if (anggota.some(a => nipOf(a) === nip) || users.some(u => u.username === nip)){ skip++; return; }
     const num = nextNomorAnggota(anggota);
     const newId = uid() + success;
     const jkRaw = s(['JK','jk','Jenis_Kelamin']).toUpperCase();
@@ -2187,12 +2238,12 @@ function prosesImport(){
       waris: s(['Ahli_Waris','waris']), warisHub: s(['Hubungan_Waris','hubungan']), warisHp: s(['HP_Ahli_Waris']),
       status: 'aktif', foto: ''
     });
-    users.push({id: uid() + 500000 + success, username: num, password: 'password123', nama, role: 'Anggota', type: 'anggota', anggotaId: newId, active: 1, lastLogin: null});
+    users.push({id: uid() + 500000 + success, username: nip, password: 'password123', nama, role: 'Anggota', type: 'anggota', anggotaId: newId, active: 1, lastLogin: null});
     success++;
   });
   DB.save('anggota', anggota);
   DB.save('users', users);
-  alert('✅ Import selesai!\nBerhasil: '+success+'\nDilewati: '+skip+' (nama/NIK kosong atau NIK sudah terdaftar)');
+  alert('✅ Import selesai!\nBerhasil: '+success+'\nDilewati: '+skip+' (Nama/NIK/NIP kosong, atau NIK/NIP sudah terdaftar)\nUsername login anggota = NIP');
   bootstrap.Modal.getInstance(document.getElementById('modalImport')).hide();
   initKaryawanUI(); renderAnggota(); fillAnggotaDropdowns(); loadDashboard();
 }
@@ -2384,7 +2435,7 @@ function openPinjamanModal(){
   document.getElementById('pinAnggota').innerHTML = DB.load('anggota').filter(a=>a.status==='aktif').map(a => '<option value="'+a.id+'">'+esc(a.nama)+' ('+esc(a.nomor)+')</option>').join('');
   document.getElementById('pinJumlah').value = '';
   document.getElementById('pinTenor').value = 12;
-  document.getElementById('pinBunga').value = DB.get('pengaturan', {bunga:1.5}).bunga || 1.5;
+  document.getElementById('pinBunga').value = bungaDefault(document.getElementById('pinJenis').value);
   document.getElementById('pinTanggal').value = todayStr();
   document.getElementById('previewAngsuran').innerHTML = 'Angsuran per bulan: -';
   ['pinJumlah','pinTenor','pinBunga'].forEach(id => { document.getElementById(id).oninput = previewAngsuran; });
@@ -2452,7 +2503,7 @@ function openSetuju(id){
   document.getElementById('stInfo').innerHTML = '<div><b>'+esc(a.nama || '-')+'</b> <span class="emp-meta">('+esc(a.nomor || '')+')</span></div><div class="emp-meta">'+esc(jenisOf(p))+' • No. '+esc(p.no)+'</div><div class="mt-2" style="font-size:13px">Diajukan: <b>'+rupiah(diaj)+'</b> • Tenor <b>'+tn+' bln</b> • Tgl '+tgl(p.tanggal)+'</div>';
   document.getElementById('stJumlah').value = diaj;
   document.getElementById('stTenor').value = tn;
-  document.getElementById('stBunga').value = p.bunga || DB.get('pengaturan', {}).bunga || 1.5;
+  document.getElementById('stBunga').value = (p.bunga || p.bunga === 0) ? p.bunga : bungaDefault(jenisOf(p));
   document.getElementById('stTanggal').value = todayStr();
   document.getElementById('stCatatan').value = p.catatan || '';
   hitungSetuju();
@@ -2936,13 +2987,18 @@ function hapusBank(id){
 
 // ============ USERS ============
 function renderUsers(){
-  const users = DB.load('users');
-  document.getElementById('tblUsers').innerHTML = users.map(u => '<tr><td>'+u.username+'</td><td>'+u.nama+'</td><td>'+u.role+'</td><td>'+(u.type === 'admin' ? 'Petugas' : 'Anggota')+'</td><td><code>'+u.password+'</code></td><td><span class="badge-soft '+(u.active ? 'active' : 'inactive')+'">'+(u.active ? 'Aktif' : 'Nonaktif')+'</span></td><td class="text-end"><button class="btn btn-sm btn-outline-primary btn-sm-c" onclick="openUserModal('+u.id+')"><i class="bi bi-pencil"></i></button> <button class="btn btn-sm btn-outline-danger btn-sm-c" onclick="hapusUser('+u.id+')"><i class="bi bi-trash"></i></button></td></tr>').join('');
+  const users = DB.load('users'), sa = isSuperAdmin();
+  const bt = document.getElementById('btnTambahUser'); if (bt) bt.style.display = sa ? '' : 'none';
+  document.getElementById('tblUsers').innerHTML = users.map(u => '<tr><td>'+esc(u.username)+'</td><td>'+esc(u.nama)+'</td><td>'+esc(u.role)+'</td><td>'+(u.type === 'admin' ? 'Petugas' : 'Anggota')+'</td><td>'+(sa ? '<code>'+esc(u.password)+'</code>' : '<span class="text-muted">••••••••</span>')+'</td><td><span class="badge-soft '+(u.active ? 'active' : 'inactive')+'">'+(u.active ? 'Aktif' : 'Nonaktif')+'</span></td><td class="text-end">'+(sa ? '<button class="btn btn-sm btn-outline-primary btn-sm-c" onclick="openUserModal('+u.id+')"><i class="bi bi-pencil"></i></button> <button class="btn btn-sm btn-outline-danger btn-sm-c" onclick="hapusUser('+u.id+')"><i class="bi bi-trash"></i></button>' : '<span class="text-muted" style="font-size:11px"><i class="bi bi-lock"></i> Super Admin</span>')+'</td></tr>').join('');
 }
 function openUserModal(id){
+  if (!isSuperAdmin()){ alert('Hanya Super Admin yang dapat menambah/mengubah user dan password.'); return; }
   document.getElementById('modalUserTitle').textContent = id ? 'Edit User' : 'Tambah User';
   document.getElementById('userId').value = '';
-  ['userUsername','userNama','userPassword'].forEach(i => document.getElementById(i).value = '');
+  ['userUsername','userNama','userPassword'].forEach(i => { const e = document.getElementById(i); e.value = ''; e.readOnly = false; });
+  document.getElementById('userRoleWrap').style.display = '';
+  document.getElementById('userRoleSel').value = 'Admin Koperasi';
+  document.getElementById('userActive').value = 1;
   if (id){
     const u = DB.load('users').find(x => x.id === id);
     if (!u) return;
@@ -2950,8 +3006,15 @@ function openUserModal(id){
     document.getElementById('userUsername').value = u.username;
     document.getElementById('userNama').value = u.nama;
     document.getElementById('userPassword').value = u.password;
-    document.getElementById('userRole').value = u.role;
     document.getElementById('userActive').value = u.active ? 1 : 0;
+    if (u.type === 'anggota'){
+      // username anggota = NIP & nama mengikuti Data Anggota -> hanya password & status yang boleh dikoreksi
+      document.getElementById('userUsername').readOnly = true;
+      document.getElementById('userNama').readOnly = true;
+      document.getElementById('userRoleWrap').style.display = 'none';
+    } else {
+      document.getElementById('userRoleSel').value = u.role;
+    }
   }
   new bootstrap.Modal(document.getElementById('modalUser')).show();
 }
@@ -2962,24 +3025,31 @@ function genPassword(){
   document.getElementById('userPassword').value = p;
 }
 function simpanUser(){
+  if (!isSuperAdmin()){ alert('Hanya Super Admin yang dapat mengubah user/password.'); return; }
   const id = document.getElementById('userId').value;
   const username = document.getElementById('userUsername').value.trim();
   const nama = document.getElementById('userNama').value.trim();
   const password = document.getElementById('userPassword').value;
   if (!username || !nama || !password){ alert('Semua field wajib diisi'); return; }
   const users = DB.load('users');
-  const payload = {username, nama, password, role: document.getElementById('userRole').value, active: +document.getElementById('userActive').value, type: 'admin'};
+  if (users.some(x => x.username === username && String(x.id) !== String(id))){ alert('Username "' + username + '" sudah dipakai user lain.'); return; }
+  const active = +document.getElementById('userActive').value;
   if (id){
-    const idx = users.findIndex(x => x.id == id);
-    Object.assign(users[idx], payload);
+    const u = users.find(x => String(x.id) === String(id));
+    if (!u) return;
+    if (u.type === 'anggota'){ u.password = password; u.active = active; }
+    else Object.assign(u, {username, nama, password, role: document.getElementById('userRoleSel').value, active, type: 'admin'});
   } else {
-    users.push({id: uid(), ...payload, lastLogin: null});
+    users.push({id: uid(), username, nama, password, role: document.getElementById('userRoleSel').value, active, type: 'admin', lastLogin: null});
   }
   DB.save('users', users);
   bootstrap.Modal.getInstance(document.getElementById('modalUser')).hide();
   renderUsers();
+  toast('✅ Data user tersimpan');
 }
 function hapusUser(id){
+  if (!isSuperAdmin()){ alert('Hanya Super Admin yang dapat menghapus user.'); return; }
+  if (currentUser && currentUser.id === id){ alert('Akun yang sedang dipakai tidak dapat dihapus.'); return; }
   if (!confirm('Hapus user ini?')) return;
   DB.save('users', DB.load('users').filter(u => u.id !== id));
   renderUsers();
@@ -3072,9 +3142,13 @@ function loadPengaturan(){
   if (document.getElementById('setPt')) document.getElementById('setPt').value = p.pt || 'PT. INSANSANDANG INTERNUSA';
   if (document.getElementById('setPokok')) document.getElementById('setPokok').value = p.pokok || 50000;
   if (document.getElementById('setWajib')) document.getElementById('setWajib').value = p.wajib || 25000;
-  if (document.getElementById('setBunga')) document.getElementById('setBunga').value = p.bunga || 1.5;
+  const bU = (p.bungaUmum ?? p.bunga ?? 1.5);
+  if (document.getElementById('setBungaUmum')) document.getElementById('setBungaUmum').value = bU;
+  if (document.getElementById('setBungaKasbon')) document.getElementById('setBungaKasbon').value = (p.bungaKasbon ?? bU);
+  if (document.getElementById('setBungaBarang')) document.getElementById('setBungaBarang').value = (p.bungaBarang ?? bU);
   if (document.getElementById('setAdmin')) document.getElementById('setAdmin').value = p.admin || 0;
   applyLogo();
+  const rb = document.getElementById('btnResetAll'); if (rb) rb.style.display = isSuperAdmin() ? '' : 'none';
 }
 function simpanPengaturan(){
   DB.set('pengaturan', Object.assign({}, DB.get('pengaturan', {}), {
@@ -3082,7 +3156,10 @@ function simpanPengaturan(){
     pt: document.getElementById('setPt').value,
     pokok: +document.getElementById('setPokok').value,
     wajib: +document.getElementById('setWajib').value,
-    bunga: +document.getElementById('setBunga').value,
+    bunga: +document.getElementById('setBungaUmum').value,
+    bungaUmum: +document.getElementById('setBungaUmum').value,
+    bungaKasbon: +document.getElementById('setBungaKasbon').value,
+    bungaBarang: +document.getElementById('setBungaBarang').value,
     admin: +document.getElementById('setAdmin').value
   }));
   alert('✅ Pengaturan disimpan');
@@ -3093,6 +3170,7 @@ function exportData(){
   downloadFile('kopkarin-backup-'+new Date().toISOString().slice(0,10)+'.json', JSON.stringify(all, null, 2), 'application/json');
 }
 async function resetData(){
+  if (!isSuperAdmin()){ alert('Reset semua data hanya dapat dilakukan oleh Super Admin.'); return; }
   if (!confirm('⚠️ Hapus SEMUA data? Tidak bisa dibatalkan!')) return;
   if (!confirm('Yakin 100%?')) return;
   await SYNC.wipe();
@@ -3154,7 +3232,12 @@ function renderMemberSimpanan(a){
   document.getElementById('mTblSimpanan').innerHTML = sorted.length ? sorted.map(m => '<tr><td>'+tgl(m.tanggal)+'</td><td>'+jenisLabel(m.jenis)+'</td><td>'+m.trx+'</td><td class="text-end fw-bold '+(m.trx === 'setor' ? 'text-success' : 'text-danger')+'">'+(m.trx === 'setor' ? '+' : '-')+' '+rupiah(m.jumlah)+'</td></tr>').join('') : '<tr><td colspan="4" class="text-center text-muted py-3">Belum ada mutasi</td></tr>';
 }
 
+function updateMpBungaInfo(){
+  const j = document.getElementById('mpJenis'), el = document.getElementById('mpBungaInfo');
+  if (j && el && j.value) el.textContent = 'Jasa pinjaman: ' + bungaDefault(j.value) + '%/bulan (final ditetapkan saat persetujuan)';
+}
 function renderMemberPinjaman(a){
+  updateMpBungaInfo();
   const tg = document.getElementById('mpTanggal'); if (tg && !tg.value) tg.value = todayStr();
   const el = document.getElementById('mListPinjaman');
   const pinjaman = DB.load('pinjaman').filter(p => p.anggotaId === a.id).slice().reverse();
@@ -3191,7 +3274,7 @@ function ajukanPinjamanAnggota(){
   if (!tenor || tenor < 1 || tenor > 60){ alert('Tenor pengajuan 1 - 60 bulan.'); return; }
   if (!confirm('Kirim pengajuan?\n'+jenis+'\nJumlah: '+rupiah(jumlah)+'\nTenor: '+tenor+' bulan')) return;
   const data = DB.load('pinjaman');
-  const p = { id: uid(), no: noTrx('PJM'), anggotaId: a.id, jenis, jumlah, tenor, bunga: DB.get('pengaturan', {}).bunga || 1.5, status: 'pengajuan', tanggal, jumlahPengajuan: jumlah, tenorPengajuan: tenor, tanggalPengajuan: tanggal, sisaPokok: jumlah, totalBayar: 0, user: currentUser.username, sumber: 'portal' };
+  const p = { id: uid(), no: noTrx('PJM'), anggotaId: a.id, jenis, jumlah, tenor, bunga: bungaDefault(jenis), status: 'pengajuan', tanggal, jumlahPengajuan: jumlah, tenorPengajuan: tenor, tanggalPengajuan: tanggal, sisaPokok: jumlah, totalBayar: 0, user: currentUser.username, sumber: 'portal' };
   data.push(p);
   DB.save('pinjaman', data);
   document.getElementById('mpJumlah').value = '';
@@ -3213,6 +3296,34 @@ function renderMemberInfo(a){
   el.innerHTML = '<div><small>Tgl Masuk</small><b>'+tgl(mk)+'</b></div><div><small>Masa Kerja</small><b>'+hitungMasaKerja(mk)+'</b></div><div><small>Ulang Tahun</small><b>'+(hu === null ? '-' : (hu === 0 ? '🎉 Hari ini!' : hu + ' hari lagi'))+'</b></div>';
 }
 
+async function gantiFotoAnggota(e){
+  const file = e.target.files && e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  if (!/^image\//.test(file.type)){ alert('File harus berupa gambar (JPG/PNG).'); return; }
+  if (file.size > 8 * 1024 * 1024){ alert('Ukuran foto maksimal 8 MB.'); return; }
+  const rd = new FileReader();
+  rd.onerror = () => alert('Gagal membaca file.');
+  rd.onload = ev => {
+    const img = new Image();
+    img.onerror = () => alert('Gambar tidak dapat dibaca.');
+    img.onload = async () => {
+      // potong persegi di tengah & perkecil agar ringan disimpan
+      const S = 320, c = document.createElement('canvas'); c.width = c.height = S;
+      const side = Math.min(img.width, img.height), sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+      const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, S, S);
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, S, S);
+      const data = c.toDataURL('image/jpeg', 0.85);
+      try { await SYNC.pull('anggota'); } catch(_){}   // ambil data terbaru dulu agar tidak menimpa perubahan admin
+      const list = DB.load('anggota'), a = list.find(x => x.id === currentUser.anggotaId);
+      if (!a){ alert('Data anggota tidak ditemukan.'); return; }
+      a.foto = data; DB.save('anggota', list);
+      renderMemberHome(a); renderMemberProfil(a);
+      toast('✅ Foto profil berhasil diperbarui.');
+    };
+    img.src = ev.target.result;
+  };
+  rd.readAsDataURL(file);
+}
 function renderMemberProfil(a){
   document.getElementById('mProfilWrap').innerHTML = buildProfilHTML(a);
 }
@@ -3557,8 +3668,13 @@ function simpanArusKas(){
 }
 function hapusArusKas(id){ if (!confirm('Hapus transaksi ini?')) return; DB.save('aruskas', DB.load('aruskas').filter(t => t.id !== id)); renderArusKas(); loadDashboard(); }
 function renderDashDana(){
-  const el = document.getElementById('dashDana'); if (!el) return; const s = danaSaldo(), tot = DANA.reduce((z,x) => z + s[x], 0), ic = ['bi-shield-check','bi-heart','bi-mortarboard','bi-bank'];
-  el.innerHTML = '<div class="col-12"><div class="d-flex justify-content-between align-items-center"><b style="color:#0a1e3f;font-size:13px">Pos Kekayaan Koperasi (Arus Kas Buku Besar)</b><span class="badge" style="background:#0a1e3f">Total ' + rupiah(tot) + '</span></div></div>' + DANA.map((x,i) => '<div class="col-6 col-md-3"><div class="stat-card gold"><div class="lbl"><i class="bi '+ic[i]+' me-1"></i>'+x+'</div><div class="val" style="font-size:17px">'+rupiah(s[x])+'</div></div></div>').join('');
+  const el = document.getElementById('dashDana'); if (!el) return;
+  const s = danaSaldo(), tot = DANA.reduce((z,x) => z + s[x], 0), ic = ['bi-shield-check','bi-heart','bi-mortarboard','bi-bank'];
+  const kas = +((DB.get('kas', {saldo:0}) || {}).saldo) || 0, grand = tot + kas;
+  el.innerHTML = '<div class="col-12"><div class="d-flex justify-content-between align-items-center"><b style="color:#0a1e3f;font-size:13px">Pos Kekayaan Koperasi (Arus Kas Buku Besar)</b><span class="badge" style="background:#0a1e3f">Total Keseluruhan ' + rupiah(grand) + '</span></div></div>'
+    + DANA.map((x,i) => '<div class="col-6 col-md-3"><div class="stat-card gold"><div class="lbl"><i class="bi '+ic[i]+' me-1"></i>'+x+'</div><div class="val" style="font-size:17px">'+rupiah(s[x])+'</div></div></div>').join('')
+    + '<div class="col-12 col-md-6"><div class="stat-card green"><div class="lbl"><i class="bi bi-bank2 me-1"></i>Kas &amp; Bank (saldo terkini)</div><div class="val" style="font-size:17px">'+rupiah(kas)+'</div><div class="sub">Total dana ' + rupiah(tot) + '</div></div></div>'
+    + '<div class="col-12 col-md-6"><div class="stat-card" style="background:linear-gradient(135deg,#0a1e3f,#1a3d7a);border-left-color:#c9a227"><div class="lbl" style="color:#e6c34b"><i class="bi bi-safe2 me-1"></i>Total Kekayaan Koperasi</div><div class="val" style="color:#fff;font-size:22px">'+rupiah(grand)+'</div><div class="sub" style="color:rgba(255,255,255,.8)">Dana ' + rupiah(tot) + ' + Kas &amp; Bank ' + rupiah(kas) + '</div></div></div>';
 }
 
 // ---------- Pengumuman ----------
