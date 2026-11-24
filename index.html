@@ -33,7 +33,7 @@ const SYNC = (function(){
       ok:['#198754','☁ Tersinkron'], connecting:['#6c757d','☁ Menghubungkan…'],
       local:['#6c757d','💾 Mode lokal'], error:['#dc3545','⚠ Gagal sync']
     };
-    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v5.1'; b.title = stateMsg || '';
+    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v5.2'; b.title = stateMsg || '';
   }
   function setState(s, m){ state = s; stateMsg = m || ''; paint(); }
 
@@ -477,7 +477,7 @@ body{background:var(--bg);margin:0}
             <select class="form-select" id="filterDept" onchange="renderAnggota()"><option value="">Semua Dept</option></select>
             <select class="form-select" id="filterStatusKar" onchange="renderAnggota()"><option value="">Semua Status Kerja</option></select>
             <select class="form-select" id="filterStatus" onchange="renderAnggota()"><option value="">Semua Status</option><option value="aktif">Aktif</option><option value="keluar">Keluar</option></select>
-            <select class="form-select" id="sortAnggota" onchange="renderAnggota()"><option value="nama">Urut: Nama A–Z</option><option value="nomor">Urut: No. Anggota</option><option value="masuk_baru">Urut: Masuk Terbaru</option><option value="masuk_lama">Urut: Masa Kerja Terlama</option><option value="umur">Urut: Umur Tertua</option></select>
+            <select class="form-select" id="sortAnggota" onchange="renderAnggota()"><option value="nama">Urut: Nama A–Z</option><option value="nomor">Urut: NIP</option><option value="masuk_baru">Urut: Masuk Terbaru</option><option value="masuk_lama">Urut: Masa Kerja Terlama</option><option value="umur">Urut: Umur Tertua</option></select>
           </div>
           <div class="emp-meta mb-2" id="countAnggota"></div>
           <div class="table-responsive d-none d-md-block">
@@ -485,7 +485,7 @@ body{background:var(--bg);margin:0}
               <thead>
                 <tr>
                   <th>Foto</th>
-                  <th>No. Anggota</th>
+                  <th>NIP</th>
                   <th>Nama / NIK</th>
                   <th>Tempat, Tgl Lahir</th>
                   <th>Jabatan / Dept</th>
@@ -645,7 +645,7 @@ body{background:var(--bg);margin:0}
             <div class="col-md-4"><label class="form-label">Tanggal Pencatatan</label><input type="date" class="form-control" id="pwTanggal"></div>
           </div>
           <div class="alert alert-warning py-2 mb-3" style="font-size:12px" id="pwInfo"></div>
-          <div class="table-responsive"><table class="table"><thead><tr><th><input type="checkbox" id="checkAllPw" checked onchange="toggleAllPw()"></th><th>No. Anggota</th><th>Nama</th><th>Departemen</th><th class="text-end">Nominal</th><th>Status Periode</th></tr></thead><tbody id="tblPotongWajib"></tbody></table></div>
+          <div class="table-responsive"><table class="table"><thead><tr><th><input type="checkbox" id="checkAllPw" checked onchange="toggleAllPw()"></th><th>NIP</th><th>Nama</th><th>Departemen</th><th class="text-end">Nominal</th><th>Status Periode</th></tr></thead><tbody id="tblPotongWajib"></tbody></table></div>
           <button class="btn btn-success mt-2" onclick="prosesPotongWajib()"><i class="bi bi-scissors me-1"></i> Proses Potongan Simpanan Wajib</button>
           <hr class="my-4">
           <h6 class="fw-bold mb-2" style="font-size:13px">Riwayat Potongan per Periode</h6>
@@ -674,7 +674,7 @@ body{background:var(--bg);margin:0}
             <div class="col-12 col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="prWajib" onchange="renderPayroll()" checked><label class="form-check-label" for="prWajib" style="font-size:12px">Sertakan simpanan pokok (anggota baru) &amp; wajib (<span id="prWajibNom">Rp 0</span>/anggota, seluruh anggota aktif)</label></div></div>
           </div>
           <div class="hr-stats" id="prStats"></div>
-          <div class="table-responsive"><table class="table table-hover-soft" style="min-width:900px"><thead><tr><th>No</th><th>No. Anggota</th><th>NIP</th><th>Nama</th><th>Dept</th><th>Pinjaman Jatuh Tempo</th><th class="text-end">Pokok</th><th class="text-end">Jasa</th><th class="text-end">Angsuran</th><th class="text-end">S. Wajib</th><th class="text-end">Total Potongan</th></tr></thead><tbody id="prTbody"></tbody><tfoot id="prTfoot"></tfoot></table></div>
+          <div class="table-responsive"><table class="table table-hover-soft" style="min-width:900px"><thead><tr><th>No</th><th>NIP</th><th>Nama</th><th>Dept</th><th>Pinjaman Jatuh Tempo</th><th class="text-end">Pokok</th><th class="text-end">Jasa</th><th class="text-end">Angsuran</th><th class="text-end">S. Wajib</th><th class="text-end">Total Potongan</th></tr></thead><tbody id="prTbody"></tbody><tfoot id="prTfoot"></tfoot></table></div>
           <button class="btn btn-success mt-3" onclick="catatPayroll()"><i class="bi bi-check2-circle me-1"></i> Catat Terbayar (setelah payroll memotong)</button>
         </div>
       </div>
@@ -732,7 +732,7 @@ body{background:var(--bg);margin:0}
       <div class="panel">
         <div class="panel-head"><h6><i class="bi bi-credit-card me-1"></i> Rekening Anggota</h6></div>
         <div class="panel-body">
-          <div class="table-responsive"><table class="table"><thead><tr><th>No. Anggota</th><th>Nama</th><th>Bank</th><th>No. Rekening</th><th>Atas Nama</th><th class="text-end">Aksi</th></tr></thead><tbody id="tblRekAnggota"></tbody></table></div>
+          <div class="table-responsive"><table class="table"><thead><tr><th>NIP</th><th>Nama</th><th>Bank</th><th>No. Rekening</th><th>Atas Nama</th><th class="text-end">Aksi</th></tr></thead><tbody id="tblRekAnggota"></tbody></table></div>
         </div>
       </div>
     </div>
@@ -1325,6 +1325,8 @@ function bungaDefault(jenis){
 // Username anggota = NIP (No. Karyawan); fallback nomor anggota bila NIP kosong
 function nipOf(a){ return String((a && a.noKaryawan) || '').trim(); }
 function usernameOf(a){ return nipOf(a) || (a && a.nomor) || ''; }
+// Identitas anggota yang ditampilkan di semua tabel/laporan = NIP (fallback nomor lama bila NIP kosong)
+function noAng(a){ return nipOf(a) || (a && a.nomor) || ''; }
 function isSuperAdmin(){ return !!currentUser && currentUser.type === 'admin' && currentUser.role === 'Super Admin'; }
 const JENIS_SIMPANAN = {pokok:'Simpanan Pokok', wajib_awal:'Simpanan Wajib Awal', wajib:'Simpanan Wajib', sukarela:'Simpanan Sukarela'};
 const jenisLabel = j => JENIS_SIMPANAN[j] || j;
@@ -1420,6 +1422,11 @@ function migrateData(){
   const users = DB.load('users');
   if (!users.length) return;
   let changed = false;
+  { // nomor anggota di semua data = NIP
+    const angAll = DB.load('anggota'); let angCh = false;
+    angAll.forEach(a => { const n = nipOf(a); if (n && a.nomor !== n){ a.nomor = n; angCh = true; } });
+    if (angCh) DB.save('anggota', angAll);
+  }
   const adminUsernames = ['superadmin','admin','bendahara','kasir'];
   users.forEach(u => {
     if (!u.type){ u.type = (adminUsernames.includes(u.username) || u.role !== 'Anggota') ? 'admin' : 'anggota'; changed = true; }
@@ -1749,7 +1756,7 @@ function filteredAnggota(){
   });
   const sorters = {
     nama: (x,y) => (x.nama||'').localeCompare(y.nama||''),
-    nomor: (x,y) => (x.nomor||'').localeCompare(y.nomor||''),
+    nomor: (x,y) => noAng(x).localeCompare(noAng(y)),
     masuk_baru: (x,y) => tglMasukOf(y).localeCompare(tglMasukOf(x)),
     masuk_lama: (x,y) => (tglMasukOf(x)||'9999').localeCompare(tglMasukOf(y)||'9999'),
     umur: (x,y) => (x.tglLahir||'9999').localeCompare(y.tglLahir||'9999')
@@ -1801,7 +1808,7 @@ function renderAnggota(){
     const mk = tglMasukOf(a);
     return '<tr>'
       + '<td>'+avatarHTML(a)+'</td>'
-      + '<td class="text-nowrap"><code style="font-size:11px">'+esc(a.nomor)+'</code><div class="emp-meta">NIP: '+esc(val(a.noKaryawan))+'</div></td>'
+      + '<td class="text-nowrap"><code style="font-size:11px">'+esc(noAng(a))+'</code></td>'
       + '<td class="col-nama"><div class="emp-name">'+esc(a.nama)+'</div><div class="emp-meta">NIK: '+esc(a.nik)+' • '+jkLabel(a.jk)+'</div></td>'
       + '<td class="col-ttl"><div style="font-size:12.5px">'+esc(ttl(a))+'</div><div class="emp-meta">Umur: '+hitungUmur(a.tglLahir)+'</div></td>'
       + '<td><div class="fw-semibold" style="font-size:12.5px">'+esc(val(a.jabatan))+'</div><div class="emp-meta">'+esc(val(a.dept))+'</div></td>'
@@ -1817,7 +1824,7 @@ function renderAnggota(){
     const mk = tglMasukOf(a);
     const cell = (k,v) => '<div><div class="k">'+k+'</div><div class="v">'+v+'</div></div>';
     return '<div class="emp-card"><div class="top">'+avatarHTML(a)
-      + '<div class="flex-grow-1" style="min-width:0"><div class="emp-name">'+esc(a.nama)+'</div><div class="emp-meta">'+esc(a.nomor)+' • '+esc(val(a.jabatan))+'</div></div>'+badge(a)+'</div>'
+      + '<div class="flex-grow-1" style="min-width:0"><div class="emp-name">'+esc(a.nama)+'</div><div class="emp-meta">'+esc(noAng(a))+' • '+esc(val(a.jabatan))+'</div></div>'+badge(a)+'</div>'
       + '<div class="grid">'
       + cell('Tempat, Tgl Lahir', esc(ttl(a))) + cell('Umur', hitungUmur(a.tglLahir))
       + cell('Tgl Masuk', tgl(mk)) + cell('Masa Kerja', hitungMasaKerja(mk))
@@ -1915,11 +1922,13 @@ function simpanAnggota(){
     const idx = data.findIndex(x => x.id == id);
     Object.assign(data[idx], payload);
     const users = DB.load('users');
+    data.forEach(x => { if (String(x.id) === String(id)) x.nomor = nip; });
+    DB.save('anggota', data);
     users.forEach(u => { if (u.anggotaId == id){ u.nama = nama; if (u.type === 'anggota') u.username = nip; } });
     DB.save('users', users);
     toast('✅ Data <b>' + esc(nama) + '</b> berhasil diperbarui.');
   } else {
-    const num = nextNomorAnggota(data);
+    const num = nip;
     const newId = uid();
     data.push({ id: newId, nomor: num, status: 'aktif', ...payload });
     const users = DB.load('users');
@@ -1941,10 +1950,10 @@ function profilGroups(a){
       ['Tempat, Tgl Lahir', ttl(a)], ['Umur', hitungUmur(a.tglLahir)], ['Agama', a.agama],
       ['Status Pernikahan', a.statusNikah], ['Golongan Darah', a.golDarah], ['Pendidikan Terakhir', a.pendidikan]]},
     {t:'Data Kepegawaian', i:'bi-briefcase', rows:[
-      ['No. Karyawan (NIP)', a.noKaryawan], ['Departemen', a.dept], ['Jabatan', a.jabatan], ['Status Karyawan', a.statusKaryawan],
+      ['NIP', noAng(a)], ['Departemen', a.dept], ['Jabatan', a.jabatan], ['Status Karyawan', a.statusKaryawan],
       ['Tanggal Masuk Kerja', tglPanjang(mk)], ['Masa Kerja', hitungMasaKerja(mk)]]},
     {t:'Keanggotaan Koperasi', i:'bi-people', rows:[
-      ['No. Anggota', a.nomor], ['Tgl Bergabung Koperasi', tglPanjang(a.tgl)], ['Lama Keanggotaan', hitungMasaKerja(a.tgl || '')], ['Status Anggota', a.status]]},
+      ['Tgl Bergabung Koperasi', tglPanjang(a.tgl)], ['Lama Keanggotaan', hitungMasaKerja(a.tgl || '')], ['Status Anggota', a.status]]},
     {t:'Kontak & Alamat', i:'bi-geo-alt', rows:[
       ['No. HP / WA', a.hp], ['Email', a.email], ['Alamat (KTP)', a.alamat], ['Domisili', a.domisili],
       ['Kontak Darurat', (a.daruratNama || '') + (a.daruratHp ? ' • ' + a.daruratHp : '')]]},
@@ -1957,7 +1966,7 @@ function profilGroups(a){
 
 function buildProfilHTML(a){
   const mk = tglMasukOf(a);
-  const tags = [a.nomor, a.noKaryawan ? 'NIP ' + a.noKaryawan : '', a.statusKaryawan, a.status === 'aktif' ? 'Anggota Aktif' : 'Status: ' + a.status].filter(Boolean);
+  const tags = [noAng(a) ? 'NIP ' + noAng(a) : '', a.statusKaryawan, a.status === 'aktif' ? 'Anggota Aktif' : 'Status: ' + a.status].filter(Boolean);
   const hu = hariMenujuUltah(a.tglLahir);
   let h = '<div class="emp-hero"><div class="ph">' + (a.foto ? '<img src="'+a.foto+'" alt="">' : esc(a.nama.charAt(0).toUpperCase())) + '</div>'
     + '<div style="position:relative;z-index:1;min-width:0"><h5>' + esc(a.nama) + '</h5><div class="role">' + esc([a.jabatan, a.dept].filter(Boolean).join(' • ') || '-') + '</div>'
@@ -2011,8 +2020,7 @@ body{padding-top:70px!important}.noprint{position:fixed;top:0;left:0;right:0;bac
 <div class="noprint"><button onclick="window.close()">✕ Tutup</button><button onclick="window.print()">🖨 Cetak</button></div>
 <div class="card"><div class="hd"><div class="lg">${p.logo ? '<img src="'+p.logo+'" style="width:100%;height:100%;object-fit:contain">' : 'K'}</div><div><b>KARTU ANGGOTA ${esc(p.nama || 'KOPKARIN')}</b><small>KOPERASI KARYAWAN ${esc(p.pt || 'PT. INSANSANDANG INTERNUSA')}</small></div></div>
 <div class="bd"><div class="ph">${foto}</div><div><div class="nm">${esc(a.nama)}</div><table>
-<tr><td>No. Anggota</td><td>: ${esc(a.nomor)}</td></tr>
-<tr><td>No. Karyawan</td><td>: ${esc(val(a.noKaryawan))}</td></tr>
+<tr><td>NIP</td><td>: ${esc(noAng(a))}</td></tr>
 <tr><td>Dept / Jabatan</td><td>: ${esc(val(a.dept))}${a.jabatan ? ' / ' + esc(a.jabatan) : ''}</td></tr>
 <tr><td>Tempat, Tgl Lahir</td><td>: ${esc(ttl(a))}</td></tr>
 <tr><td>Tgl Masuk Kerja</td><td>: ${esc(tglPanjang(tglMasukOf(a)))}</td></tr>
@@ -2030,7 +2038,7 @@ function cetakProfil(id){
   const p = DB.get('pengaturan', {});
   const foto = a.foto ? '<img src="'+a.foto+'" style="width:90px;height:110px;object-fit:cover;border-radius:8px">' : '<div style="width:90px;height:110px;border-radius:8px;background:#c9a227;color:#0a1e3f;font-size:40px;font-weight:800;display:flex;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact">'+esc(a.nama.charAt(0).toUpperCase())+'</div>';
   let html = '<div class="print-header"><h4>PROFIL ANGGOTA / KARYAWAN</h4><p>' + esc(p.nama || 'KOPKARIN') + ' — Koperasi Karyawan ' + esc(p.pt || 'PT. INSANSANDANG INTERNUSA') + '</p></div>';
-  html += '<div style="display:flex;gap:16px;align-items:center;margin-bottom:10px">' + foto + '<div><h4 style="margin:0;color:#0a1e3f">' + esc(a.nama) + '</h4><div>' + esc([a.jabatan, a.dept].filter(Boolean).join(' • ') || '-') + '</div><div style="font-size:12px;color:#555">' + esc(a.nomor) + (a.noKaryawan ? ' • NIP ' + esc(a.noKaryawan) : '') + '</div></div></div>';
+  html += '<div style="display:flex;gap:16px;align-items:center;margin-bottom:10px">' + foto + '<div><h4 style="margin:0;color:#0a1e3f">' + esc(a.nama) + '</h4><div>' + esc([a.jabatan, a.dept].filter(Boolean).join(' • ') || '-') + '</div><div style="font-size:12px;color:#555">' + esc(noAng(a)) + (a.noKaryawan ? ' • NIP ' + esc(a.noKaryawan) : '') + '</div></div></div>';
   profilGroups(a).forEach(gr => {
     html += '<div style="background:#0a1e3f;color:#fff;padding:5px 10px;margin-top:12px;font-size:12px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">' + gr.t.toUpperCase() + '</div>'
       + '<table class="table table-sm table-bordered" style="font-size:12px;margin:0">' + gr.rows.map(r => '<tr><td style="width:35%;background:#f8fafc">' + r[0] + '</td><td>' + esc(val(r[1])) + '</td></tr>').join('') + '</table>';
@@ -2080,7 +2088,7 @@ function openSimpananPokokManual(id){
   const a = DB.load('anggota').find(x => x.id === id);
   if (!a) return;
   const p = DB.get('pengaturan', {});
-  const nominal = prompt('Input Simpanan POKOK untuk:\n'+a.nama+' ('+a.nomor+')\n\nNominal (Rp):', p.pokok || 50000);
+  const nominal = prompt('Input Simpanan POKOK untuk:\n'+a.nama+' ('+noAng(a)+')\n\nNominal (Rp):', p.pokok || 50000);
   if (nominal === null) return;
   const jumlah = +nominal;
   if (!jumlah || jumlah <= 0) return;
@@ -2096,7 +2104,7 @@ function openSimpananWajibManual(id){
   const a = DB.load('anggota').find(x => x.id === id);
   if (!a) return;
   const p = DB.get('pengaturan', {});
-  const nominal = prompt('Input Simpanan WAJIB AWAL untuk:\n'+a.nama+' ('+a.nomor+')\n\nNominal (Rp):', p.wajib || 25000);
+  const nominal = prompt('Input Simpanan WAJIB AWAL untuk:\n'+a.nama+' ('+noAng(a)+')\n\nNominal (Rp):', p.wajib || 25000);
   if (nominal === null) return;
   const jumlah = +nominal;
   if (!jumlah || jumlah <= 0) return;
@@ -2109,7 +2117,7 @@ function openSimpananWajibManual(id){
 }
 // ============ EXPORT ANGGOTA (v3.3: kolom lengkap) ============
 const EXPORT_COLS = [
-  ['No. Anggota', a => a.nomor], ['No. Karyawan', a => a.noKaryawan], ['Nama', a => a.nama], ['NIK', a => a.nik], ['Jenis Kelamin', a => jkLabel(a.jk)],
+  ['NIP', a => noAng(a)], ['Nama', a => a.nama], ['NIK', a => a.nik], ['Jenis Kelamin', a => jkLabel(a.jk)],
   ['Tempat Lahir', a => a.tempatLahir], ['Tanggal Lahir', a => a.tglLahir], ['Umur', a => hitungUmur(a.tglLahir)],
   ['Agama', a => a.agama], ['Status Nikah', a => a.statusNikah], ['Gol. Darah', a => a.golDarah], ['Pendidikan', a => a.pendidikan],
   ['Departemen', a => a.dept], ['Jabatan', a => a.jabatan], ['Status Karyawan', a => a.statusKaryawan],
@@ -2140,10 +2148,10 @@ function exportAnggotaPDF(){
   const data = filteredAnggota();
   const p = DB.get('pengaturan', {});
   let html = '<div class="print-header" style="display:block"><h4>' + esc(p.nama || 'KOPKARIN') + '</h4><p>DAFTAR ANGGOTA / KARYAWAN</p><p>Dicetak: ' + tglPanjang(new Date().toISOString().slice(0,10)) + ' • ' + data.length + ' orang</p></div>';
-  html += '<table class="table table-bordered table-sm"><thead><tr><th>No</th><th>No. Anggota</th><th>No. Karyawan</th><th>Nama</th><th>JK</th><th>Tempat, Tgl Lahir</th><th>Umur</th><th>Departemen / Jabatan</th><th>Status Kary.</th><th>Tgl Masuk</th><th>Masa Kerja</th><th>Status</th></tr></thead><tbody>';
+  html += '<table class="table table-bordered table-sm"><thead><tr><th>No</th><th>NIP</th><th>Nama</th><th>JK</th><th>Tempat, Tgl Lahir</th><th>Umur</th><th>Departemen / Jabatan</th><th>Status Kary.</th><th>Tgl Masuk</th><th>Masa Kerja</th><th>Status</th></tr></thead><tbody>';
   data.forEach((a,i) => {
     const mk = tglMasukOf(a);
-    html += '<tr><td>'+(i+1)+'</td><td>'+esc(a.nomor)+'</td><td>'+esc(val(a.noKaryawan))+'</td><td>'+esc(a.nama)+'</td><td>'+esc(a.jk)+'</td><td>'+esc(ttl(a))+'</td><td>'+hitungUmur(a.tglLahir)+'</td><td>'+esc(val(a.dept))+(a.jabatan ? ' / '+esc(a.jabatan) : '')+'</td><td>'+esc(val(a.statusKaryawan))+'</td><td>'+tgl(mk)+'</td><td>'+hitungMasaKerja(mk)+'</td><td>'+esc(a.status)+'</td></tr>';
+    html += '<tr><td>'+(i+1)+'</td><td>'+esc(noAng(a))+'</td><td>'+esc(a.nama)+'</td><td>'+esc(a.jk)+'</td><td>'+esc(ttl(a))+'</td><td>'+hitungUmur(a.tglLahir)+'</td><td>'+esc(val(a.dept))+(a.jabatan ? ' / '+esc(a.jabatan) : '')+'</td><td>'+esc(val(a.statusKaryawan))+'</td><td>'+tgl(mk)+'</td><td>'+hitungMasaKerja(mk)+'</td><td>'+esc(a.status)+'</td></tr>';
   });
   html += '</tbody></table>';
   cetakHTML(html, 'Daftar Anggota', true);
@@ -2214,7 +2222,7 @@ function prosesImport(){
     if (!nama || !nik || !nip){ skip++; return; }
     if (anggota.find(a => a.nik === nik)){ skip++; return; }
     if (anggota.some(a => nipOf(a) === nip) || users.some(u => u.username === nip)){ skip++; return; }
-    const num = nextNomorAnggota(anggota);
+    const num = nip;
     const newId = uid() + success;
     const jkRaw = s(['JK','jk','Jenis_Kelamin']).toUpperCase();
     const tglBergabung = normDate(pick(row, ['Tanggal_Bergabung','tanggal_bergabung','Tgl_Bergabung']));
@@ -2269,7 +2277,7 @@ function renderSimpanan(){
 }
 
 function openSimpananModal(){
-  document.getElementById('simAnggota').innerHTML = DB.load('anggota').filter(a=>a.status==='aktif').map(a => '<option value="'+a.id+'">'+a.nama+' ('+a.nomor+')</option>').join('');
+  document.getElementById('simAnggota').innerHTML = DB.load('anggota').filter(a=>a.status==='aktif').map(a => '<option value="'+a.id+'">'+a.nama+' ('+noAng(a)+')</option>').join('');
   document.getElementById('simJumlah').value = '';
   document.getElementById('simKet').value = '';
   document.getElementById('simTanggal').value = new Date().toISOString().slice(0,10);
@@ -2333,7 +2341,7 @@ function renderSukarela(){
 }
 
 function openSukarelaModal(){
-  document.getElementById('sukAnggota').innerHTML = DB.load('anggota').filter(a=>a.status==='aktif').map(a => '<option value="'+a.id+'">'+a.nama+' ('+a.nomor+')</option>').join('');
+  document.getElementById('sukAnggota').innerHTML = DB.load('anggota').filter(a=>a.status==='aktif').map(a => '<option value="'+a.id+'">'+a.nama+' ('+noAng(a)+')</option>').join('');
   document.getElementById('sukJumlah').value = '';
   document.getElementById('sukKet').value = '';
   document.getElementById('sukTanggal').value = new Date().toISOString().slice(0,10);
@@ -2369,11 +2377,11 @@ function simpanSukarela(){
 
 // ============ TABUNGAN ============
 function fillAnggotaDropdowns(){
-  const html = DB.load('anggota').map(a => '<option value="'+a.id+'">'+a.nama+' ('+a.nomor+')</option>').join('');
+  const html = DB.load('anggota').map(a => '<option value="'+a.id+'">'+a.nama+' ('+noAng(a)+')</option>').join('');
   const el = document.getElementById('pilihAnggotaTab');
   if (el) el.innerHTML = '<option value="">-- Pilih Anggota --</option>' + html;
   const keluar = document.getElementById('keluarAnggota');
-  if (keluar) keluar.innerHTML = '<option value="">-- Pilih Anggota Aktif --</option>' + DB.load('anggota').filter(a=>a.status==='aktif').map(a => '<option value="'+a.id+'">'+a.nama+' ('+a.nomor+')</option>').join('');
+  if (keluar) keluar.innerHTML = '<option value="">-- Pilih Anggota Aktif --</option>' + DB.load('anggota').filter(a=>a.status==='aktif').map(a => '<option value="'+a.id+'">'+a.nama+' ('+noAng(a)+')</option>').join('');
 }
 
 function renderTabungan(){
@@ -2391,7 +2399,7 @@ function renderTabungan(){
     saldo = m.trx === 'setor' ? saldo + m.jumlah : saldo - m.jumlah;
     rows += '<tr><td>'+(i+1)+'</td><td>'+tgl(m.tanggal)+'</td><td><code style="font-size:11px">'+m.no+'</code></td><td>'+(m.ket || m.jenis + ' - ' + m.trx)+'</td><td class="text-end">'+(m.trx === 'tarik' ? rupiah(m.jumlah) : '-')+'</td><td class="text-end">'+(m.trx === 'setor' ? rupiah(m.jumlah) : '-')+'</td><td class="text-end fw-bold">'+rupiah(saldo)+'</td></tr>';
   });
-  document.getElementById('hasilTabungan').innerHTML = '<div class="print-header" style="display:block"><h4>BUKU TABUNGAN</h4><p>'+anggota.nama+' - '+anggota.nomor+'</p></div><div class="d-flex justify-content-between mb-2"><div><b>'+anggota.nama+'</b><br><small>'+anggota.nomor+' • '+anggota.dept+'</small></div><div class="text-end"><small class="text-muted">Saldo Akhir</small><br><b>'+rupiah(saldo)+'</b></div></div><div class="table-responsive"><table class="table table-bordered table-sm"><thead><tr><th style="width:40px">No</th><th>Tanggal</th><th>Kode</th><th>Keterangan</th><th class="text-end">Debit</th><th class="text-end">Kredit</th><th class="text-end">Saldo</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  document.getElementById('hasilTabungan').innerHTML = '<div class="print-header" style="display:block"><h4>BUKU TABUNGAN</h4><p>'+anggota.nama+' - '+noAng(anggota)+'</p></div><div class="d-flex justify-content-between mb-2"><div><b>'+anggota.nama+'</b><br><small>'+noAng(anggota)+' • '+anggota.dept+'</small></div><div class="text-end"><small class="text-muted">Saldo Akhir</small><br><b>'+rupiah(saldo)+'</b></div></div><div class="table-responsive"><table class="table table-bordered table-sm"><thead><tr><th style="width:40px">No</th><th>Tanggal</th><th>Kode</th><th>Keterangan</th><th class="text-end">Debit</th><th class="text-end">Kredit</th><th class="text-end">Saldo</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 // ============ PINJAMAN (v4: 5 jenis, persetujuan admin, edit) ============
 function statusBadgeClass(s){ return ({pengajuan:'pending', disetujui:'info', cair:'active', lunas:'active', ditolak:'inactive'})[s] || 'pending'; }
@@ -2432,7 +2440,7 @@ function renderPinjaman(){
 }
 
 function openPinjamanModal(){
-  document.getElementById('pinAnggota').innerHTML = DB.load('anggota').filter(a=>a.status==='aktif').map(a => '<option value="'+a.id+'">'+esc(a.nama)+' ('+esc(a.nomor)+')</option>').join('');
+  document.getElementById('pinAnggota').innerHTML = DB.load('anggota').filter(a=>a.status==='aktif').map(a => '<option value="'+a.id+'">'+esc(a.nama)+' ('+esc(noAng(a))+')</option>').join('');
   document.getElementById('pinJumlah').value = '';
   document.getElementById('pinTenor').value = 12;
   document.getElementById('pinBunga').value = bungaDefault(document.getElementById('pinJenis').value);
@@ -2473,7 +2481,7 @@ function simpanPinjaman(){
 function renderPersetujuan(){
   const tbl = document.getElementById('tblPersetujuan'); if (!tbl) return;
   const pin = DB.load('pinjaman'), anggota = DB.load('anggota');
-  const nm = id => { const a = anggota.find(x => x.id === id); return a ? esc(a.nama) + '<div class="emp-meta">' + esc(a.nomor) + '</div>' : '-'; };
+  const nm = id => { const a = anggota.find(x => x.id === id); return a ? esc(a.nama) + '<div class="emp-meta">' + esc(noAng(a)) + '</div>' : '-'; };
   const wait = pin.filter(p => p.status === 'pengajuan').sort((x,y) => (x.tanggal||'').localeCompare(y.tanggal||''));
   document.getElementById('cntPengajuan').textContent = wait.length;
   tbl.innerHTML = wait.length ? wait.map(p => {
@@ -2500,7 +2508,7 @@ function openSetuju(id){
   const diaj = p.jumlahPengajuan !== undefined ? p.jumlahPengajuan : p.jumlah;
   const tn = p.tenorPengajuan !== undefined ? p.tenorPengajuan : p.tenor;
   document.getElementById('stId').value = id;
-  document.getElementById('stInfo').innerHTML = '<div><b>'+esc(a.nama || '-')+'</b> <span class="emp-meta">('+esc(a.nomor || '')+')</span></div><div class="emp-meta">'+esc(jenisOf(p))+' • No. '+esc(p.no)+'</div><div class="mt-2" style="font-size:13px">Diajukan: <b>'+rupiah(diaj)+'</b> • Tenor <b>'+tn+' bln</b> • Tgl '+tgl(p.tanggal)+'</div>';
+  document.getElementById('stInfo').innerHTML = '<div><b>'+esc(a.nama || '-')+'</b> <span class="emp-meta">('+esc(noAng(a) || '')+')</span></div><div class="emp-meta">'+esc(jenisOf(p))+' • No. '+esc(p.no)+'</div><div class="mt-2" style="font-size:13px">Diajukan: <b>'+rupiah(diaj)+'</b> • Tenor <b>'+tn+' bln</b> • Tgl '+tgl(p.tanggal)+'</div>';
   document.getElementById('stJumlah').value = diaj;
   document.getElementById('stTenor').value = tn;
   document.getElementById('stBunga').value = (p.bunga || p.bunga === 0) ? p.bunga : bungaDefault(jenisOf(p));
@@ -2552,7 +2560,7 @@ function openEditPinjaman(id){
   const p = DB.load('pinjaman').find(x => x.id === id);
   if (!p) return;
   document.getElementById('epId').value = id;
-  document.getElementById('epAnggota').innerHTML = DB.load('anggota').map(a => '<option value="'+a.id+'"'+(a.id === p.anggotaId ? ' selected' : '')+'>'+esc(a.nama)+' ('+esc(a.nomor)+')</option>').join('');
+  document.getElementById('epAnggota').innerHTML = DB.load('anggota').map(a => '<option value="'+a.id+'"'+(a.id === p.anggotaId ? ' selected' : '')+'>'+esc(a.nama)+' ('+esc(noAng(a))+')</option>').join('');
   document.getElementById('epJenis').value = jenisOf(p);
   document.getElementById('epTglPengajuan').value = p.tanggal || '';
   document.getElementById('epJmlPengajuan').value = p.jumlahPengajuan !== undefined ? p.jumlahPengajuan : p.jumlah;
@@ -2680,7 +2688,7 @@ function renderPotongWajib(){
   document.getElementById('pwInfo').innerHTML = '<b>'+periodeLabel(periode)+'</b>: '+belum.length+' anggota belum dipotong • '+done.size+' sudah dipotong • Total yang akan diproses: <b>'+rupiah(belum.length * nominal)+'</b>';
   document.getElementById('tblPotongWajib').innerHTML = anggota.length ? anggota.map(a => {
     const d = done.has(a.id);
-    return '<tr><td><input type="checkbox" class="check-pw" value="'+a.id+'"'+(d ? ' disabled' : ' checked')+'></td><td><code style="font-size:11px">'+esc(a.nomor)+'</code></td><td>'+esc(a.nama)+'</td><td>'+esc(val(a.dept))+'</td><td class="text-end">'+rupiah(nominal)+'</td><td>'+(d ? '<span class="badge-soft active">Sudah dipotong</span>' : '<span class="badge-soft pending">Belum</span>')+'</td></tr>';
+    return '<tr><td><input type="checkbox" class="check-pw" value="'+a.id+'"'+(d ? ' disabled' : ' checked')+'></td><td><code style="font-size:11px">'+esc(noAng(a))+'</code></td><td>'+esc(a.nama)+'</td><td>'+esc(val(a.dept))+'</td><td class="text-end">'+rupiah(nominal)+'</td><td>'+(d ? '<span class="badge-soft active">Sudah dipotong</span>' : '<span class="badge-soft pending">Belum</span>')+'</td></tr>';
   }).join('') : '<tr><td colspan="6" class="text-center text-muted py-4">Belum ada anggota aktif</td></tr>';
   const grp = {};
   mutasi.filter(m => m.sumber === 'potong').forEach(m => { const g = grp[m.periode] || (grp[m.periode] = {n:0, t:0, tgl:m.tanggal}); g.n++; g.t += m.jumlah; });
@@ -2743,7 +2751,7 @@ function payrollDataBase(){
       if (j && j.tanggal.slice(0,7) <= periode) items.push({p, j});
     });
     if (!items.length && !inclW) return;
-    if (q && ![a.nama, a.nomor, a.noKaryawan, a.dept].join(' ').toLowerCase().includes(q)) return;
+    if (q && ![a.nama, noAng(a), a.noKaryawan, a.dept].join(' ').toLowerCase().includes(q)) return;
     const pokok = items.reduce((s,x) => s + x.j.pokok, 0), jasa = items.reduce((s,x) => s + x.j.jasa, 0);
     const w = inclW ? wajibNom : 0;
     rows.push({a, items, pokok, jasa, angsuran: pokok + jasa, wajib: w, total: pokok + jasa + w});
@@ -2762,16 +2770,16 @@ function renderPayroll(){
   document.getElementById('prStats').innerHTML = box('bi-people-fill','i-navy',d.rows.length,'Anggota Dipotong') + box('bi-receipt','i-blue',nPin,'Angsuran Jatuh Tempo') + box('bi-cash-coin','i-gold',rupiah(tp + tj),'Total Angsuran') + box('bi-piggy-bank','i-green',rupiah(tw),'Simpanan Wajib') + box('bi-wallet2','i-red',rupiah(tt),'Total Potongan');
   document.getElementById('prTbody').innerHTML = d.rows.length ? d.rows.map((r,i) => {
     const pj = r.items.length ? r.items.map(x => '<div class="emp-meta" style="color:#334155">'+esc(jenisOf(x.p).replace('Pinjaman ',''))+' ke-'+x.j.ke+'/'+x.p.tenor+(x.j.tanggal.slice(0,7) < d.periode ? ' <span class="text-danger">(tertunggak)</span>' : '')+'</div>').join('') : '<span class="text-muted">-</span>';
-    return '<tr><td>'+(i+1)+'</td><td><code style="font-size:11px">'+esc(r.a.nomor)+'</code></td><td>'+esc(val(r.a.noKaryawan))+'</td><td class="fw-semibold">'+esc(r.a.nama)+'</td><td>'+esc(val(r.a.dept))+'</td><td>'+pj+'</td><td class="text-end">'+rupiah(r.pokok)+'</td><td class="text-end">'+rupiah(r.jasa)+'</td><td class="text-end">'+rupiah(r.angsuran)+'</td><td class="text-end">'+rupiah(r.wajib)+'</td><td class="text-end fw-bold">'+rupiah(r.total)+'</td></tr>';
-  }).join('') : '<tr><td colspan="11" class="text-center text-muted py-4">Tidak ada potongan untuk periode ini</td></tr>';
+    return '<tr><td>'+(i+1)+'</td><td><code style="font-size:11px">'+esc(noAng(r.a))+'</code></td><td class="fw-semibold">'+esc(r.a.nama)+'</td><td>'+esc(val(r.a.dept))+'</td><td>'+pj+'</td><td class="text-end">'+rupiah(r.pokok)+'</td><td class="text-end">'+rupiah(r.jasa)+'</td><td class="text-end">'+rupiah(r.angsuran)+'</td><td class="text-end">'+rupiah(r.wajib)+'</td><td class="text-end fw-bold">'+rupiah(r.total)+'</td></tr>';
+  }).join('') : '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada potongan untuk periode ini</td></tr>';
   document.getElementById('prTfoot').innerHTML = d.rows.length ? '<tr style="font-weight:800;background:#f8fafc"><td colspan="6" class="text-end">TOTAL</td><td class="text-end">'+rupiah(tp)+'</td><td class="text-end">'+rupiah(tj)+'</td><td class="text-end">'+rupiah(tp + tj)+'</td><td class="text-end">'+rupiah(tw)+'</td><td class="text-end">'+rupiah(tt)+'</td></tr>' : '';
 }
 function payrollExportRows(d){
-  return d.rows.map((r,i) => ({No: i+1, No_Anggota: r.a.nomor, No_Karyawan: r.a.noKaryawan || '', Nama: r.a.nama, Departemen: r.a.dept || '', Periode: d.periode, Angsuran_Pokok: r.pokok, Angsuran_Jasa: r.jasa, Total_Angsuran: r.angsuran, Simpanan_Wajib: r.wajib, Total_Potongan: r.total}));
+  return d.rows.map((r,i) => ({No: i+1, NIP: noAng(r.a), Nama: r.a.nama, Departemen: r.a.dept || '', Periode: d.periode, Angsuran_Pokok: r.pokok, Angsuran_Jasa: r.jasa, Total_Angsuran: r.angsuran, Simpanan_Wajib: r.wajib, Total_Potongan: r.total}));
 }
 function payrollDetailRows(d){
   const o = [];
-  d.rows.forEach(r => r.items.forEach(x => o.push({No_Karyawan: r.a.noKaryawan || '', Nama: r.a.nama, No_Pinjaman: x.p.no, Jenis_Pinjaman: jenisOf(x.p), Angsuran_Ke: x.j.ke, Tenor: x.p.tenor, Jatuh_Tempo: x.j.tanggal, Pokok: x.j.pokok, Jasa: x.j.jasa, Total: x.j.total})));
+  d.rows.forEach(r => r.items.forEach(x => o.push({NIP: noAng(r.a), Nama: r.a.nama, No_Pinjaman: x.p.no, Jenis_Pinjaman: jenisOf(x.p), Angsuran_Ke: x.j.ke, Tenor: x.p.tenor, Jatuh_Tempo: x.j.tanggal, Pokok: x.j.pokok, Jasa: x.j.jasa, Total: x.j.total})));
   return o;
 }
 function exportPayrollXLS(){
@@ -2794,8 +2802,8 @@ function exportPayrollPDF(){
   if (!d.rows.length){ alert('Tidak ada data potongan untuk periode ini.'); return; }
   const p = DB.get('pengaturan', {});
   let html = '<div class="print-header"><h4>DAFTAR POTONGAN PAYROLL — '+esc(periodeLabel(d.periode)).toUpperCase()+'</h4><p>'+esc(p.nama || 'KOPKARIN')+' • '+d.rows.length+' anggota</p></div>';
-  html += '<table class="table table-bordered table-sm"><thead><tr><th>No</th><th>No. Anggota</th><th>NIP</th><th>Nama</th><th>Dept</th><th>Pinjaman</th><th>Pokok</th><th>Jasa</th><th>Angsuran</th><th>S. Wajib</th><th>Total</th></tr></thead><tbody>';
-  d.rows.forEach((r,i) => { html += '<tr><td>'+(i+1)+'</td><td>'+esc(r.a.nomor)+'</td><td>'+esc(val(r.a.noKaryawan))+'</td><td>'+esc(r.a.nama)+'</td><td>'+esc(val(r.a.dept))+'</td><td>'+esc(r.items.map(x => jenisOf(x.p).replace('Pinjaman ','')+' ke-'+x.j.ke+'/'+x.p.tenor).join(', ') || '-')+'</td><td align="right">'+rupiah(r.pokok)+'</td><td align="right">'+rupiah(r.jasa)+'</td><td align="right">'+rupiah(r.angsuran)+'</td><td align="right">'+rupiah(r.wajib)+'</td><td align="right"><b>'+rupiah(r.total)+'</b></td></tr>'; });
+  html += '<table class="table table-bordered table-sm"><thead><tr><th>No</th><th>NIP</th><th>Nama</th><th>Dept</th><th>Pinjaman</th><th>Pokok</th><th>Jasa</th><th>Angsuran</th><th>S. Wajib</th><th>Total</th></tr></thead><tbody>';
+  d.rows.forEach((r,i) => { html += '<tr><td>'+(i+1)+'</td><td>'+esc(noAng(r.a))+'</td><td>'+esc(r.a.nama)+'</td><td>'+esc(val(r.a.dept))+'</td><td>'+esc(r.items.map(x => jenisOf(x.p).replace('Pinjaman ','')+' ke-'+x.j.ke+'/'+x.p.tenor).join(', ') || '-')+'</td><td align="right">'+rupiah(r.pokok)+'</td><td align="right">'+rupiah(r.jasa)+'</td><td align="right">'+rupiah(r.angsuran)+'</td><td align="right">'+rupiah(r.wajib)+'</td><td align="right"><b>'+rupiah(r.total)+'</b></td></tr>'; });
   html += '<tr><td colspan="6" align="right"><b>TOTAL</b></td><td align="right"><b>'+rupiah(d.rows.reduce((s,r)=>s+r.pokok,0))+'</b></td><td align="right"><b>'+rupiah(d.rows.reduce((s,r)=>s+r.jasa,0))+'</b></td><td align="right"><b>'+rupiah(d.rows.reduce((s,r)=>s+r.angsuran,0))+'</b></td><td align="right"><b>'+rupiah(d.rows.reduce((s,r)=>s+r.wajib,0))+'</b></td><td align="right"><b>'+rupiah(d.rows.reduce((s,r)=>s+r.total,0))+'</b></td></tr></tbody></table>';
   cetakHTML(html, 'Potongan Payroll ' + d.periode, true);
 }
@@ -2940,7 +2948,7 @@ function onPilihKeluarAnggota(){
   const simpanan = mutasi.reduce((s,m) => m.trx === 'setor' ? s + m.jumlah : s - m.jumlah, 0);
   const pinjaman = DB.load('pinjaman').filter(p => p.anggotaId === id && p.status === 'cair').reduce((s,p) => s + p.sisaPokok, 0);
   document.getElementById('infoKeluar').innerHTML = '<div class="panel" style="box-shadow:none;border:1px solid #e5e9f2"><div class="panel-body">'
-    + '<h6>'+a.nama+' ('+a.nomor+')</h6>'
+    + '<h6>'+a.nama+' ('+noAng(a)+')</h6>'
     + '<p class="mb-1">Total Simpanan: <b>'+rupiah(simpanan)+'</b></p>'
     + '<p class="mb-1">Sisa Pinjaman: <b>'+rupiah(pinjaman)+'</b></p>'
     + (pinjaman > 0 ? '<div class="alert alert-danger py-2 mt-2" style="font-size:12px">⚠️ Anggota masih punya pinjaman. Tidak bisa keluar.</div>' : '<button class="btn btn-danger mt-2" onclick="prosesKeluar('+id+')">Proses Keluar</button>')
@@ -2961,7 +2969,7 @@ function renderBank(){
   const bank = DB.load('bank');
   document.getElementById('tblBank').innerHTML = bank.length ? bank.map(b => '<tr><td>'+b.kode+'</td><td>'+b.nama+'</td><td>'+(b.rek||'-')+'</td><td>'+(b.an||'-')+'</td><td class="text-end">'+rupiah(b.saldo||0)+'</td><td class="text-end"><button class="btn btn-sm btn-outline-danger btn-sm-c" onclick="hapusBank('+b.id+')"><i class="bi bi-trash"></i></button></td></tr>').join('') : '<tr><td colspan="6" class="text-center text-muted py-4">Belum ada bank</td></tr>';
   const anggota = DB.load('anggota').filter(a => a.bank && a.rek);
-  document.getElementById('tblRekAnggota').innerHTML = anggota.length ? anggota.map(a => '<tr><td>'+a.nomor+'</td><td>'+a.nama+'</td><td>'+(a.bank||'-')+'</td><td>'+(a.rek||'-')+'</td><td>'+a.nama+'</td><td class="text-end"><span class="badge-soft info">-</span></td></tr>').join('') : '<tr><td colspan="6" class="text-center text-muted py-4">Belum ada rekening anggota</td></tr>';
+  document.getElementById('tblRekAnggota').innerHTML = anggota.length ? anggota.map(a => '<tr><td>'+noAng(a)+'</td><td>'+a.nama+'</td><td>'+(a.bank||'-')+'</td><td>'+(a.rek||'-')+'</td><td>'+a.nama+'</td><td class="text-end"><span class="badge-soft info">-</span></td></tr>').join('') : '<tr><td colspan="6" class="text-center text-muted py-4">Belum ada rekening anggota</td></tr>';
 }
 function openBankModal(){
   document.getElementById('bankId').value = '';
@@ -2987,7 +2995,7 @@ function hapusBank(id){
 
 // ============ USERS ============
 function renderUsers(){
-  const users = DB.load('users'), sa = isSuperAdmin();
+  const users = DB.load('users').slice().sort((x,y) => String(x.nama||'').localeCompare(String(y.nama||''), 'id', {sensitivity:'base'})), sa = isSuperAdmin();
   const bt = document.getElementById('btnTambahUser'); if (bt) bt.style.display = sa ? '' : 'none';
   document.getElementById('tblUsers').innerHTML = users.map(u => '<tr><td>'+esc(u.username)+'</td><td>'+esc(u.nama)+'</td><td>'+esc(u.role)+'</td><td>'+(u.type === 'admin' ? 'Petugas' : 'Anggota')+'</td><td>'+(sa ? '<code>'+esc(u.password)+'</code>' : '<span class="text-muted">••••••••</span>')+'</td><td><span class="badge-soft '+(u.active ? 'active' : 'inactive')+'">'+(u.active ? 'Aktif' : 'Nonaktif')+'</span></td><td class="text-end">'+(sa ? '<button class="btn btn-sm btn-outline-primary btn-sm-c" onclick="openUserModal('+u.id+')"><i class="bi bi-pencil"></i></button> <button class="btn btn-sm btn-outline-danger btn-sm-c" onclick="hapusUser('+u.id+')"><i class="bi bi-trash"></i></button>' : '<span class="text-muted" style="font-size:11px"><i class="bi bi-lock"></i> Super Admin</span>')+'</td></tr>').join('');
 }
@@ -3060,10 +3068,10 @@ function laporanAnggota(){
   const anggota = DB.load('anggota');
   const aktif = anggota.filter(a => a.status === 'aktif').length;
   let html = '<div class="print-header" style="display:block"><h4>LAPORAN DATA ANGGOTA / KARYAWAN</h4><p>Total: '+anggota.length+' • Aktif: '+aktif+' • Per '+tglPanjang(new Date().toISOString().slice(0,10))+'</p></div>';
-  html += '<div class="table-responsive"><table class="table table-bordered table-sm"><thead><tr><th>No</th><th>No. Anggota</th><th>No. Karyawan</th><th>Nama</th><th>JK</th><th>Tempat, Tgl Lahir</th><th>Umur</th><th>Departemen</th><th>Jabatan</th><th>Status Kary.</th><th>Tgl Masuk</th><th>Masa Kerja</th><th>Status</th></tr></thead><tbody>';
+  html += '<div class="table-responsive"><table class="table table-bordered table-sm"><thead><tr><th>No</th><th>NIP</th><th>Nama</th><th>JK</th><th>Tempat, Tgl Lahir</th><th>Umur</th><th>Departemen</th><th>Jabatan</th><th>Status Kary.</th><th>Tgl Masuk</th><th>Masa Kerja</th><th>Status</th></tr></thead><tbody>';
   anggota.forEach((a,i) => {
     const mk = tglMasukOf(a);
-    html += '<tr><td>'+(i+1)+'</td><td>'+esc(a.nomor)+'</td><td>'+esc(val(a.noKaryawan))+'</td><td>'+esc(a.nama)+'</td><td>'+esc(a.jk)+'</td><td>'+esc(ttl(a))+'</td><td>'+hitungUmur(a.tglLahir)+'</td><td>'+esc(val(a.dept))+'</td><td>'+esc(val(a.jabatan))+'</td><td>'+esc(val(a.statusKaryawan))+'</td><td>'+tgl(mk)+'</td><td>'+hitungMasaKerja(mk)+'</td><td>'+esc(a.status)+'</td></tr>';
+    html += '<tr><td>'+(i+1)+'</td><td>'+esc(noAng(a))+'</td><td>'+esc(a.nama)+'</td><td>'+esc(a.jk)+'</td><td>'+esc(ttl(a))+'</td><td>'+hitungUmur(a.tglLahir)+'</td><td>'+esc(val(a.dept))+'</td><td>'+esc(val(a.jabatan))+'</td><td>'+esc(val(a.statusKaryawan))+'</td><td>'+tgl(mk)+'</td><td>'+hitungMasaKerja(mk)+'</td><td>'+esc(a.status)+'</td></tr>';
   });
   html += '</tbody></table></div>';
   document.getElementById('hasilLaporan').innerHTML = html;
@@ -3072,12 +3080,12 @@ function laporanSimpanan(){
   const anggota = DB.load('anggota'), mutasi = DB.load('mutasi');
   const sum = (id, j) => mutasi.filter(m => m.anggotaId === id && m.jenis === j).reduce((s,m) => m.trx === 'setor' ? s + m.jumlah : s - m.jumlah, 0);
   let html = '<div class="print-header" style="display:block"><h4>LAPORAN SIMPANAN</h4><p>Per '+tglPanjang(todayStr())+'</p></div>';
-  html += '<table class="table table-bordered table-sm"><thead><tr><th>No</th><th>No. Anggota</th><th>Anggota</th><th class="text-end">Pokok</th><th class="text-end">Wajib Awal</th><th class="text-end">Wajib</th><th class="text-end">Sukarela</th><th class="text-end">Total</th></tr></thead><tbody>';
+  html += '<table class="table table-bordered table-sm"><thead><tr><th>No</th><th>NIP</th><th>Anggota</th><th class="text-end">Pokok</th><th class="text-end">Wajib Awal</th><th class="text-end">Wajib</th><th class="text-end">Sukarela</th><th class="text-end">Total</th></tr></thead><tbody>';
   const T = [0,0,0,0];
   anggota.forEach((a,i) => {
     const v = [sum(a.id,'pokok'), sum(a.id,'wajib_awal'), sum(a.id,'wajib'), sum(a.id,'sukarela')];
     v.forEach((x,k) => T[k] += x);
-    html += '<tr><td>'+(i+1)+'</td><td>'+esc(a.nomor)+'</td><td>'+esc(a.nama)+'</td>'+v.map(x => '<td class="text-end">'+rupiah(x)+'</td>').join('')+'<td class="text-end fw-bold">'+rupiah(v[0]+v[1]+v[2]+v[3])+'</td></tr>';
+    html += '<tr><td>'+(i+1)+'</td><td>'+esc(noAng(a))+'</td><td>'+esc(a.nama)+'</td>'+v.map(x => '<td class="text-end">'+rupiah(x)+'</td>').join('')+'<td class="text-end fw-bold">'+rupiah(v[0]+v[1]+v[2]+v[3])+'</td></tr>';
   });
   html += '<tr style="font-weight:800"><td colspan="3" class="text-end">TOTAL</td>'+T.map(x => '<td class="text-end">'+rupiah(x)+'</td>').join('')+'<td class="text-end">'+rupiah(T[0]+T[1]+T[2]+T[3])+'</td></tr></tbody></table>';
   document.getElementById('hasilLaporan').innerHTML = html;
@@ -3206,7 +3214,7 @@ function renderMemberHome(a){
   document.getElementById('mName').textContent = a.nama;
   document.getElementById('mDept').textContent = [a.jabatan, a.dept].filter(Boolean).join(' • ') || '-';
   renderMemberInfo(a);
-  document.getElementById('mNo').textContent = a.nomor;
+  document.getElementById('mNo').textContent = 'NIP: ' + noAng(a);
   const mutasi = DB.load('mutasi').filter(m => m.anggotaId === a.id);
   const wajib = mutasi.filter(m => m.jenis === 'wajib' || m.jenis === 'wajib_awal').reduce((s,m) => m.trx === 'setor' ? s + m.jumlah : s - m.jumlah, 0);
   const total = mutasi.reduce((s,m) => m.trx === 'setor' ? s + m.jumlah : s - m.jumlah, 0);
@@ -3404,19 +3412,19 @@ const selX = (id, opts, col, on) => '<div class="col-6 col-md-'+(col||3)+'"><lab
 BARS.simpanan = {sec:'simpanan', x: selX('rx-simpanan', [['','Semua Jenis'],['pokok','Simpanan Pokok'],['wajib_awal','Simpanan Wajib Awal'],['wajib','Simpanan Wajib (Bulanan)']])};
 REP.simpanan = (d,s) => {
   const jf = $g('rx-simpanan');
-  const rows = DB.load('mutasi').filter(m => m.jenis !== 'sukarela' && (!jf || m.jenis === jf) && inP(m.tanggal, d, s)).sort((a,b) => a.tanggal.localeCompare(b.tanggal)).map(m => { const a = ANGF(m.anggotaId); return [tgl(m.tanggal), m.no, a.nomor || '-', a.nama || '-', jenisLabel(m.jenis), m.trx, m.trx === 'setor' ? m.jumlah : -m.jumlah, m.ket || '']; });
-  return {title:'Laporan ' + (jf ? jenisLabel(jf) : 'Simpanan Pokok & Wajib'), file:'simpanan', head:['Tanggal','No. Transaksi','No. Anggota','Nama','Jenis','Transaksi','Jumlah (+setor / -tarik)','Keterangan'], rows, money:[6], total:[6]};
+  const rows = DB.load('mutasi').filter(m => m.jenis !== 'sukarela' && (!jf || m.jenis === jf) && inP(m.tanggal, d, s)).sort((a,b) => a.tanggal.localeCompare(b.tanggal)).map(m => { const a = ANGF(m.anggotaId); return [tgl(m.tanggal), m.no, noAng(a) || '-', a.nama || '-', jenisLabel(m.jenis), m.trx, m.trx === 'setor' ? m.jumlah : -m.jumlah, m.ket || '']; });
+  return {title:'Laporan ' + (jf ? jenisLabel(jf) : 'Simpanan Pokok & Wajib'), file:'simpanan', head:['Tanggal','No. Transaksi','NIP','Nama','Jenis','Transaksi','Jumlah (+setor / -tarik)','Keterangan'], rows, money:[6], total:[6]};
 };
 BARS.sukarela = {sec:'sukarela', x:''};
 REP.sukarela = (d,s) => {
-  const rows = DB.load('mutasi').filter(m => m.jenis === 'sukarela' && inP(m.tanggal, d, s)).sort((a,b) => a.tanggal.localeCompare(b.tanggal)).map(m => { const a = ANGF(m.anggotaId); return [tgl(m.tanggal), m.no, a.nomor || '-', a.nama || '-', m.trx, m.ket || '', m.trx === 'setor' ? m.jumlah : -m.jumlah]; });
-  return {title:'Laporan Simpanan Sukarela', file:'simpanan-sukarela', head:['Tanggal','No. Transaksi','No. Anggota','Nama','Transaksi','Keterangan','Jumlah (+setor / -tarik)'], rows, money:[6], total:[6]};
+  const rows = DB.load('mutasi').filter(m => m.jenis === 'sukarela' && inP(m.tanggal, d, s)).sort((a,b) => a.tanggal.localeCompare(b.tanggal)).map(m => { const a = ANGF(m.anggotaId); return [tgl(m.tanggal), m.no, noAng(a) || '-', a.nama || '-', m.trx, m.ket || '', m.trx === 'setor' ? m.jumlah : -m.jumlah]; });
+  return {title:'Laporan Simpanan Sukarela', file:'simpanan-sukarela', head:['Tanggal','No. Transaksi','NIP','Nama','Transaksi','Keterangan','Jumlah (+setor / -tarik)'], rows, money:[6], total:[6]};
 };
 BARS.pinjaman = {sec:'pinjaman', x:''};
 REP.pinjaman = (d,s) => {
   const fj = $g('filterPinJenis'), fs = $g('filterPinStatus');
-  const rows = DB.load('pinjaman').filter(p => (!fj || jenisOf(p) === fj) && (!fs || p.status === fs) && inP(p.tanggal, d, s)).sort((a,b) => (a.tanggal || '').localeCompare(b.tanggal || '')).map(p => { const a = ANGF(p.anggotaId), ok = isApproved(p.status), c = cicilanOf(p); return [tgl(p.tanggal), p.no, a.nomor || '-', a.nama || '-', jenisOf(p), p.jumlahPengajuan !== undefined ? p.jumlahPengajuan : p.jumlah, ok ? p.jumlah : 0, p.tenor + ' bln', ok ? c.total : 0, ok ? (p.sisaPokok || 0) : 0, p.status]; });
-  return {title:'Laporan Pinjaman' + (fj ? ' - ' + fj : ''), file:'pinjaman', sub: fs ? 'Status: ' + fs : '', head:['Tanggal','No. Pinjaman','No. Anggota','Nama','Jenis','Diajukan','Disetujui','Tenor','Cicilan/bln','Sisa Pokok','Status'], rows, money:[5,6,8,9], total:[5,6,9]};
+  const rows = DB.load('pinjaman').filter(p => (!fj || jenisOf(p) === fj) && (!fs || p.status === fs) && inP(p.tanggal, d, s)).sort((a,b) => (a.tanggal || '').localeCompare(b.tanggal || '')).map(p => { const a = ANGF(p.anggotaId), ok = isApproved(p.status), c = cicilanOf(p); return [tgl(p.tanggal), p.no, noAng(a) || '-', a.nama || '-', jenisOf(p), p.jumlahPengajuan !== undefined ? p.jumlahPengajuan : p.jumlah, ok ? p.jumlah : 0, p.tenor + ' bln', ok ? c.total : 0, ok ? (p.sisaPokok || 0) : 0, p.status]; });
+  return {title:'Laporan Pinjaman' + (fj ? ' - ' + fj : ''), file:'pinjaman', sub: fs ? 'Status: ' + fs : '', head:['Tanggal','No. Pinjaman','NIP','Nama','Jenis','Diajukan','Disetujui','Tenor','Cicilan/bln','Sisa Pokok','Status'], rows, money:[5,6,8,9], total:[5,6,9]};
 };
 BARS.persetujuan = {sec:'persetujuan', x: selX('rx-persetujuan', [['','Semua Status'],['pengajuan','Menunggu'],['disetujui','Disetujui'],['cair','Cair'],['lunas','Lunas'],['ditolak','Ditolak']])};
 REP.persetujuan = (d,s) => {
@@ -3428,8 +3436,8 @@ BARS.pencairan = {sec:'pencairan', x: selX('rx-pencairan', [['cair','Sudah Dicai
 REP.pencairan = (d,s) => {
   const tunggu = $g('rx-pencairan') === 'tunggu';
   const list = DB.load('pinjaman').filter(p => tunggu ? (p.status === 'disetujui' && inP(p.tanggalSetuju || p.tanggal, d, s)) : (['cair','lunas'].includes(p.status) && inP(p.tanggalCair || p.tanggal, d, s)));
-  const rows = list.sort((a,b) => (a.tanggalCair || '').localeCompare(b.tanggalCair || '')).map(p => { const a = ANGF(p.anggotaId); return [tunggu ? '-' : tgl(p.tanggalCair || p.tanggal), p.no, a.nomor || '-', a.nama || '-', jenisOf(p), a.bank || '-', a.rek || '-', p.jumlah, p.tenor + ' bln', cicilanOf(p).total]; });
-  return {title:'Laporan Pencairan Masal Pinjaman', file:'pencairan-pinjaman', sub: tunggu ? 'Menunggu pencairan' : 'Sudah dicairkan', head:['Tgl Cair','No. Pinjaman','No. Anggota','Nama','Jenis','Bank','No. Rekening','Jumlah Pencairan','Tenor','Cicilan/bln'], rows, money:[7,9], total:[7]};
+  const rows = list.sort((a,b) => (a.tanggalCair || '').localeCompare(b.tanggalCair || '')).map(p => { const a = ANGF(p.anggotaId); return [tunggu ? '-' : tgl(p.tanggalCair || p.tanggal), p.no, noAng(a) || '-', a.nama || '-', jenisOf(p), a.bank || '-', a.rek || '-', p.jumlah, p.tenor + ' bln', cicilanOf(p).total]; });
+  return {title:'Laporan Pencairan Masal Pinjaman', file:'pencairan-pinjaman', sub: tunggu ? 'Menunggu pencairan' : 'Sudah dicairkan', head:['Tgl Cair','No. Pinjaman','NIP','Nama','Jenis','Bank','No. Rekening','Jumlah Pencairan','Tenor','Cicilan/bln'], rows, money:[7,9], total:[7]};
 };
 BARS.angsuran = {sec:'angsuran', x:''};
 REP.angsuran = (d,s) => {
@@ -3476,10 +3484,10 @@ function exportPinjamanXLS(){ rptXLS('pinjaman'); }
 // ---------- Import Excel simpanan pokok / wajib awal ----------
 function templateSimpanan(){
   const ang = DB.load('anggota').filter(a => a.status === 'aktif').slice(0, 3);
-  const ex = (ang.length ? ang : [{nomor:'A-0001'},{nomor:'A-0002'}]).map((a,i) => ({No_Anggota: a.nomor, Jenis: i % 2 ? 'wajib_awal' : 'pokok', Jumlah: i % 2 ? 100000 : (PNG().pokok || 50000), Tanggal: todayStr(), Keterangan: 'Saldo awal'}));
+  const ex = (ang.length ? ang : [{nomor:'A-0001'},{nomor:'A-0002'}]).map((a,i) => ({NIP: noAng(a), Jenis: i % 2 ? 'wajib_awal' : 'pokok', Jumlah: i % 2 ? 100000 : (PNG().pokok || 50000), Tanggal: todayStr(), Keterangan: 'Saldo awal'}));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ex), 'Template');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['PETUNJUK'],['No_Anggota : harus sama dengan nomor anggota di sistem'],['Jenis : isi pokok  atau  wajib_awal'],['Jumlah : angka tanpa titik / Rp'],['Tanggal : format YYYY-MM-DD'],['Anggota yang sudah punya simpanan pokok / wajib awal akan dilewati (tidak dobel)']]), 'Petunjuk');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['PETUNJUK'],['NIP : harus sama dengan NIP anggota di sistem'],['Jenis : isi pokok  atau  wajib_awal'],['Jumlah : angka tanpa titik / Rp'],['Tanggal : format YYYY-MM-DD'],['Anggota yang sudah punya simpanan pokok / wajib awal akan dilewati (tidak dobel)']]), 'Petunjuk');
   writeXLS(wb, 'template-import-simpanan-kopkarin.xlsx');
 }
 function toISO(v){
@@ -3498,7 +3506,7 @@ function importSimpanan(ev){
       const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:''});
       const ang = DB.load('anggota'), mut = DB.load('mutasi'), ok = [], err = [];
       rows.forEach((r, i) => {
-        const no = String(r.No_Anggota || r['No Anggota'] || '').trim(), a = ang.find(x => String(x.nomor).trim() === no || String(x.noKaryawan || '').trim() === no);
+        const no = String(r.NIP || r.No_Anggota || r['No Anggota'] || r.No_Karyawan || '').trim(), a = ang.find(x => noAng(x) === no || String(x.nomor).trim() === no);
         let j = String(r.Jenis || '').toLowerCase().trim().replace(/[\s-]+/g, '_'); if (j === 'simpanan_pokok') j = 'pokok'; if (j === 'simpanan_wajib_awal') j = 'wajib_awal';
         const jml = +String(r.Jumlah).replace(/[^\d.]/g, '');
         if (!a) err.push('Baris ' + (i+2) + ': anggota "' + no + '" tidak ditemukan');
@@ -3532,7 +3540,7 @@ function tabunganPDF(){
   d.setDrawColor(201,162,39); d.setFillColor(250,248,240); d.roundedRect(14, 45, W - 28, 24, 2, 2, 'FD');
   d.setTextColor(10,30,63); d.setFont('helvetica','bold'); d.setFontSize(12); d.text(a.nama || '-', 19, 53);
   d.setFont('helvetica','normal'); d.setFontSize(9); d.setTextColor(80,80,80);
-  d.text('No. Anggota : ' + (a.nomor || '-') + '     No. Karyawan : ' + (a.noKaryawan || '-'), 19, 59);
+  d.text('NIP : ' + (noAng(a) || '-'), 19, 59);
   d.text('Departemen : ' + (a.dept || '-') + '     Bank : ' + (a.bank || '-') + ' ' + (a.rek || ''), 19, 64);
   const bx = (x, t, v, c) => { d.setFillColor(c[0],c[1],c[2]); d.roundedRect(x, 74, (W - 28 - 8) / 3, 15, 2, 2, 'F'); d.setTextColor(255,255,255); d.setFontSize(7.5); d.text(t, x + 4, 80); d.setFont('helvetica','bold'); d.setFontSize(11); d.text(v, x + 4, 86); d.setFont('helvetica','normal'); };
   const bw = (W - 28 - 8) / 3; bx(14, 'TOTAL SETORAN', rupiah(tS), [22,163,74]); bx(14 + bw + 4, 'TOTAL PENARIKAN', rupiah(tT), [220,38,38]); bx(14 + 2 * (bw + 4), 'SALDO AKHIR', rupiah(saldo), [10,30,63]);
@@ -3540,7 +3548,7 @@ function tabunganPDF(){
   d.autoTable({startY:95, head:[['No','Tanggal','Kode','Keterangan','Penarikan','Setoran','Saldo']], body, theme:'striped', styles:{fontSize:8, cellPadding:2}, headStyles:{fillColor:[10,30,63], textColor:255}, alternateRowStyles:{fillColor:[244,246,251]}, columnStyles:{4:{halign:'right'},5:{halign:'right'},6:{halign:'right', fontStyle:'bold'}}, margin:{left:14,right:14}});
   let y = d.lastAutoTable.finalY + 14; if (y > 255){ d.addPage(); y = 30; }
   d.setFontSize(9); d.setTextColor(10,30,63); d.text('Pengurus ' + (p.nama || 'KOPKARIN'), W - 14, y, {align:'right'}); d.line(W - 60, y + 22, W - 14, y + 22);
-  pdfPages(d); d.save('buku-tabungan-' + (a.nomor || id) + '.pdf');
+  pdfPages(d); d.save('buku-tabungan-' + (noAng(a) || id) + '.pdf');
 }
 
 // ---------- Pencairan: kolom bank, no rek, jumlah pencairan ----------
@@ -3624,20 +3632,20 @@ function payrollData(){
   return d;
 }
 REP.payroll = () => {
-  const d = payrollData(), rows = d.rows.map((r,i) => [i+1, r.a.nomor, r.a.noKaryawan || '', r.a.nama, r.a.dept || '', r.pokokSim, r.wajib, r.jen.usp, r.jen.emg, r.jen.lain, r.jen.kasbon, r.jen.konsum, r.total, r.sisa.join('; ') || '-']);
-  return {title:'Daftar Potongan Payroll ' + periodeLabel(d.periode), file:'payroll-' + d.periode, head:['No','No. Anggota','NIP','Nama','Dept','S. Pokok (Baru)','S. Wajib','USP','EMG','Lain-lain','Kasbon','Konsumsi','Total Potongan','Sisa Tenor Setelah Potong'], rows, money:[5,6,7,8,9,10,11,12], total:[5,6,7,8,9,10,11,12]};
+  const d = payrollData(), rows = d.rows.map((r,i) => [i+1, noAng(r.a), r.a.nama, r.a.dept || '', r.pokokSim, r.wajib, r.jen.usp, r.jen.emg, r.jen.lain, r.jen.kasbon, r.jen.konsum, r.total, r.sisa.join('; ') || '-']);
+  return {title:'Daftar Potongan Payroll ' + periodeLabel(d.periode), file:'payroll-' + d.periode, head:['No','NIP','Nama','Dept','S. Pokok (Baru)','S. Wajib','USP','EMG','Lain-lain','Kasbon','Konsumsi','Total Potongan','Sisa Tenor Setelah Potong'], rows, money:[4,5,6,7,8,9,10,11], total:[4,5,6,7,8,9,10,11]};
 };
 function renderPayroll(){
   const perEl = document.getElementById('prPeriode'); if (!perEl) return; if (!perEl.value) perEl.value = curPeriode();
   const d = payrollData(), sum = f => d.rows.reduce((s,r) => s + f(r), 0), tb = document.getElementById('prTbody');
   document.getElementById('prWajibNom').textContent = rupiah(d.wajibNom);
-  tb.closest('table').querySelector('thead').innerHTML = '<tr><th>No</th><th>No. Anggota</th><th>NIP</th><th>Nama</th><th>Dept</th><th class="text-end">S. Pokok Baru</th><th class="text-end">S. Wajib</th><th class="text-end">USP</th><th class="text-end">EMG</th><th class="text-end">Lain-lain</th><th class="text-end">Kasbon</th><th class="text-end">Konsumsi</th><th class="text-end">Total</th><th>Sisa Tenor</th></tr>';
+  tb.closest('table').querySelector('thead').innerHTML = '<tr><th>No</th><th>NIP</th><th>Nama</th><th>Dept</th><th class="text-end">S. Pokok Baru</th><th class="text-end">S. Wajib</th><th class="text-end">USP</th><th class="text-end">EMG</th><th class="text-end">Lain-lain</th><th class="text-end">Kasbon</th><th class="text-end">Konsumsi</th><th class="text-end">Total</th><th>Sisa Tenor</th></tr>';
   const box = (i,c,n,t) => '<div class="hr-stat"><div class="i '+c+'"><i class="bi '+i+'"></i></div><div><div class="n" style="font-size:15px">'+n+'</div><div class="t">'+t+'</div></div></div>';
   document.getElementById('prStats').innerHTML = box('bi-people-fill','i-navy',d.rows.length,'Anggota Dipotong') + box('bi-cash-coin','i-gold',rupiah(sum(r => r.angsuran)),'Total Angsuran') + box('bi-piggy-bank','i-green',rupiah(sum(r => r.wajib + r.pokokSim)),'Simpanan Pokok+Wajib') + box('bi-wallet2','i-red',rupiah(sum(r => r.total)),'Total Potongan');
   const c = v => '<td class="text-end">'+(v ? rupiah(v) : '-')+'</td>';
-  tb.innerHTML = d.rows.length ? d.rows.map((r,i) => '<tr><td>'+(i+1)+'</td><td><code style="font-size:11px">'+esc(r.a.nomor)+'</code></td><td>'+esc(val(r.a.noKaryawan))+'</td><td class="fw-semibold">'+esc(r.a.nama)+'</td><td>'+esc(val(r.a.dept))+'</td>'+c(r.pokokSim)+c(r.wajib)+c(r.jen.usp)+c(r.jen.emg)+c(r.jen.lain)+c(r.jen.kasbon)+c(r.jen.konsum)+'<td class="text-end fw-bold">'+rupiah(r.total)+'</td><td style="font-size:11px">'+(r.sisa.map(esc).join('<br>') || '-')+'</td></tr>').join('') : '<tr><td colspan="14" class="text-center text-muted py-4">Tidak ada potongan untuk periode ini</td></tr>';
+  tb.innerHTML = d.rows.length ? d.rows.map((r,i) => '<tr><td>'+(i+1)+'</td><td><code style="font-size:11px">'+esc(noAng(r.a))+'</code></td><td class="fw-semibold">'+esc(r.a.nama)+'</td><td>'+esc(val(r.a.dept))+'</td>'+c(r.pokokSim)+c(r.wajib)+c(r.jen.usp)+c(r.jen.emg)+c(r.jen.lain)+c(r.jen.kasbon)+c(r.jen.konsum)+'<td class="text-end fw-bold">'+rupiah(r.total)+'</td><td style="font-size:11px">'+(r.sisa.map(esc).join('<br>') || '-')+'</td></tr>').join('') : '<tr><td colspan="13" class="text-center text-muted py-4">Tidak ada potongan untuk periode ini</td></tr>';
   const ks = ['pokokSim','wajib'], jk = ['usp','emg','lain','kasbon','konsum'];
-  document.getElementById('prTfoot').innerHTML = d.rows.length ? '<tr style="font-weight:800;background:#f8fafc"><td colspan="5" class="text-end">TOTAL</td>' + ks.map(k => '<td class="text-end">'+rupiah(sum(r => r[k]))+'</td>').join('') + jk.map(k => '<td class="text-end">'+rupiah(sum(r => r.jen[k]))+'</td>').join('') + '<td class="text-end">'+rupiah(sum(r => r.total))+'</td><td></td></tr>' : '';
+  document.getElementById('prTfoot').innerHTML = d.rows.length ? '<tr style="font-weight:800;background:#f8fafc"><td colspan="4" class="text-end">TOTAL</td>' + ks.map(k => '<td class="text-end">'+rupiah(sum(r => r[k]))+'</td>').join('') + jk.map(k => '<td class="text-end">'+rupiah(sum(r => r.jen[k]))+'</td>').join('') + '<td class="text-end">'+rupiah(sum(r => r.total))+'</td><td></td></tr>' : '';
 }
 function exportPayrollXLS(){ rptXLS('payroll'); }
 function exportPayrollPDF(){ rptPDF('payroll'); }
@@ -3740,6 +3748,46 @@ loadDashboard = function(){ _ld(); renderDashDana(); };
   // 4. Default tab
   switchLoginTab('admin');
 })();
+// ====== PENCARIAN NAMA / NIP (tabel & dropdown anggota) ======
+function initTableSearch(){
+  ['simpanan','sukarela','pinjaman','persetujuan','angsuran','bank','users','keluar'].forEach(id => {
+    const sec = document.getElementById('sec-' + id); if (!sec) return;
+    sec.querySelectorAll('.table-responsive').forEach(wrap => {
+      const tbl = wrap.querySelector('table'); if (!tbl || wrap.dataset.srch) return;
+      const head = (tbl.querySelector('thead') || {}).textContent || '';
+      if (!/anggota|peminjam|nama|username|pinjaman/i.test(head) || /kode/i.test(head)) return;
+      const tb = tbl.querySelector('tbody'); if (!tb) return;
+      wrap.dataset.srch = '1';
+      const box = document.createElement('div'); box.className = 'mb-2';
+      box.innerHTML = '<input type="search" class="form-control form-control-sm" style="max-width:340px" placeholder="🔍 Cari nama / NIP...">';
+      wrap.parentNode.insertBefore(box, wrap);
+      const inp = box.firstChild;
+      const apply = () => { const q = inp.value.trim().toLowerCase(); Array.from(tb.rows).forEach(r => { r.style.display = (!q || r.textContent.toLowerCase().includes(q)) ? '' : 'none'; }); };
+      inp.addEventListener('input', apply);
+      new MutationObserver(apply).observe(tb, {childList:true});
+    });
+  });
+  ['simAnggota','sukAnggota','pinAnggota','pilihAnggotaTab','keluarAnggota'].forEach(addSelectSearch);
+}
+function addSelectSearch(selId){
+  const sel = document.getElementById(selId); if (!sel || sel.dataset.ss) return; sel.dataset.ss = '1';
+  const inp = document.createElement('input'); inp.type = 'search'; inp.className = 'form-control form-control-sm mb-1';
+  inp.placeholder = '🔍 Cari nama / NIP...'; sel.parentNode.insertBefore(inp, sel);
+  let all = Array.from(sel.options).map(o => ({v:o.value, t:o.text})), busy = false;
+  const obs = new MutationObserver(() => { if (busy) return; all = Array.from(sel.options).map(o => ({v:o.value, t:o.text})); apply(); });
+  function apply(){
+    const q = inp.value.trim().toLowerCase(), cur = sel.value; busy = true;
+    const list = all.filter(o => !q || o.v === '' || o.t.toLowerCase().includes(q));
+    sel.innerHTML = list.map(o => '<option value="'+esc(o.v)+'">'+esc(o.t)+'</option>').join('');
+    if (list.some(o => o.v === cur)) sel.value = cur;
+    obs.takeRecords(); busy = false;
+    if (sel.value !== cur) sel.dispatchEvent(new Event('change'));
+  }
+  inp.addEventListener('input', apply);
+  obs.observe(sel, {childList:true});
+}
+initTableSearch();
+
 </script>
 <script>
 // Muat data dari Supabase dulu, baru jalankan aplikasi
