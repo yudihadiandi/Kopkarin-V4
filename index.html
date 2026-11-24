@@ -33,7 +33,7 @@ const SYNC = (function(){
       ok:['#198754','☁ Tersinkron'], connecting:['#6c757d','☁ Menghubungkan…'],
       local:['#6c757d','💾 Mode lokal'], error:['#dc3545','⚠ Gagal sync']
     };
-    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v5.2'; b.title = stateMsg || '';
+    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v5.3'; b.title = stateMsg || '';
   }
   function setState(s, m){ state = s; stateMsg = m || ''; paint(); }
 
@@ -519,7 +519,7 @@ body{background:var(--bg);margin:0}
             <i class="bi bi-info-circle me-1"></i>
             Menu ini untuk simpanan <b>Pokok</b> (sekali bayar) &amp; <b>Wajib</b> (bulanan). Untuk simpanan <b>Sukarela</b> gunakan menu <b>Simpanan Sukarela</b>.
           </div>
-          <div class="table-responsive"><table class="table"><thead><tr><th>Tanggal</th><th>No. Transaksi</th><th>Anggota</th><th>Jenis</th><th>Transaksi</th><th class="text-end">Jumlah</th></tr></thead><tbody id="tblSimpanan"></tbody></table></div>
+          <div class="table-responsive"><table class="table"><thead><tr><th>Tanggal</th><th>No. Transaksi</th><th>Anggota</th><th>Jenis</th><th>Transaksi</th><th class="text-end">Jumlah</th><th class="text-end">Aksi</th></tr></thead><tbody id="tblSimpanan"></tbody></table></div>
         </div>
       </div>
     </div>
@@ -999,6 +999,46 @@ body{background:var(--bg);margin:0}
       <div class="mb-3"><label class="form-label">Keterangan</label><input class="form-control" id="simKet"></div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary-c" onclick="simpanSimpanan()">Simpan</button></div>
+  </div></div>
+</div>
+
+<!-- MODAL KOREKSI SIMPANAN -->
+<div class="modal fade" id="modalKoreksiSimpanan" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil-square me-1"></i> Koreksi Simpanan</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="ksId">
+      <div class="alert alert-warning py-2" style="font-size:12px" id="ksInfo"></div>
+      <div class="row g-3">
+        <div class="col-md-6"><label class="form-label">Jenis Simpanan</label>
+          <select class="form-select" id="ksJenis"><option value="pokok">Simpanan Pokok</option><option value="wajib_awal">Simpanan Wajib Awal</option><option value="wajib">Simpanan Wajib (bulanan)</option></select></div>
+        <div class="col-md-6"><label class="form-label">Jenis Transaksi</label>
+          <select class="form-select" id="ksTrx"><option value="setor">Setor</option><option value="tarik">Tarik</option></select></div>
+        <div class="col-md-6"><label class="form-label">Jumlah (Rp) *</label><input type="number" class="form-control" id="ksJumlah" min="1"></div>
+        <div class="col-md-6"><label class="form-label">Tanggal</label><input type="date" class="form-control" id="ksTanggal"></div>
+        <div class="col-12"><label class="form-label">Keterangan</label><input class="form-control" id="ksKet"></div>
+        <div class="col-12"><label class="form-label">Alasan Koreksi *</label><input class="form-control" id="ksAlasan" placeholder="cth: salah input nominal"></div>
+      </div>
+      <div class="emp-meta mt-2">Saldo kas &amp; saldo anggota otomatis menyesuaikan selisih koreksi. Jejak koreksi tersimpan.</div>
+    </div>
+    <div class="modal-footer justify-content-between">
+      <button class="btn btn-outline-danger" onclick="hapusKoreksiSimpanan()"><i class="bi bi-trash me-1"></i> Hapus Transaksi</button>
+      <div><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button> <button class="btn btn-primary-c" onclick="simpanKoreksiSimpanan()">Simpan Koreksi</button></div>
+    </div>
+  </div></div>
+</div>
+
+<!-- MODAL PRATINJAU PDF -->
+<div class="modal fade" id="modalPdfPrev" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-fullscreen-md-down"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-file-earmark-pdf me-1"></i> <span id="pdfPrevTitle">Pratinjau PDF</span></h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body p-0" style="background:#e9edf3"><iframe id="pdfPrevFrame" style="width:100%;height:72vh;border:0" title="Pratinjau PDF"></iframe></div>
+    <div class="modal-footer flex-wrap gap-2">
+      <span class="emp-meta me-auto">Jika pratinjau tidak tampil di HP, gunakan tombol Buka / Unduh.</span>
+      <button class="btn btn-outline-secondary" onclick="pdfPrevOpen()"><i class="bi bi-box-arrow-up-right me-1"></i> Buka</button>
+      <button class="btn btn-outline-primary" onclick="pdfPrevDownload()"><i class="bi bi-download me-1"></i> Unduh PDF</button>
+      <button class="btn btn-primary-c" onclick="pdfPrevPrint()"><i class="bi bi-printer me-1"></i> Cetak</button>
+    </div>
   </div></div>
 </div>
 
@@ -1995,7 +2035,7 @@ function editDariDetail(){
   setTimeout(() => openAnggotaModal(detailId), 350);
 }
 
-function cetakKartu(id){
+function cetakKartuHTML(id){
   const a = DB.load('anggota').find(x => x.id === id);
   if (!a) return;
   const p = DB.get('pengaturan', {});
@@ -2032,7 +2072,7 @@ body{padding-top:70px!important}.noprint{position:fixed;top:0;left:0;right:0;bac
   w.document.write(html); w.document.close();
 }
 
-function cetakProfil(id){
+function cetakProfilHTML(id){
   const a = DB.load('anggota').find(x => x.id === id);
   if (!a) return;
   const p = DB.get('pengaturan', {});
@@ -2272,8 +2312,8 @@ function renderSimpanan(){
   const anggota = DB.load('anggota');
   document.getElementById('tblSimpanan').innerHTML = mutasi.length ? mutasi.map(m => {
     const a = anggota.find(x => x.id === m.anggotaId);
-    return '<tr><td>'+tgl(m.tanggal)+'</td><td><code style="font-size:11px">'+m.no+'</code></td><td>'+(a ? a.nama : '-')+'</td><td><span class="badge bg-secondary">'+jenisLabel(m.jenis)+'</span></td><td>'+m.trx+'</td><td class="text-end fw-bold '+(m.trx === 'setor' ? 'text-success' : 'text-danger')+'">'+(m.trx === 'setor' ? '+' : '-')+' '+rupiah(m.jumlah)+'</td></tr>';
-  }).join('') : '<tr><td colspan="6" class="text-center text-muted py-4">Belum ada transaksi</td></tr>';
+    return '<tr><td>'+tgl(m.tanggal)+'</td><td><code style="font-size:11px">'+m.no+'</code>'+(m.dikoreksi ? '<div class="emp-meta">✎ dikoreksi</div>' : '')+'</td><td>'+(a ? a.nama : '-')+'</td><td><span class="badge bg-secondary">'+jenisLabel(m.jenis)+'</span></td><td>'+m.trx+'</td><td class="text-end fw-bold '+(m.trx === 'setor' ? 'text-success' : 'text-danger')+'">'+(m.trx === 'setor' ? '+' : '-')+' '+rupiah(m.jumlah)+'</td><td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-primary btn-sm-c" onclick="koreksiSimpanan('+m.id+')"><i class="bi bi-pencil-square me-1"></i>Koreksi</button></td></tr>';
+  }).join('') : '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada transaksi</td></tr>';
 }
 
 function openSimpananModal(){
@@ -2687,8 +2727,8 @@ function renderPotongWajib(){
   const belum = anggota.filter(a => !done.has(a.id));
   document.getElementById('pwInfo').innerHTML = '<b>'+periodeLabel(periode)+'</b>: '+belum.length+' anggota belum dipotong • '+done.size+' sudah dipotong • Total yang akan diproses: <b>'+rupiah(belum.length * nominal)+'</b>';
   document.getElementById('tblPotongWajib').innerHTML = anggota.length ? anggota.map(a => {
-    const d = done.has(a.id);
-    return '<tr><td><input type="checkbox" class="check-pw" value="'+a.id+'"'+(d ? ' disabled' : ' checked')+'></td><td><code style="font-size:11px">'+esc(noAng(a))+'</code></td><td>'+esc(a.nama)+'</td><td>'+esc(val(a.dept))+'</td><td class="text-end">'+rupiah(nominal)+'</td><td>'+(d ? '<span class="badge-soft active">Sudah dipotong</span>' : '<span class="badge-soft pending">Belum</span>')+'</td></tr>';
+    const d = done.has(a.id), rec = d ? mutasi.find(m => m.jenis === 'wajib' && m.sumber === 'potong' && m.periode === periode && m.anggotaId === a.id) : null;
+    return '<tr><td><input type="checkbox" class="check-pw" value="'+a.id+'"'+(d ? ' disabled' : ' checked')+'></td><td><code style="font-size:11px">'+esc(noAng(a))+'</code></td><td>'+esc(a.nama)+'</td><td>'+esc(val(a.dept))+'</td><td class="text-end">'+rupiah(nominal)+'</td><td>'+(d ? '<span class="badge-soft active">Sudah dipotong</span>'+(rec ? ' <button class="btn btn-sm btn-outline-primary btn-sm-c" onclick="koreksiSimpanan('+rec.id+')"><i class="bi bi-pencil-square me-1"></i>Koreksi</button>' : '') : '<span class="badge-soft pending">Belum</span>')+'</td></tr>';
   }).join('') : '<tr><td colspan="6" class="text-center text-muted py-4">Belum ada anggota aktif</td></tr>';
   const grp = {};
   mutasi.filter(m => m.sumber === 'potong').forEach(m => { const g = grp[m.periode] || (grp[m.periode] = {n:0, t:0, tgl:m.tanggal}); g.n++; g.t += m.jumlah; });
@@ -3787,6 +3827,149 @@ function addSelectSearch(selId){
   obs.observe(sel, {childList:true});
 }
 initTableSearch();
+
+// ============ KOREKSI SIMPANAN POKOK / WAJIB ============
+const _saldoSimp = (list, aid, j) => list.filter(x => x.anggotaId === aid && x.jenis === j).reduce((z,x) => x.trx === 'setor' ? z + x.jumlah : z - x.jumlah, 0);
+const _effKas = (trx, j) => trx === 'setor' ? j : -j;
+function koreksiSimpanan(id){
+  const m = DB.load('mutasi').find(x => x.id === id); if (!m) return;
+  const a = ANGF(m.anggotaId);
+  document.getElementById('ksId').value = m.id;
+  document.getElementById('ksInfo').innerHTML = '<b>' + esc(m.no) + '</b> • ' + esc(a.nama || '-') + ' (NIP ' + esc(noAng(a) || '-') + ')' + (m.sumber === 'potong' ? '<br>Berasal dari potongan wajib ' + esc(periodeLabel(m.periode)) + ' — jenis &amp; transaksi dikunci.' : '');
+  document.getElementById('ksJenis').value = m.jenis; document.getElementById('ksTrx').value = m.trx;
+  document.getElementById('ksJenis').disabled = document.getElementById('ksTrx').disabled = (m.sumber === 'potong');
+  document.getElementById('ksJumlah').value = m.jumlah; document.getElementById('ksTanggal').value = m.tanggal || todayStr();
+  document.getElementById('ksKet').value = m.ket || ''; document.getElementById('ksAlasan').value = '';
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKoreksiSimpanan')).show();
+}
+function _logKoreksi(e){ const lg = DB.load('koreksi_log'); lg.push(Object.assign({tgl: new Date().toISOString(), user: currentUser.username}, e)); DB.save('koreksi_log', lg); }
+function _refreshSimpanan(){ renderSimpanan(); if (document.getElementById('tblPotongWajib')) renderPotongWajib(); try { renderPayroll(); } catch(e){} loadDashboard(); }
+function simpanKoreksiSimpanan(){
+  const id = +document.getElementById('ksId').value, mutasi = DB.load('mutasi'), m = mutasi.find(x => x.id === id); if (!m) return;
+  const jenis = document.getElementById('ksJenis').value, trx = document.getElementById('ksTrx').value, jumlah = +document.getElementById('ksJumlah').value;
+  const tanggal = document.getElementById('ksTanggal').value || m.tanggal, ket = document.getElementById('ksKet').value.trim(), alasan = document.getElementById('ksAlasan').value.trim();
+  if (!(jumlah > 0)){ alert('Jumlah harus lebih dari 0.'); return; }
+  if (alasan.length < 3){ alert('Alasan koreksi wajib diisi.'); return; }
+  const old = {jenis: m.jenis, trx: m.trx, jumlah: m.jumlah, tanggal: m.tanggal, ket: m.ket || ''};
+  const test = mutasi.map(x => x.id === id ? Object.assign({}, x, {jenis, trx, jumlah}) : x);
+  const bad = [old.jenis, jenis].filter((j,i,ar) => ar.indexOf(j) === i).find(j => _saldoSimp(test, m.anggotaId, j) < 0);
+  if (bad){ alert('Koreksi ditolak: saldo ' + jenisLabel(bad) + ' anggota akan menjadi negatif.'); return; }
+  const delta = _effKas(trx, jumlah) - _effKas(old.trx, old.jumlah);
+  Object.assign(m, {jenis, trx, jumlah, tanggal, ket, dikoreksi: true});
+  DB.save('mutasi', mutasi);
+  const kas = DB.get('kas', {saldo:0}); kas.saldo += delta; DB.set('kas', kas);
+  _logKoreksi({aksi:'koreksi', no: m.no, anggotaId: m.anggotaId, sebelum: old, sesudah: {jenis, trx, jumlah, tanggal, ket}, alasan});
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKoreksiSimpanan')).hide();
+  _refreshSimpanan(); toast('✅ Koreksi ' + esc(m.no) + ' tersimpan.');
+}
+function hapusKoreksiSimpanan(){
+  const id = +document.getElementById('ksId').value, mutasi = DB.load('mutasi'), m = mutasi.find(x => x.id === id); if (!m) return;
+  const alasan = document.getElementById('ksAlasan').value.trim();
+  if (alasan.length < 3){ alert('Isi alasan koreksi terlebih dahulu sebelum menghapus transaksi.'); return; }
+  if (_saldoSimp(mutasi.filter(x => x.id !== id), m.anggotaId, m.jenis) < 0){ alert('Transaksi tidak dapat dihapus: saldo ' + jenisLabel(m.jenis) + ' anggota akan menjadi negatif.'); return; }
+  if (!confirm('Hapus transaksi ' + m.no + ' (' + rupiah(m.jumlah) + ')? Saldo kas akan disesuaikan.')) return;
+  DB.save('mutasi', mutasi.filter(x => x.id !== id));
+  const kas = DB.get('kas', {saldo:0}); kas.saldo -= _effKas(m.trx, m.jumlah); DB.set('kas', kas);
+  _logKoreksi({aksi:'hapus', no: m.no, anggotaId: m.anggotaId, sebelum: {jenis: m.jenis, trx: m.trx, jumlah: m.jumlah, tanggal: m.tanggal, ket: m.ket || ''}, alasan});
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKoreksiSimpanan')).hide();
+  _refreshSimpanan(); toast('Transaksi ' + esc(m.no) + ' dihapus.');
+}
+
+// ============ PRATINJAU PDF (kartu anggota & profil) ============
+let _pdfDoc = null, _pdfUrl = null, _pdfName = 'dokumen.pdf';
+const pdfTxt = t => String(t ?? '').replace(/[^\x20-\x7E\u00A0-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D\u2022\u2026]/g, '').trim();
+function showPdfPreview(doc, filename, title){
+  _pdfDoc = doc; _pdfName = filename;
+  if (_pdfUrl) URL.revokeObjectURL(_pdfUrl);
+  _pdfUrl = URL.createObjectURL(doc.output('blob'));
+  document.getElementById('pdfPrevTitle').textContent = title;
+  document.getElementById('pdfPrevFrame').src = _pdfUrl;
+  const el = document.getElementById('modalPdfPrev');
+  bootstrap.Modal.getOrCreateInstance(el).show();
+  setTimeout(() => { const bd = document.querySelectorAll('.modal-backdrop'); if (bd.length) bd[bd.length - 1].style.zIndex = 1060; el.style.zIndex = 1065; }, 50);
+}
+function pdfPrevDownload(){ if (_pdfDoc) _pdfDoc.save(_pdfName); }
+function pdfPrevOpen(){ if (_pdfUrl) window.open(_pdfUrl, '_blank'); }
+function pdfPrevPrint(){
+  const fr = document.getElementById('pdfPrevFrame');
+  try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch(e){ pdfPrevOpen(); }
+}
+document.addEventListener('hidden.bs.modal', e => { if (e.target.id === 'modalPdfPrev'){ document.getElementById('pdfPrevFrame').src = 'about:blank'; } });
+const pdfReady = () => !!(window.jspdf && window.jspdf.jsPDF);
+function _imgFmt(u){ return /^data:image\/png/i.test(u) ? 'PNG' : 'JPEG'; }
+// potong gambar jadi rasio w:h (cover) agar foto tidak gepeng di PDF
+function pdfCoverImg(src, w, h){
+  return new Promise(res => {
+    if (!src) return res(null);
+    const im = new Image();
+    im.onload = () => {
+      try {
+        const k = 4, c = document.createElement('canvas'); c.width = Math.round(w * 10 * k); c.height = Math.round(h * 10 * k);
+        const sc = Math.max(c.width / im.width, c.height / im.height), dw = im.width * sc, dh = im.height * sc;
+        const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, (c.width - dw) / 2, (c.height - dh) / 2, dw, dh);
+        res(c.toDataURL('image/jpeg', 0.9));
+      } catch(e){ res(null); }
+    };
+    im.onerror = () => res(null); im.src = src;
+  });
+}
+async function cetakKartu(id){
+  const a = DB.load('anggota').find(x => x.id === id); if (!a) return;
+  if (!pdfReady()) return cetakKartuHTML(id);
+  const p = DB.get('pengaturan', {}), d = new window.jspdf.jsPDF({unit:'mm', format:'a4'}), PW = d.internal.pageSize.getWidth();
+  const W = 85.6, H = 54, x0 = (PW - W) / 2, y0 = 38;
+  const foto = await pdfCoverImg(a.foto, 18, 23), logo = await pdfCoverImg(p.logo, 7, 7);
+  d.setTextColor(10,30,63); d.setFont('helvetica','bold'); d.setFontSize(13); d.text('KARTU ANGGOTA', PW / 2, 18, {align:'center'});
+  d.setFont('helvetica','normal'); d.setFontSize(8.5); d.setTextColor(110,110,110);
+  d.text(pdfTxt(a.nama), PW / 2, 24, {align:'center'}); d.text('Pratinjau ukuran asli kartu (85,6 x 54 mm)', PW / 2, 29, {align:'center'});
+  d.setFillColor(201,162,39); d.roundedRect(x0, y0, W, H, 3, 3, 'F');
+  d.setFillColor(10,30,63); d.roundedRect(x0, y0, W, H - 6, 3, 3, 'F'); d.rect(x0, y0 + H - 11, W, 5, 'F');
+  d.setFillColor(201,162,39); d.rect(x0, y0 + 11.5, W, 0.5, 'F');
+  d.setFillColor(201,162,39); d.roundedRect(x0 + 3.5, y0 + 2.5, 7, 7, 1.5, 1.5, 'F');
+  if (logo) d.addImage(logo, 'JPEG', x0 + 3.5, y0 + 2.5, 7, 7); else { d.setTextColor(10,30,63); d.setFont('helvetica','bold'); d.setFontSize(9); d.text('K', x0 + 7, y0 + 7.6, {align:'center'}); }
+  d.setTextColor(255,255,255); d.setFont('helvetica','bold'); d.setFontSize(8); d.text('KARTU ANGGOTA ' + pdfTxt(p.nama || 'KOPKARIN'), x0 + 13, y0 + 5.8);
+  d.setFont('helvetica','normal'); d.setFontSize(4.8); d.text('KOPERASI KARYAWAN ' + pdfTxt(p.pt || 'PT. INSANSANDANG INTERNUSA'), x0 + 13, y0 + 9);
+  d.setFillColor(201,162,39); d.roundedRect(x0 + 4, y0 + 15, 18, 23, 1.5, 1.5, 'F');
+  if (foto) d.addImage(foto, 'JPEG', x0 + 4, y0 + 15, 18, 23); else { d.setTextColor(10,30,63); d.setFont('helvetica','bold'); d.setFontSize(20); d.text(pdfTxt(a.nama).charAt(0).toUpperCase(), x0 + 13, y0 + 29.5, {align:'center'}); }
+  d.setDrawColor(255,255,255); d.setLineWidth(0.3); d.roundedRect(x0 + 4, y0 + 15, 18, 23, 1.5, 1.5, 'S');
+  const tx = x0 + 26, tw = W - 26 - 4;
+  d.setTextColor(255,255,255); d.setFont('helvetica','bold'); d.setFontSize(8.5);
+  const nm = d.splitTextToSize(pdfTxt(a.nama), tw); d.text(nm.slice(0, 2), tx, y0 + 18.5); let y = y0 + 18.5 + Math.min(nm.length, 2) * 3.6 + 1;
+  const rows = [['NIP', noAng(a)], ['Dept / Jabatan', [val(a.dept), a.jabatan].filter(x => x && x !== '-').join(' / ') || '-'], ['Tempat, Tgl Lahir', ttl(a)], ['Tgl Masuk Kerja', tglPanjang(tglMasukOf(a))]];
+  d.setFontSize(5.8);
+  rows.forEach(r => {
+    d.setFont('helvetica','normal'); d.setTextColor(185,195,215); d.text(pdfTxt(r[0]), tx, y);
+    d.setTextColor(255,255,255); const ln = d.splitTextToSize(': ' + pdfTxt(r[1]), tw - 17); d.text(ln.slice(0, 2), tx + 17, y); y += Math.min(ln.length, 2) * 2.8 + 0.9;
+  });
+  d.setTextColor(10,30,63); d.setFont('helvetica','bold'); d.setFontSize(5.5);
+  d.text('Anggota sejak: ' + pdfTxt(tglPanjang(a.tgl)), x0 + 4, y0 + H - 2.3); d.text(pdfTxt((a.status || '').toUpperCase()), x0 + W - 4, y0 + H - 2.3, {align:'right'});
+  d.setDrawColor(190,190,190); d.setLineWidth(0.15); d.setLineDashPattern([1.2, 1.2], 0); d.roundedRect(x0 - 2, y0 - 2, W + 4, H + 4, 3.5, 3.5, 'S'); d.setLineDashPattern([], 0);
+  showPdfPreview(d, 'kartu-anggota-' + (noAng(a) || id) + '.pdf', 'Kartu Anggota - ' + a.nama);
+}
+async function cetakProfil(id){
+  const a = DB.load('anggota').find(x => x.id === id); if (!a) return;
+  if (!pdfReady()) return cetakProfilHTML(id);
+  const p = DB.get('pengaturan', {}), d = new window.jspdf.jsPDF({unit:'mm', format:'a4'}), W = d.internal.pageSize.getWidth();
+  pdfHeader(d, p, 'PROFIL ANGGOTA / KARYAWAN', pdfTxt((p.nama || 'KOPKARIN') + ' - Koperasi Karyawan ' + (p.pt || '')));
+  const foto = await pdfCoverImg(a.foto, 24, 30);
+  d.setFillColor(250,248,240); d.setDrawColor(201,162,39); d.roundedRect(14, 46, W - 28, 36, 2, 2, 'FD');
+  d.setFillColor(201,162,39); d.roundedRect(18, 49, 24, 30, 2, 2, 'F');
+  if (foto) d.addImage(foto, 'JPEG', 18, 49, 24, 30); else { d.setTextColor(10,30,63); d.setFont('helvetica','bold'); d.setFontSize(26); d.text(pdfTxt(a.nama).charAt(0).toUpperCase(), 30, 68, {align:'center'}); }
+  d.setTextColor(10,30,63); d.setFont('helvetica','bold'); d.setFontSize(14); d.text(d.splitTextToSize(pdfTxt(a.nama), W - 70).slice(0, 2), 48, 57);
+  d.setFont('helvetica','normal'); d.setFontSize(9.5); d.setTextColor(70,70,70);
+  d.text(pdfTxt([a.jabatan, a.dept].filter(Boolean).join(' - ') || '-'), 48, 66);
+  d.setFontSize(9); d.text('NIP : ' + pdfTxt(noAng(a) || '-'), 48, 72); d.text('Status : ' + pdfTxt((a.status || '-').toUpperCase()), 48, 77);
+  let y = 90;
+  profilGroups(a).forEach(gr => {
+    if (y > 255){ d.addPage(); y = 20; }
+    d.setFillColor(10,30,63); d.rect(14, y, W - 28, 6.5, 'F'); d.setTextColor(255,255,255); d.setFont('helvetica','bold'); d.setFontSize(9); d.text(pdfTxt(gr.t).toUpperCase(), 17, y + 4.6);
+    d.autoTable({startY: y + 6.5, body: gr.rows.map(r => [pdfTxt(r[0]), pdfTxt(val(r[1]))]), theme:'grid', margin:{left:14, right:14},
+      styles:{fontSize:8.5, cellPadding:1.8, lineColor:[220,224,232], textColor:[40,40,40]}, columnStyles:{0:{cellWidth:50, fillColor:[248,250,252], fontStyle:'bold', textColor:[10,30,63]}}});
+    y = d.lastAutoTable.finalY + 6;
+  });
+  pdfPages(d);
+  showPdfPreview(d, 'profil-' + (noAng(a) || id) + '.pdf', 'Profil - ' + a.nama);
+}
 
 </script>
 <script>
