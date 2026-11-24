@@ -33,7 +33,7 @@ const SYNC = (function(){
       ok:['#198754','☁ Tersinkron'], connecting:['#6c757d','☁ Menghubungkan…'],
       local:['#6c757d','💾 Mode lokal'], error:['#dc3545','⚠ Gagal sync']
     };
-    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v5.3'; b.title = stateMsg || '';
+    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v5.4'; b.title = stateMsg || '';
   }
   function setState(s, m){ state = s; stateMsg = m || ''; paint(); }
 
@@ -537,7 +537,7 @@ body{background:var(--bg);margin:0}
             <div class="col-md-4"><div class="stat-card green"><div class="lbl">Setoran Bulan Ini</div><div class="val" id="stSukarelaSetor">Rp 0</div><div class="sub">Current month</div></div></div>
             <div class="col-md-4"><div class="stat-card red"><div class="lbl">Penarikan Bulan Ini</div><div class="val" id="stSukarelaTarik">Rp 0</div><div class="sub">Current month</div></div></div>
           </div>
-          <div class="table-responsive"><table class="table"><thead><tr><th>Tanggal</th><th>No. Transaksi</th><th>Anggota</th><th>Transaksi</th><th>Keterangan</th><th class="text-end">Jumlah</th></tr></thead><tbody id="tblSukarela"></tbody></table></div>
+          <div class="table-responsive"><table class="table"><thead><tr><th>Tanggal</th><th>No. Transaksi</th><th>Anggota</th><th>Transaksi</th><th>Keterangan</th><th class="text-end">Jumlah</th><th class="text-end">Aksi</th></tr></thead><tbody id="tblSukarela"></tbody></table></div>
         </div>
       </div>
     </div>
@@ -1011,7 +1011,7 @@ body{background:var(--bg);margin:0}
       <div class="alert alert-warning py-2" style="font-size:12px" id="ksInfo"></div>
       <div class="row g-3">
         <div class="col-md-6"><label class="form-label">Jenis Simpanan</label>
-          <select class="form-select" id="ksJenis"><option value="pokok">Simpanan Pokok</option><option value="wajib_awal">Simpanan Wajib Awal</option><option value="wajib">Simpanan Wajib (bulanan)</option></select></div>
+          <select class="form-select" id="ksJenis"><option value="pokok">Simpanan Pokok</option><option value="wajib_awal">Simpanan Wajib Awal</option><option value="wajib">Simpanan Wajib (bulanan)</option><option value="sukarela">Simpanan Sukarela</option></select></div>
         <div class="col-md-6"><label class="form-label">Jenis Transaksi</label>
           <select class="form-select" id="ksTrx"><option value="setor">Setor</option><option value="tarik">Tarik</option></select></div>
         <div class="col-md-6"><label class="form-label">Jumlah (Rp) *</label><input type="number" class="form-control" id="ksJumlah" min="1"></div>
@@ -2376,8 +2376,8 @@ function renderSukarela(){
   const sorted = mutasi.slice().reverse();
   document.getElementById('tblSukarela').innerHTML = sorted.length ? sorted.map(m => {
     const a = anggota.find(x => x.id === m.anggotaId);
-    return '<tr><td>'+tgl(m.tanggal)+'</td><td><code style="font-size:11px">'+m.no+'</code></td><td>'+(a ? a.nama : '-')+'</td><td><span class="badge '+(m.trx === 'setor' ? 'bg-success' : 'bg-danger')+'">'+m.trx+'</span></td><td>'+(m.ket || '-')+'</td><td class="text-end fw-bold '+(m.trx === 'setor' ? 'text-success' : 'text-danger')+'">'+(m.trx === 'setor' ? '+' : '-')+' '+rupiah(m.jumlah)+'</td></tr>';
-  }).join('') : '<tr><td colspan="6" class="text-center text-muted py-4">Belum ada transaksi sukarela</td></tr>';
+    return '<tr><td>'+tgl(m.tanggal)+'</td><td><code style="font-size:11px">'+m.no+'</code>'+(m.dikoreksi ? '<div class="emp-meta">✎ dikoreksi</div>' : '')+'</td><td>'+(a ? a.nama : '-')+'</td><td><span class="badge '+(m.trx === 'setor' ? 'bg-success' : 'bg-danger')+'">'+m.trx+'</span></td><td>'+(m.ket || '-')+'</td><td class="text-end fw-bold '+(m.trx === 'setor' ? 'text-success' : 'text-danger')+'">'+(m.trx === 'setor' ? '+' : '-')+' '+rupiah(m.jumlah)+'</td><td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-primary btn-sm-c" onclick="koreksiSimpanan('+m.id+')"><i class="bi bi-pencil-square me-1"></i>Koreksi</button></td></tr>';
+  }).join('') : '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada transaksi sukarela</td></tr>';
 }
 
 function openSukarelaModal(){
@@ -3837,13 +3837,16 @@ function koreksiSimpanan(id){
   document.getElementById('ksId').value = m.id;
   document.getElementById('ksInfo').innerHTML = '<b>' + esc(m.no) + '</b> • ' + esc(a.nama || '-') + ' (NIP ' + esc(noAng(a) || '-') + ')' + (m.sumber === 'potong' ? '<br>Berasal dari potongan wajib ' + esc(periodeLabel(m.periode)) + ' — jenis &amp; transaksi dikunci.' : '');
   document.getElementById('ksJenis').value = m.jenis; document.getElementById('ksTrx').value = m.trx;
-  document.getElementById('ksJenis').disabled = document.getElementById('ksTrx').disabled = (m.sumber === 'potong');
+  // sukarela hanya bisa dikoreksi sebagai sukarela; pokok/wajib tidak bisa dipindah ke sukarela
+  Array.from(document.getElementById('ksJenis').options).forEach(o => { o.disabled = ((m.jenis === 'sukarela') !== (o.value === 'sukarela')); });
+  document.getElementById('ksJenis').disabled = (m.sumber === 'potong' || m.jenis === 'sukarela');
+  document.getElementById('ksTrx').disabled = (m.sumber === 'potong');
   document.getElementById('ksJumlah').value = m.jumlah; document.getElementById('ksTanggal').value = m.tanggal || todayStr();
   document.getElementById('ksKet').value = m.ket || ''; document.getElementById('ksAlasan').value = '';
   bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKoreksiSimpanan')).show();
 }
 function _logKoreksi(e){ const lg = DB.load('koreksi_log'); lg.push(Object.assign({tgl: new Date().toISOString(), user: currentUser.username}, e)); DB.save('koreksi_log', lg); }
-function _refreshSimpanan(){ renderSimpanan(); if (document.getElementById('tblPotongWajib')) renderPotongWajib(); try { renderPayroll(); } catch(e){} loadDashboard(); }
+function _refreshSimpanan(){ renderSimpanan(); if (document.getElementById('tblSukarela')) renderSukarela(); if (document.getElementById('tblPotongWajib')) renderPotongWajib(); try { renderPayroll(); } catch(e){} loadDashboard(); }
 function simpanKoreksiSimpanan(){
   const id = +document.getElementById('ksId').value, mutasi = DB.load('mutasi'), m = mutasi.find(x => x.id === id); if (!m) return;
   const jenis = document.getElementById('ksJenis').value, trx = document.getElementById('ksTrx').value, jumlah = +document.getElementById('ksJumlah').value;
