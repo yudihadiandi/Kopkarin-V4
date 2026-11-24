@@ -33,7 +33,7 @@ const SYNC = (function(){
       ok:['#198754','☁ Tersinkron'], connecting:['#6c757d','☁ Menghubungkan…'],
       local:['#6c757d','💾 Mode lokal'], error:['#dc3545','⚠ Gagal sync']
     };
-    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v5.4'; b.title = stateMsg || '';
+    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v5.5'; b.title = stateMsg || '';
   }
   function setState(s, m){ state = s; stateMsg = m || ''; paint(); }
 
@@ -203,6 +203,12 @@ body{background:var(--bg);margin:0}
 .member-card .lbl{font-size:11px;opacity:.85;text-transform:uppercase;margin-top:6px}
 .member-card .val{font-size:20px;font-weight:800;margin-top:2px}
 .member-card .sub{font-size:10px;opacity:.75;margin-top:2px}
+.member-card .tri{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.member-card .tri>div{background:rgba(255,255,255,.14);border-radius:10px;padding:8px 6px;min-width:0}
+.member-card .tri>div.t{background:rgba(255,255,255,.28)}
+.member-card .tri .k{font-size:9.5px;text-transform:uppercase;opacity:.9}
+.member-card .tri .v{font-size:13px;font-weight:800;margin-top:2px;word-break:break-word}
+@media(max-width:400px){.member-card .tri .v{font-size:11px}}
 .profile-item{display:flex;padding:12px 0;border-bottom:1px solid #eef1f6}
 .profile-item:last-child{border-bottom:0}
 .profile-item .k{width:140px;font-size:12px;color:var(--gray);flex-shrink:0}
@@ -842,10 +848,13 @@ body{background:var(--bg);margin:0}
   <div style="padding:0 14px 24px">
     <div class="msection active" id="msec-home">
       <div class="row g-3 mb-3">
-        <div class="col-6"><div class="member-card navy"><div class="ic"><i class="bi bi-wallet2"></i></div><div class="lbl">Simpanan Wajib</div><div class="val" id="mSimpananWajib">Rp 0</div><div class="sub">Saldo</div></div></div>
-        <div class="col-6"><div class="member-card gold"><div class="ic"><i class="bi bi-piggy-bank"></i></div><div class="lbl">Total Simpanan</div><div class="val" id="mTotalSimpanan">Rp 0</div><div class="sub">Semua jenis</div></div></div>
-        <div class="col-6"><div class="member-card green"><div class="ic"><i class="bi bi-check-circle"></i></div><div class="lbl">Total Cicilan</div><div class="val" id="mTotalCicilan">Rp 0</div><div class="sub">Dibayar</div></div></div>
-        <div class="col-6"><div class="member-card red"><div class="ic"><i class="bi bi-exclamation-triangle"></i></div><div class="lbl">Sisa Hutang</div><div class="val" id="mSisaHutang">Rp 0</div><div class="sub">Pokok+bunga</div></div></div>
+        <div class="col-6"><div class="member-card navy"><div class="ic"><i class="bi bi-safe"></i></div><div class="lbl">Simpanan Pokok</div><div class="val" id="mSimpananPokok">Rp 0</div><div class="sub">Saldo</div></div></div>
+        <div class="col-6"><div class="member-card navy"><div class="ic"><i class="bi bi-wallet2"></i></div><div class="lbl">Simpanan Wajib</div><div class="val" id="mSimpananWajib">Rp 0</div><div class="sub">Wajib + wajib awal</div></div></div>
+        <div class="col-12"><div class="member-card gold"><div class="ic"><i class="bi bi-piggy-bank"></i></div><div class="lbl">Total Simpanan</div><div class="val" id="mTotalSimpanan">Rp 0</div><div class="sub">Semua jenis (pokok + wajib + sukarela)</div></div></div>
+        <div class="col-12"><div class="member-card green"><div class="ic"><i class="bi bi-check-circle"></i></div><div class="lbl">Cicilan Dibayar</div>
+          <div class="tri"><div><div class="k">Cicilan Pokok</div><div class="v" id="mCicPokok">Rp 0</div></div><div><div class="k">Jasa Cicilan</div><div class="v" id="mCicJasa">Rp 0</div></div><div class="t"><div class="k">Total Cicilan</div><div class="v" id="mTotalCicilan">Rp 0</div></div></div></div></div>
+        <div class="col-12"><div class="member-card red"><div class="ic"><i class="bi bi-exclamation-triangle"></i></div><div class="lbl">Hutang Pinjaman Aktif</div>
+          <div class="tri"><div><div class="k">Pokok Hutang</div><div class="v" id="mHutPokok">Rp 0</div></div><div><div class="k">Jasa Hutang</div><div class="v" id="mHutJasa">Rp 0</div></div><div class="t"><div class="k">Total Hutang</div><div class="v" id="mSisaHutang">Rp 0</div></div></div></div></div>
       </div>
       <div class="member-info-strip mb-3" id="mInfoKaryawan"></div>
       <div class="panel"><div class="panel-head"><h6><i class="bi bi-info-circle me-1"></i> Pengumuman</h6></div><div class="panel-body">
@@ -1248,6 +1257,22 @@ body{background:var(--bg);margin:0}
     <div class="table-responsive" style="max-height:260px;overflow:auto"><table class="table table-sm"><thead><tr><th>Anggota</th><th>Tagihan</th><th class="text-end">Jumlah</th></tr></thead><tbody id="paList"></tbody></table></div>
   </div>
   <div class="modal-footer"><button class="btn btn-light" data-bs-dismiss="modal">Batal</button><button class="btn btn-success" id="paBtn" onclick="prosesPotongAuto()"><i class="bi bi-scissors me-1"></i> Proses (1x)</button></div>
+</div></div></div>
+
+<div class="modal fade" id="modalPotongMasal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h6 class="modal-title"><i class="bi bi-file-earmark-arrow-up me-1"></i> Potongan Angsuran Masal (Upload Excel)</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body">
+    <div class="mb-3"><label class="form-label">Periode potongan</label><input type="month" class="form-control" id="pmPeriode"></div>
+    <div class="d-grid gap-2 mb-3">
+      <button class="btn btn-outline-secondary" onclick="templatePotongMasal()"><i class="bi bi-download me-1"></i> 1. Unduh Template Potongan</button>
+      <button class="btn btn-primary-c" onclick="document.getElementById('pmFile').click()"><i class="bi bi-upload me-1"></i> 2. Upload File Potongan</button>
+      <input type="file" id="pmFile" accept=".xlsx,.xls,.csv" class="d-none" onchange="importPotongMasal(event)">
+    </div>
+    <div class="alert alert-info py-2 mb-0" style="font-size:12px">
+      Template berisi angsuran pinjaman aktif yang jatuh tempo pada periode terpilih (Pokok, Jasa, Total sudah terisi sesuai jadwal). Ubah nominal bila realisasi potongan berbeda, hapus baris yang tidak dipotong, lalu upload. Satu pinjaman hanya bisa dipotong satu kali per periode.
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-light" data-bs-dismiss="modal">Tutup</button></div>
 </div></div></div>
 
 <div class="modal fade" id="modalPelunasan" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
@@ -3259,12 +3284,16 @@ function renderMemberHome(a){
   const wajib = mutasi.filter(m => m.jenis === 'wajib' || m.jenis === 'wajib_awal').reduce((s,m) => m.trx === 'setor' ? s + m.jumlah : s - m.jumlah, 0);
   const total = mutasi.reduce((s,m) => m.trx === 'setor' ? s + m.jumlah : s - m.jumlah, 0);
   const pinjaman = DB.load('pinjaman').filter(p => p.anggotaId === a.id);
-  const totalCicilan = DB.load('angsuran').filter(g => pinjaman.some(p => p.id === g.pinjamanId)).reduce((s,g) => s + g.total, 0);
-  const sisaHutang = pinjaman.filter(p => p.status === 'cair').reduce((s,p) => s + p.sisaPokok, 0);
-  document.getElementById('mSimpananWajib').textContent = rupiah(wajib);
-  document.getElementById('mTotalSimpanan').textContent = rupiah(total);
-  document.getElementById('mTotalCicilan').textContent = rupiah(totalCicilan);
-  document.getElementById('mSisaHutang').textContent = rupiah(sisaHutang);
+  const pokokSim = mutasi.filter(m => m.jenis === 'pokok').reduce((s,m) => m.trx === 'setor' ? s + m.jumlah : s - m.jumlah, 0);
+  const angs = DB.load('angsuran').filter(g => pinjaman.some(p => p.id === g.pinjamanId));
+  const cicPokok = angs.reduce((s,g) => s + (+g.pokok || 0), 0), cicJasa = angs.reduce((s,g) => s + (+g.bunga || 0), 0), cicTotal = angs.reduce((s,g) => s + (+g.total || 0), 0);
+  const aktif = pinjaman.filter(p => p.status === 'cair');
+  const hutPokok = aktif.reduce((s,p) => s + (+p.sisaPokok || 0), 0);
+  const hutJasa = aktif.reduce((s,p) => s + (p.jadwal && p.jadwal.length ? p.jadwal : generateJadwalFromPinjaman(p)).filter(j => j.status === 'belum').reduce((z,j) => z + (+j.jasa || 0), 0), 0);
+  const setT = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = rupiah(v); };
+  setT('mSimpananPokok', pokokSim); setT('mSimpananWajib', wajib); setT('mTotalSimpanan', total);
+  setT('mCicPokok', cicPokok); setT('mCicJasa', cicJasa); setT('mTotalCicilan', cicTotal);
+  setT('mHutPokok', hutPokok); setT('mHutJasa', hutJasa); setT('mSisaHutang', hutPokok + hutJasa);
   const recent = mutasi.slice(-5).reverse();
   document.getElementById('mTblTrx').innerHTML = recent.length ? recent.map(m => '<tr><td>'+tgl(m.tanggal)+'</td><td>'+(m.ket || m.jenis + ' - ' + m.trx)+'</td><td class="text-end fw-bold '+(m.trx === 'setor' ? 'text-success' : 'text-danger')+'">'+(m.trx === 'setor' ? '+' : '-')+' '+rupiah(m.jumlah)+'</td></tr>').join('') : '<tr><td colspan="3" class="text-center text-muted py-3">Belum ada transaksi</td></tr>';
 }
@@ -3768,7 +3797,7 @@ loadDashboard = function(){ _ld(); renderDashDana(); };
   const add = (sec, html) => { const h = hd(sec), t = h.querySelector('.d-flex') || h; t.insertAdjacentHTML('beforeend', html); };
   add('simpanan', '<button class="btn btn-sm btn-outline-secondary" onclick="templateSimpanan()" style="font-size:12px"><i class="bi bi-download"></i> Template Excel</button><button class="btn btn-sm btn-outline-success" onclick="document.getElementById(\'fileImpSim\').click()" style="font-size:12px"><i class="bi bi-upload"></i> Import Excel</button><input type="file" id="fileImpSim" accept=".xlsx,.xls,.csv" class="d-none" onchange="importSimpanan(event)">');
   add('tabungan', '<button class="btn btn-sm btn-outline-danger ms-1" onclick="tabunganPDF()" style="font-size:12px"><i class="bi bi-file-pdf"></i> Export PDF</button>');
-  add('angsuran', '<button class="btn btn-sm btn-outline-success" onclick="openPotongAuto()" style="font-size:12px"><i class="bi bi-scissors"></i> Potong Otomatis Bulanan</button><button class="btn btn-sm btn-outline-warning" onclick="openPelunasan()" style="font-size:12px"><i class="bi bi-check2-all"></i> Pelunasan / Rehab</button>');
+  add('angsuran', '<button class="btn btn-sm btn-outline-success" onclick="openPotongAuto()" style="font-size:12px"><i class="bi bi-scissors"></i> Potong Otomatis Bulanan</button><button class="btn btn-sm btn-outline-warning" onclick="openPelunasan()" style="font-size:12px"><i class="bi bi-check2-all"></i> Pelunasan / Rehab</button><button class="btn btn-sm btn-outline-primary" onclick="openPotongMasal()" style="font-size:12px"><i class="bi bi-file-earmark-arrow-up"></i> Potongan Masal</button>');
   add('payroll', '<button class="btn btn-sm btn-outline-secondary" onclick="rptPrint(\'payroll\')" style="font-size:12px"><i class="bi bi-printer"></i> Print</button>');
   const ph = hd('angsuran'); if (ph && !ph.querySelector('.d-flex')){ const w = document.createElement('div'); w.className = 'd-flex gap-2 flex-wrap'; while (ph.children.length > 1) w.appendChild(ph.children[1]); ph.appendChild(w); }
   renderDashDana();
@@ -3972,6 +4001,112 @@ async function cetakProfil(id){
   });
   pdfPages(d);
   showPdfPreview(d, 'profil-' + (noAng(a) || id) + '.pdf', 'Profil - ' + a.nama);
+}
+
+// ============ POTONGAN ANGSURAN MASAL (template & upload Excel) ============
+function openPotongMasal(){
+  document.getElementById('pmPeriode').value = curPeriode();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalPotongMasal')).show();
+}
+function numID(v){
+  if (typeof v === 'number') return v;
+  let t = String(v == null ? '' : v).replace(/[^\d.,\-]/g, ''); if (!t) return NaN;
+  if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(t) || (t.includes('.') && t.includes(','))) t = t.replace(/\./g, '').replace(',', '.'); else if (t.includes(',')) t = t.replace(',', '.');
+  return +t;
+}
+function perISO(v, def){
+  if (v instanceof Date) return v.getFullYear() + '-' + pad2(v.getMonth() + 1);
+  const t = String(v == null ? '' : v).trim(); let m;
+  if ((m = t.match(/^(\d{4})-(\d{1,2})/))) return m[1] + '-' + pad2(m[2]);
+  if ((m = t.match(/^(\d{1,2})[\/\-](\d{4})$/))) return m[2] + '-' + pad2(m[1]);
+  return def;
+}
+function templatePotongMasal(){
+  const per = $g('pmPeriode') || curPeriode(), angs = DB.load('angsuran'), all = [];
+  DB.load('pinjaman').filter(p => p.status === 'cair').forEach(p => {
+    const jad = (p.jadwal && p.jadwal.length) ? p.jadwal : generateJadwalFromPinjaman(p), j = jad.find(x => x.status === 'belum');
+    if (!j || angs.some(g => g.pinjamanId === p.id && g.periode === per)) return;
+    const a = ANGF(p.anggotaId);
+    all.push({due: j.tanggal.slice(0, 7) <= per, row: {NIP: noAng(a), Nama: a.nama || '', No_Pinjaman: p.no, Jenis: jenisOf(p), Periode: per, Angsuran_Ke: j.ke + '/' + p.tenor, Tanggal_Potong: todayStr(), Pokok: j.pokok, Jasa: j.jasa, Total: j.total}});
+  });
+  let rows = all.filter(x => x.due).map(x => x.row), note = '';
+  if (!rows.length){ rows = all.map(x => x.row); note = 'Tidak ada angsuran yang jatuh tempo pada periode ini, template memuat angsuran berikutnya semua pinjaman aktif.'; }
+  if (!rows.length){ alert('Tidak ada pinjaman aktif dengan angsuran yang belum dipotong pada periode ' + periodeLabel(per) + '.'); return; }
+  rows.sort((x, y) => String(x.Nama).localeCompare(String(y.Nama), 'id', {sensitivity:'base'}));
+  const wb = XLSX.utils.book_new(), ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [14, 28, 24, 18, 10, 12, 14, 12, 12, 12].map(w => ({wch: w}));
+  XLSX.utils.book_append_sheet(wb, ws, 'Potongan');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['PETUNJUK POTONGAN MASAL'],
+    ['No_Pinjaman : kunci utama pencocokan pinjaman (jangan diubah). Jika kosong, dicari lewat NIP + Jenis (harus hanya 1 pinjaman aktif).'],
+    ['Periode : format YYYY-MM (contoh ' + per + ')'],
+    ['Tanggal_Potong : format YYYY-MM-DD; jika kosong memakai tanggal upload'],
+    ['Pokok & Jasa : angka tanpa titik / Rp. Total dihitung otomatis dari Pokok + Jasa'],
+    ['Hapus baris anggota yang tidak dipotong pada periode ini'],
+    ['Satu pinjaman hanya bisa dipotong satu kali per periode (baris duplikat dilewati)'],
+    ['Pokok tidak boleh melebihi sisa pokok pinjaman'], note ? [note] : []]), 'Petunjuk');
+  writeXLS(wb, 'template-potongan-masal-' + per + '.xlsx');
+}
+function parsePotongMasal(rows, per0){
+  const pin = DB.load('pinjaman'), angs = DB.load('angsuran'), ang = DB.load('anggota'), ok = [], err = [], seen = new Set();
+  rows.forEach((r, i) => {
+    const ln = 'Baris ' + (i + 2) + ': ';
+    const noP = String(r.No_Pinjaman || r['No Pinjaman'] || '').trim(), nip = String(r.NIP || r.No_Anggota || r.No_Karyawan || '').trim();
+    if (!noP && !nip && !String(r.Pokok || '') && !String(r.Total || '')) return;   // baris kosong
+    let p = noP ? pin.find(x => x.no === noP) : null;
+    if (!p && !noP){
+      const a = ang.find(x => noAng(x) === nip || String(x.nomor).trim() === nip), jn = String(r.Jenis || '').trim().toLowerCase();
+      const cand = a ? pin.filter(x => x.anggotaId === a.id && x.status === 'cair' && (!jn || jenisOf(x).toLowerCase() === jn)) : [];
+      if (cand.length === 1) p = cand[0]; else { err.push(ln + (a ? (cand.length ? 'NIP punya lebih dari 1 pinjaman aktif, isi No_Pinjaman' : 'tidak ada pinjaman aktif') : 'NIP "' + nip + '" tidak ditemukan')); return; }
+    }
+    if (!p){ err.push(ln + 'No_Pinjaman "' + noP + '" tidak ditemukan'); return; }
+    if (p.status !== 'cair'){ err.push(ln + p.no + ' berstatus ' + p.status + ' (hanya pinjaman cair)'); return; }
+    const periode = perISO(r.Periode, per0);
+    let pokok = numID(r.Pokok), jasa = numID(r.Jasa);
+    if (isNaN(jasa)) jasa = 0;
+    if (isNaN(pokok)){ err.push(ln + 'Pokok tidak valid'); return; }
+    if (pokok < 0 || jasa < 0 || pokok + jasa <= 0){ err.push(ln + p.no + ' nominal potongan tidak valid'); return; }
+    if (pokok > (+p.sisaPokok || 0) + 0.5){ err.push(ln + p.no + ' pokok melebihi sisa pokok (' + rupiah(p.sisaPokok) + ')'); return; }
+    if (angs.some(g => g.pinjamanId === p.id && g.periode === periode)){ err.push(ln + p.no + ' sudah dipotong periode ' + periodeLabel(periode)); return; }
+    const key = p.id + '|' + periode; if (seen.has(key)){ err.push(ln + p.no + ' duplikat dalam file'); return; } seen.add(key);
+    ok.push({pid: p.id, no: p.no, nama: ANGF(p.anggotaId).nama || '-', periode, pokok: Math.round(pokok), jasa: Math.round(jasa), tanggal: toISO(r.Tanggal_Potong) || todayStr()});
+  });
+  return {ok, err};
+}
+function terapkanPotongMasal(ok, fname){
+  const pin = DB.load('pinjaman'), angs = DB.load('angsuran'); let tot = 0;
+  ok.forEach((x, i) => {
+    const pp = pin.find(q => q.id === x.pid); if (!pp) return;
+    if (!pp.jadwal || !pp.jadwal.length) pp.jadwal = generateJadwalFromPinjaman(pp);
+    const j = pp.jadwal.find(t => t.status === 'belum'); if (j) j.status = 'lunas';
+    pp.sisaPokok = Math.max(0, (+pp.sisaPokok || 0) - x.pokok); pp.totalBayar = (pp.totalBayar || 0) + x.pokok + x.jasa;
+    if (pp.sisaPokok <= 0 || pp.jadwal.every(t => t.status === 'lunas')){ pp.status = 'lunas'; pp.sisaPokok = 0; pp.jadwal.forEach(t => { t.status = 'lunas'; }); }
+    angs.push({id: uid() + i, no: noTrx('ANG'), pinjamanId: pp.id, tanggal: x.tanggal, pokok: x.pokok, bunga: x.jasa, total: x.pokok + x.jasa, user: currentUser.username, periode: x.periode, sumber: 'potong-masal'});
+    tot += x.pokok + x.jasa;
+  });
+  DB.save('pinjaman', pin); DB.save('angsuran', angs);
+  const kas = DB.get('kas', {saldo:0}); kas.saldo += tot; DB.set('kas', kas);
+  const lg = DB.load('potongMasal'); lg.push({tanggal: todayStr(), file: fname, jumlah: ok.length, total: tot, user: currentUser.username}); DB.save('potongMasal', lg);
+  return tot;
+}
+function importPotongMasal(ev){
+  const f = ev.target.files[0]; if (!f) return;
+  const per0 = $g('pmPeriode') || curPeriode(), rd = new FileReader();
+  rd.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates:true});
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:''});
+      const res = parsePotongMasal(rows, per0);
+      if (!res.ok.length){ alert('Tidak ada baris valid.\n\n' + res.err.slice(0, 15).join('\n')); return; }
+      const sum = res.ok.reduce((z, x) => z + x.pokok + x.jasa, 0);
+      if (!confirm('Proses potongan masal ' + res.ok.length + ' angsuran?\nTotal potongan: ' + rupiah(sum) + (res.err.length ? '\n\n' + res.err.length + ' baris dilewati:\n' + res.err.slice(0, 10).join('\n') : ''))) return;
+      const tot = terapkanPotongMasal(res.ok, f.name);
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('modalPotongMasal')).hide();
+      renderAngsuran(); renderPinjaman(); loadDashboard();
+      toast('✅ Potongan masal: ' + res.ok.length + ' angsuran • ' + rupiah(tot) + (res.err.length ? ' • ' + res.err.length + ' dilewati' : ''));
+    } catch (x) { alert('File tidak dapat dibaca: ' + x.message); }
+    ev.target.value = '';
+  };
+  rd.readAsArrayBuffer(f);
 }
 
 </script>
