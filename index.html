@@ -442,6 +442,10 @@ html.lenis,html.lenis body{height:auto}
 .lenis.lenis-smooth{scroll-behavior:auto!important}
 .lenis.lenis-stopped{overflow:hidden}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* v6.1 dashboard: angka tidak terpotong */
+#sec-dashboard .stat-card .ico-float{display:none}
+#sec-dashboard .stat-card .val{font-size:clamp(16px,2.2vw,22px)!important;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+#sec-dashboard .stat-card .lbl,#sec-dashboard .stat-card .sub{overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -509,6 +513,9 @@ html.lenis,html.lenis body{height:auto}
       <a class="nav-link-c" data-page="anggota"><i class="bi bi-people"></i> Anggota</a>
       <a class="nav-link-c" data-page="users"><i class="bi bi-person-gear"></i> Pengguna</a>
       <a class="nav-link-c" data-page="bank"><i class="bi bi-bank"></i> Bank &amp; Rekening</a>
+      <div class="nav-sec">Kas &amp; Bank</div>
+      <a class="nav-link-c" data-page="banktrx"><i class="bi bi-arrow-left-right"></i> Transaksi Bank</a>
+      <a class="nav-link-c" data-page="kastrx"><i class="bi bi-cash-stack"></i> Transaksi Kas</a>
       <div class="nav-sec">Transaksi</div>
       <a class="nav-link-c" data-page="simpanan"><i class="bi bi-piggy-bank"></i> Simpanan</a>
       <a class="nav-link-c" data-page="sukarela"><i class="bi bi-wallet2"></i> Simpanan Sukarela</a>
@@ -556,10 +563,12 @@ html.lenis,html.lenis body{height:auto}
     <div class="section active" id="sec-dashboard">
       <div class="row g-3 mb-3" id="dashDana"></div>
       <div class="row g-3 mb-3">
-        <div class="col-6 col-md-3"><div class="stat-card"><div class="ico-float"><i class="bi bi-people-fill"></i></div><div class="lbl">Anggota Aktif</div><div class="val" id="stAktif">0</div><div class="sub">Total terdaftar</div></div></div>
-        <div class="col-6 col-md-3"><div class="stat-card gold"><div class="ico-float"><i class="bi bi-piggy-bank-fill"></i></div><div class="lbl">Total Simpanan</div><div class="val" id="stSimpanan">Rp 0</div><div class="sub">Pokok + Wajib + Sukarela</div></div></div>
-        <div class="col-6 col-md-3"><div class="stat-card red"><div class="ico-float"><i class="bi bi-cash-coin"></i></div><div class="lbl">Piutang Pinjaman</div><div class="val" id="stPiutang">Rp 0</div><div class="sub">Sisa pokok</div></div></div>
-        <div class="col-6 col-md-3"><div class="stat-card green"><div class="ico-float"><i class="bi bi-bank2"></i></div><div class="lbl">Kas &amp; Bank</div><div class="val" id="stKas">Rp 0</div><div class="sub">Saldo terkini</div></div></div>
+<div class="col-6 col-md-4"><div class="stat-card "><div class="ico-float"><i class="bi bi-people-fill"></i></div><div class="lbl">Anggota Aktif</div><div class="val" id="stAktif" style="font-size:17px">0</div><div class="sub">Total terdaftar</div></div></div>
+        <div class="col-6 col-md-4"><div class="stat-card gold"><div class="ico-float"><i class="bi bi-piggy-bank-fill"></i></div><div class="lbl">Total Simpanan</div><div class="val" id="stSimpanan" style="font-size:17px">Rp 0</div><div class="sub">Pokok + Wajib + Sukarela</div></div></div>
+        <div class="col-6 col-md-4"><div class="stat-card red"><div class="ico-float"><i class="bi bi-cash-coin"></i></div><div class="lbl">Piutang Pinjaman</div><div class="val" id="stPiutang" style="font-size:17px">Rp 0</div><div class="sub">Sisa pokok</div></div></div>
+        <div class="col-6 col-md-4"><div class="stat-card teal"><div class="ico-float"><i class="bi bi-bank"></i></div><div class="lbl">Saldo di Bank</div><div class="val" id="stBank" style="font-size:17px">Rp 0</div><div class="sub">Semua rekening</div></div></div>
+        <div class="col-6 col-md-4"><div class="stat-card orange"><div class="ico-float"><i class="bi bi-cash-stack"></i></div><div class="lbl">Saldo Kas Tunai</div><div class="val" id="stKasTunai" style="font-size:17px">Rp 0</div><div class="sub">Uang cash</div></div></div>
+        <div class="col-6 col-md-4"><div class="stat-card green"><div class="ico-float"><i class="bi bi-bank2"></i></div><div class="lbl">Total Kas &amp; Bank</div><div class="val" id="stKas" style="font-size:17px">Rp 0</div><div class="sub" id="stKasSub">Kekayaan + Kas Tunai + Bank + Simpanan</div></div></div>
       </div>
       <div class="row g-3">
         <div class="col-md-8"><div class="panel"><div class="panel-head"><h6><i class="bi bi-graph-up-arrow me-1"></i> Perkembangan</h6></div><div class="panel-body"><div class="chart-box"><canvas id="chartMain"></canvas></div></div></div></div>
@@ -916,12 +925,60 @@ html.lenis,html.lenis body{height:auto}
         <div class="panel-head"><h6><i class="bi bi-bank me-1"></i> Data Bank &amp; Rekening</h6>
           <button class="btn btn-sm btn-primary-c" onclick="openBankModal()" style="font-size:12px"><i class="bi bi-plus-lg"></i> Tambah Bank</button>
         </div>
-        <div class="panel-body"><div class="table-responsive"><table class="table"><thead><tr><th>Kode</th><th>Nama Bank</th><th>No. Rekening</th><th>Atas Nama</th><th class="text-end">Saldo</th><th class="text-end">Aksi</th></tr></thead><tbody id="tblBank"></tbody></table></div></div>
+        <div class="panel-body"><div class="table-responsive"><table class="table"><thead><tr><th>Kode</th><th>Nama Bank</th><th>No. Rekening</th><th>Atas Nama</th><th class="text-end">Saldo Awal</th><th class="text-end">Mutasi</th><th class="text-end">Saldo Saat Ini</th><th class="text-end">Aksi</th></tr></thead><tbody id="tblBank"></tbody></table></div></div>
       </div>
       <div class="panel">
         <div class="panel-head"><h6><i class="bi bi-credit-card me-1"></i> Rekening Anggota</h6></div>
         <div class="panel-body">
           <div class="table-responsive"><table class="table"><thead><tr><th>NIP</th><th>Nama</th><th>Bank</th><th>No. Rekening</th><th>Atas Nama</th><th class="text-end">Aksi</th></tr></thead><tbody id="tblRekAnggota"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- TRANSAKSI BANK -->
+    <div class="section" id="sec-banktrx">
+      <div class="panel">
+        <div class="panel-head"><h6><i class="bi bi-arrow-left-right me-1"></i> Transaksi Bank (Dana Masuk &amp; Keluar)</h6>
+          <button class="btn btn-sm btn-primary-c" onclick="openBankTrx()" style="font-size:12px"><i class="bi bi-plus-lg"></i> Transaksi Baru</button></div>
+        <div class="panel-body">
+          <div class="row g-3 mb-3" id="btRingkas"></div>
+          <div class="row g-2 mb-3 align-items-end">
+            <div class="col-12 col-md-3"><label class="form-label">Rekening Bank</label><select class="form-select form-select-sm" id="btFilterBank" onchange="renderBankTrx()"></select></div>
+            <div class="col-6 col-md-2"><label class="form-label">Dari</label><input type="date" class="form-control form-control-sm" id="btDari" onchange="renderBankTrx()"></div>
+            <div class="col-6 col-md-2"><label class="form-label">Sampai</label><input type="date" class="form-control form-control-sm" id="btSampai" onchange="renderBankTrx()"></div>
+            <div class="col-12 col-md-2"><label class="form-label">Jenis</label><select class="form-select form-select-sm" id="btFilterTrx" onchange="renderBankTrx()"><option value="">Semua</option><option value="masuk">Dana Masuk</option><option value="keluar">Dana Keluar</option></select></div>
+          </div>
+          <div class="table-responsive"><table class="table"><thead><tr><th>Tanggal</th><th>No.</th><th>Bank</th><th>Keterangan</th><th class="text-end">Masuk</th><th class="text-end">Keluar</th><th class="text-end">Saldo</th><th></th></tr></thead><tbody id="btTbl"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRANSAKSI KAS -->
+    <div class="section" id="sec-kastrx">
+      <div class="panel">
+        <div class="panel-head"><h6><i class="bi bi-cash-stack me-1"></i> Transaksi Kas (Uang Tunai)</h6>
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-sm btn-outline-secondary" onclick="openKasAwal()" style="font-size:12px"><i class="bi bi-pencil"></i> Edit Saldo Awal Kas</button>
+            <button class="btn btn-sm btn-primary-c" onclick="openKasTrx()" style="font-size:12px"><i class="bi bi-plus-lg"></i> Transaksi Baru</button></div></div>
+        <div class="panel-body">
+          <div class="row g-3 mb-3" id="ktRingkas"></div>
+          <div class="row g-2 mb-3 align-items-end">
+            <div class="col-6 col-md-2"><label class="form-label">Dari</label><input type="date" class="form-control form-control-sm" id="ktDari" onchange="renderKasTrx()"></div>
+            <div class="col-6 col-md-2"><label class="form-label">Sampai</label><input type="date" class="form-control form-control-sm" id="ktSampai" onchange="renderKasTrx()"></div>
+            <div class="col-12 col-md-2"><label class="form-label">Jenis</label><select class="form-select form-select-sm" id="ktFilterTrx" onchange="renderKasTrx()"><option value="">Semua</option><option value="masuk">Kas Masuk</option><option value="keluar">Kas Keluar</option></select></div>
+          </div>
+          <div class="table-responsive"><table class="table"><thead><tr><th>Tanggal</th><th>No.</th><th>Keterangan</th><th class="text-end">Masuk</th><th class="text-end">Keluar</th><th class="text-end">Saldo</th><th></th></tr></thead><tbody id="ktTbl"></tbody></table></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h6><i class="bi bi-calculator me-1"></i> Perhitungan Uang Cash (Kas Opname)</h6>
+          <button class="btn btn-sm btn-outline-secondary" onclick="resetHitungCash()" style="font-size:12px">Reset</button></div>
+        <div class="panel-body">
+          <div class="row g-3">
+            <div class="col-12 col-lg-6"><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Pecahan</th><th style="width:120px">Jumlah Lembar/Keping</th><th class="text-end">Subtotal</th></tr></thead><tbody id="hcBody"></tbody></table></div></div>
+            <div class="col-12 col-lg-6"><div id="hcHasil"></div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1353,7 +1410,7 @@ html.lenis,html.lenis body{height:auto}
       <div class="mb-3"><label class="form-label">Nama Bank *</label><input class="form-control" id="bankNama"></div>
       <div class="mb-3"><label class="form-label">No. Rekening</label><input class="form-control" id="bankRek"></div>
       <div class="mb-3"><label class="form-label">Atas Nama</label><input class="form-control" id="bankAn"></div>
-      <div class="mb-3"><label class="form-label">Saldo Awal (Rp)</label><input type="number" class="form-control" id="bankSaldo" value="0"></div>
+      <div class="mb-3"><label class="form-label">Saldo Awal (Rp)</label><input type="number" class="form-control" id="bankSaldo" value="0"><div class="emp-meta mt-1">Saldo saat ini = saldo awal + transaksi bank (masuk − keluar).</div></div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary-c" onclick="simpanBank()">Simpan</button></div>
   </div></div>
@@ -1416,6 +1473,39 @@ html.lenis,html.lenis body{height:auto}
 </div>
 
 <!-- SCRIPTS (hanya 1x — TIDAK duplikat) -->
+
+
+<div class="modal fade" id="modalBankTrx" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h6 class="modal-title">Transaksi Bank</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body">
+    <div class="row g-2 mb-3"><div class="col-7"><label class="form-label">Tanggal</label><input type="date" class="form-control" id="btmTanggal"></div>
+      <div class="col-5"><label class="form-label">Jenis</label><select class="form-select" id="btmTrx"><option value="masuk">Dana Masuk</option><option value="keluar">Dana Keluar</option></select></div></div>
+    <div class="mb-3"><label class="form-label">Rekening Bank</label><select class="form-select" id="btmBank"></select></div>
+    <div class="mb-3"><label class="form-label">Jumlah (Rp)</label><input type="number" class="form-control" id="btmJumlah" min="1"></div>
+    <div class="mb-3"><label class="form-label">Keterangan</label><input class="form-control" id="btmKet" placeholder="mis. setoran, biaya admin, bunga bank"></div>
+    <div id="btmInfo" class="emp-meta"></div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-light" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary-c" onclick="simpanBankTrx()">Simpan</button></div>
+</div></div></div>
+
+<div class="modal fade" id="modalKasTrx" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h6 class="modal-title">Transaksi Kas</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body">
+    <div class="row g-2 mb-3"><div class="col-7"><label class="form-label">Tanggal</label><input type="date" class="form-control" id="ktmTanggal"></div>
+      <div class="col-5"><label class="form-label">Jenis</label><select class="form-select" id="ktmTrx" onchange="ktmUpdate()"><option value="masuk">Kas Masuk</option><option value="keluar">Kas Keluar</option></select></div></div>
+    <div class="mb-3"><label class="form-label">Jumlah (Rp)</label><input type="number" class="form-control" id="ktmJumlah" min="1"></div>
+    <div class="mb-3"><label class="form-label">Keterangan</label><input class="form-control" id="ktmKet"></div>
+    <div class="mb-2"><label class="form-label" id="ktmBankLbl">Transfer dengan bank (opsional)</label><select class="form-select" id="ktmBank" onchange="ktmUpdate()"></select></div>
+    <div id="ktmInfo" class="emp-meta"></div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-light" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary-c" onclick="simpanKasTrx()">Simpan</button></div>
+</div></div></div>
+
+<div class="modal fade" id="modalKasAwal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h6 class="modal-title">Edit Saldo Awal Kas</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body"><label class="form-label">Saldo Awal Kas Tunai (Rp)</label><input type="number" class="form-control" id="kaSaldo"></div>
+  <div class="modal-footer"><button class="btn btn-light" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary-c" onclick="simpanKasAwal()">Simpan</button></div>
+</div></div></div>
 
 <div class="modal fade" id="modalArusKas" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
   <div class="modal-header"><h6 class="modal-title">Transaksi Pos Dana</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
@@ -1571,21 +1661,9 @@ function hitungMasaKerja(tglMasuk){
 
 const DB = {
   load(k){ try { return JSON.parse(localStorage.getItem('kopkarin_'+k) || '[]'); } catch(e){ return []; } },
-  _write(k,v){
-    const raw = JSON.stringify(v);
-    try { localStorage.setItem('kopkarin_'+k, raw); SYNC.push(k,v); return true; }
-    catch(e){
-      if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)){
-        console.error('Storage penuh saat menyimpan', k, e);
-        alert('Penyimpanan browser penuh. Foto profil terlalu besar atau data terlalu banyak.\nCoba ganti foto dengan ukuran lebih kecil, atau hapus data lama yang tidak dipakai.');
-        return false;
-      }
-      throw e;
-    }
-  },
-  save(k,v){ try { notifDiff(k, v); } catch(e){} return this._write(k,v); },
+  save(k,v){ try { notifDiff(k, v); } catch(e){} try { localStorage.setItem('kopkarin_'+k, JSON.stringify(v)); } catch(e){ SYNC.push(k,v); throw e; } SYNC.push(k,v); },
   get(k,d){ const v = localStorage.getItem('kopkarin_'+k); return v ? JSON.parse(v) : d; },
-  set(k,v){ try { notifDiff(k, v); } catch(e){} return this._write(k,v); }
+  set(k,v){ try { notifDiff(k, v); } catch(e){} localStorage.setItem('kopkarin_'+k, JSON.stringify(v)); SYNC.push(k,v); }
 };
 
 // kolom tabel potongan payroll (dipakai layar, PDF, Excel, print, CSV)
@@ -1708,26 +1786,6 @@ function generateJadwalFromPinjaman(p){
   return jadwal;
 }
 
-function bersihkanAngsuranPinjaman(pid){
-  const angs = DB.load('angsuran'), keep = [], removed = [];
-  angs.forEach(g => { if (g.pinjamanId === pid) removed.push(g); else keep.push(g); });
-  if (removed.length){
-    DB.save('angsuran', keep);
-    const kas = DB.get('kas', {saldo:0});
-    const tot = removed.reduce((s,g) => s + (+g.total || 0), 0);
-    if (tot){ kas.saldo = Math.max(0, (kas.saldo || 0) - tot); DB.set('kas', kas); }
-  }
-  return removed.length;
-}
-function resetPinjamanDitolak(p){
-  const n = bersihkanAngsuranPinjaman(p.id);
-  p.status = 'ditolak';
-  p.totalBayar = 0;
-  p.sisaPokok = 0;
-  delete p.jadwal;
-  p.tanggalCair = '';
-  return n;
-}
 function migrateData(){
   cleanupDemo(); migrateV4();
   const users = DB.load('users');
@@ -1738,6 +1796,7 @@ function migrateData(){
     angAll.forEach(a => { const n = nipOf(a); if (n && a.nomor !== n){ a.nomor = n; angCh = true; } });
     if (angCh) DB.save('anggota', angAll);
   }
+  { const nAgt = users.length; for (let i = users.length - 1; i >= 0; i--) if (/^AGT-/i.test(String(users[i].username || ''))) users.splice(i, 1); if (users.length !== nAgt) changed = true; }   // buang username berawalan AGT-
   const adminUsernames = ['superadmin','admin','bendahara','kasir'];
   users.forEach(u => {
     if (!u.type){ u.type = (adminUsernames.includes(u.username) || u.role !== 'Anggota') ? 'admin' : 'anggota'; changed = true; }
@@ -1748,10 +1807,8 @@ function migrateData(){
   });
   const anggota = DB.load('anggota');
   anggota.forEach(a => {
-    const uname = usernameOf(a);
-    if (!uname || /^AGT-/i.test(uname)) return; // jangan buat akun login dari nomor AGT- legacy
-    if (!users.find(u => u.type === 'anggota' && (u.anggotaId == a.id || u.username === uname))){
-      users.push({id: uid(), username: uname, password: 'password123', nama: a.nama, role: 'Anggota', type: 'anggota', anggotaId: a.id, active: 1, lastLogin: null});
+    if (nipOf(a) && !users.find(u => u.type === 'anggota' && (u.anggotaId == a.id || u.username === usernameOf(a)))){
+      users.push({id: uid(), username: usernameOf(a), password: 'password123', nama: a.nama, role: 'Anggota', type: 'anggota', anggotaId: a.id, active: 1, lastLogin: null});
       changed = true;
     }
   });
@@ -1761,25 +1818,11 @@ function migrateData(){
     const u = users.find(x => x.type === 'anggota' && x.anggotaId == a.id);
     if (u && u.username !== want && !users.some(x => x !== u && x.username === want)){ u.username = want; changed = true; }
   });
-  // buang username anggota yang masih memakai awalan AGT- (legacy nomor, bukan NIP)
-  const beforeAgt = users.length;
-  for (let i = users.length - 1; i >= 0; i--){
-    const u = users[i];
-    if (u.type !== 'anggota') continue;
-    if (!/^AGT-/i.test(String(u.username || ''))) continue;
-    const a = anggota.find(x => x.id == u.anggotaId);
-    const nip = a ? nipOf(a) : '';
-    if (nip && !users.some(x => x !== u && x.username === nip)){
-      u.username = nip; changed = true;
-    } else {
-      users.splice(i, 1); changed = true;
-    }
-  }
-  if (users.length !== beforeAgt) console.log('migrate: hapus/perbaiki user AGT-', beforeAgt - users.length);
   if (changed) DB.save('users', users);
   const pinjaman = DB.load('pinjaman');
   let pinjamanChanged = false;
   pinjaman.forEach(p => {
+    if (p.status === 'ditolak' && ((p.totalBayar || 0) > 0 || p.jadwal)){ p.totalBayar = 0; delete p.jadwal; p.sisaPokok = p.jumlahPengajuan !== undefined ? p.jumlahPengajuan : p.jumlah; pinjamanChanged = true; }
     if (p.status === 'cair' && !p.jadwal){ p.jadwal = generateJadwalFromPinjaman(p); pinjamanChanged = true; }
     if (['disetujui','cair'].includes(p.status) && p.jadwal && p.jadwal.length){   // jadwal selalu sesuai pinjaman yang disetujui
       const paidN = p.jadwal.filter(j => j.status === 'lunas').length, exp = generateJadwalFromPinjaman(p);
@@ -1789,23 +1832,7 @@ function migrateData(){
     }
     (p.jadwal || []).forEach(j => { if (j.status === 'belum' && j.tanggal){ const nd = lastWorkday(+j.tanggal.slice(0,4), +j.tanggal.slice(5,7) - 1); if (nd !== j.tanggal){ j.tanggal = nd; pinjamanChanged = true; } } });
   });
-  // pinjaman ditolak: cicilan & totalBayar harus 0, angsuran terkait dihapus
-  pinjaman.forEach(p => {
-    if (p.status === 'ditolak' && ((p.totalBayar || 0) > 0 || (p.jadwal && p.jadwal.some(j => j.status === 'lunas')) || (p.sisaPokok || 0) > 0)){
-      resetPinjamanDitolak(p); pinjamanChanged = true;
-    }
-  });
   if (pinjamanChanged) DB.save('pinjaman', pinjaman);
-  // foto profil terlalu besar (base64 mentah) sering bikin localStorage penuh & gagal update
-  {
-    const angFoto = DB.load('anggota'); let fc = false;
-    angFoto.forEach(a => {
-      if (a.foto && typeof a.foto === 'string' && a.foto.length > 300000){
-        a.foto = ''; fc = true;
-      }
-    });
-    if (fc){ DB.save('anggota', angFoto); console.warn('migrate: foto oversized dikosongkan, unggah ulang dari portal/admin'); }
-  }
   // v3.3: lengkapi kolom data karyawan untuk data lama
   const ang = DB.load('anggota');
   let angChanged = false;
@@ -2236,36 +2263,14 @@ function openAnggotaModal(id){
   bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAnggota')).show();
 }
 
-function compressFotoDataUrl(src, size, quality){
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onerror = () => reject(new Error('Gambar tidak dapat dibaca'));
-    img.onload = () => {
-      const S = size || 320;
-      const c = document.createElement('canvas'); c.width = c.height = S;
-      const side = Math.min(img.width, img.height) || 1;
-      const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
-      const ctx = c.getContext('2d');
-      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, S, S);
-      ctx.drawImage(img, sx, sy, side, side, 0, 0, S, S);
-      resolve(c.toDataURL('image/jpeg', quality == null ? 0.82 : quality));
-    };
-    img.src = src;
-  });
-}
 function previewFotoAnggota(e){
   const file = e.target.files[0];
   if (!file) return;
-  if (!/^image\//.test(file.type)){ alert('File harus berupa gambar (JPG/PNG).'); e.target.value = ''; return; }
-  if (file.size > 8 * 1024 * 1024){ alert('Ukuran foto maksimal 8 MB.'); e.target.value = ''; return; }
+  if (file.size > 2 * 1024 * 1024){ alert('Ukuran foto maksimal 2 MB.'); e.target.value = ''; return; }
   const reader = new FileReader();
-  reader.onerror = () => alert('Gagal membaca file.');
-  reader.onload = async ev => {
-    try {
-      const data = await compressFotoDataUrl(ev.target.result, 320, 0.82);
-      document.getElementById('angFotoData').value = data;
-      document.getElementById('previewFoto').innerHTML = '<img src="'+data+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
-    } catch(err){ alert(err.message || 'Gagal memproses foto.'); e.target.value = ''; }
+  reader.onload = ev => {
+    document.getElementById('angFotoData').value = ev.target.result;
+    document.getElementById('previewFoto').innerHTML = '<img src="'+ev.target.result+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
   };
   reader.readAsDataURL(file);
 }
@@ -2296,20 +2301,13 @@ function simpanAnggota(){
   }
   const payload = {};
   Object.entries(ANG_MAP).forEach(([el, key]) => payload[key] = g(el));
-  let foto = document.getElementById('angFotoData').value || '';
-  // foto lama yang belum dikompres bisa sangat besar — potong agar tidak memenuhi storage
-  if (foto && foto.length > 250000 && foto.indexOf('data:image') === 0){
-    alert('Foto terlalu besar untuk disimpan. Silakan unggah ulang foto (akan dikompres otomatis).');
-    foto = '';
-  }
-  payload.foto = foto;
+  payload.foto = document.getElementById('angFotoData').value;
   if (id){
     const idx = data.findIndex(x => x.id == id);
-    const prevFoto = data[idx].foto;
     Object.assign(data[idx], payload);
     const users = DB.load('users');
     data.forEach(x => { if (String(x.id) === String(id)) x.nomor = nip; });
-    if (!DB.save('anggota', data)){ data[idx].foto = prevFoto; return; }
+    DB.save('anggota', data);
     users.forEach(u => { if (u.anggotaId == id){ u.nama = nama; if (u.type === 'anggota') u.username = nip; } });
     DB.save('users', users);
     toast('✅ Data <b>' + esc(nama) + '</b> berhasil diperbarui.');
@@ -2317,12 +2315,12 @@ function simpanAnggota(){
     const num = nip;
     const newId = uid();
     data.push({ id: newId, nomor: num, status: 'aktif', ...payload });
-    if (!DB.save('anggota', data)){ data.pop(); return; }
     const users = DB.load('users');
     users.push({id: uid(), username: nip, password: 'password123', nama, role: 'Anggota', type: 'anggota', anggotaId: newId, active: 1, lastLogin: null});
     DB.save('users', users);
     alert('✅ Anggota ditambahkan.\nLogin portal:\nUsername (NIP): ' + nip + '\nPassword: password123');
   }
+  DB.save('anggota', data);
   bootstrap.Modal.getInstance(document.getElementById('modalAnggota')).hide();
   initKaryawanUI(); renderAnggota(); fillAnggotaDropdowns(); loadDashboard();
 }
@@ -2934,17 +2932,17 @@ function simpanSetuju(){
   toast('✅ <b>'+esc(p.no)+'</b> disetujui: '+rupiah(jumlah)+' / '+tenor+' bln • cicilan '+rupiah(c.total));
 }
 function tolakPengajuan(){
-  if (!confirm('Tolak pengajuan ini?\nJika ada angsuran tercatat, akan dihapus dan cicilan dikembalikan ke 0.')) return;
+  if (!confirm('Tolak pengajuan ini?')) return;
   const id = +document.getElementById('stId').value;
   const data = DB.load('pinjaman'), p = data.find(x => x.id === id);
   if (!p) return;
-  p.tanggalSetuju = document.getElementById('stTanggal').value || todayStr();
+  p.status = 'ditolak'; p.tanggalSetuju = document.getElementById('stTanggal').value || todayStr();
+  p.totalBayar = 0; delete p.jadwal; p.sisaPokok = p.jumlahPengajuan !== undefined ? p.jumlahPengajuan : p.jumlah;
   p.catatan = document.getElementById('stCatatan').value.trim();
-  const n = resetPinjamanDitolak(p);
   DB.save('pinjaman', data);
   bootstrap.Modal.getInstance(document.getElementById('modalSetuju')).hide();
-  renderPersetujuan(); renderPinjaman(); renderPencairan(); renderAngsuran(); renderPayroll(); loadDashboard();
-  toast('Pengajuan <b>'+esc(p.no)+'</b> ditolak.' + (n ? ' ' + n + ' angsuran dibatalkan.' : ''));
+  renderPersetujuan(); renderPinjaman(); renderPencairan();
+  toast('Pengajuan <b>'+esc(p.no)+'</b> ditolak.');
 }
 
 // ---------- Edit / koreksi ----------
@@ -3006,12 +3004,8 @@ function simpanEditPinjaman(){
       if (np > 0 && np >= p.jadwal.length){ p.status = 'lunas'; p.sisaPokok = 0; }
     }
   } else {
-    if (status === 'ditolak'){
-      resetPinjamanDitolak(p);
-      p.tanggalSetuju = g('epTglSetuju') || todayStr();
-    } else {
-      delete p.jadwal; p.sisaPokok = jumlah; p.totalBayar = 0; p.tanggalCair = '';
-    }
+    delete p.jadwal; p.sisaPokok = jumlah; p.tanggalCair = '';
+    if (status === 'ditolak') p.tanggalSetuju = g('epTglSetuju') || todayStr();
   }
   DB.save('pinjaman', data);
   const newDisb = ['cair','lunas'].includes(p.status) ? p.jumlah : 0;
@@ -3402,7 +3396,7 @@ function hapusBank(id){
 function renderUsers(){
   const users = DB.load('users').slice().sort((x,y) => String(x.nama||'').localeCompare(String(y.nama||''), 'id', {sensitivity:'base'})), sa = isSuperAdmin();
   const bt = document.getElementById('btnTambahUser'); if (bt) bt.style.display = sa ? '' : 'none';
-  document.getElementById('tblUsers').innerHTML = users.map(u => '<tr><td>'+esc(u.username)+'</td><td>'+esc(u.nama)+'</td><td>'+esc(u.role)+'</td><td>'+(u.type === 'admin' ? 'Petugas' : 'Anggota')+'</td><td>'+(sa ? '<code>'+esc(u.password)+'</code>' : '<span class="text-muted">••••••••</span>')+'</td><td><span class="badge-soft '+(u.active ? 'active' : 'inactive')+'">'+(u.active ? 'Aktif' : 'Nonaktif')+'</span></td><td class="text-end">'+(sa ? '<button class="btn btn-sm btn-outline-warning btn-sm-c" title="Ganti password" onclick="gantiPassUser('+u.id+')"><i class="bi bi-key"></i></button> <button class="btn btn-sm btn-outline-primary btn-sm-c" onclick="openUserModal('+u.id+')"><i class="bi bi-pencil"></i></button> <button class="btn btn-sm btn-outline-danger btn-sm-c" onclick="hapusUser('+u.id+')"><i class="bi bi-trash"></i></button>' : '<span class="text-muted" style="font-size:11px"><i class="bi bi-lock"></i> Super Admin</span>')+'</td></tr>').join('');
+  document.getElementById('tblUsers').innerHTML = users.filter(u => !/^AGT-/i.test(String(u.username || ''))).map(u => '<tr><td>'+esc(u.username)+'</td><td>'+esc(u.nama)+'</td><td>'+esc(u.role)+'</td><td>'+(u.type === 'admin' ? 'Petugas' : 'Anggota')+'</td><td>'+(sa ? '<code>'+esc(u.password)+'</code>' : '<span class="text-muted">••••••••</span>')+'</td><td><span class="badge-soft '+(u.active ? 'active' : 'inactive')+'">'+(u.active ? 'Aktif' : 'Nonaktif')+'</span></td><td class="text-end">'+(sa ? '<button class="btn btn-sm btn-outline-warning btn-sm-c" title="Ganti password" onclick="gantiPassUser('+u.id+')"><i class="bi bi-key"></i></button> <button class="btn btn-sm btn-outline-primary btn-sm-c" onclick="openUserModal('+u.id+')"><i class="bi bi-pencil"></i></button> <button class="btn btn-sm btn-outline-danger btn-sm-c" onclick="hapusUser('+u.id+')"><i class="bi bi-trash"></i></button>' : '<span class="text-muted" style="font-size:11px"><i class="bi bi-lock"></i> Super Admin</span>')+'</td></tr>').join('');
 }
 function openUserModal(id){
   if (!isSuperAdmin()){ alert('Hanya Super Admin yang dapat menambah/mengubah user dan password.'); return; }
@@ -3625,7 +3619,7 @@ function renderMemberHome(a){
   const total = mutasi.reduce((s,m) => m.trx === 'setor' ? s + m.jumlah : s - m.jumlah, 0);
   const pinjaman = DB.load('pinjaman').filter(p => p.anggotaId === a.id);
   const pokokSim = mutasi.filter(m => m.jenis === 'pokok').reduce((s,m) => m.trx === 'setor' ? s + m.jumlah : s - m.jumlah, 0);
-  const angs = DB.load('angsuran').filter(g => pinjaman.some(p => p.id === g.pinjamanId));
+  const angs = DB.load('angsuran').filter(g => pinjaman.some(p => p.id === g.pinjamanId && p.status !== 'ditolak'));   // pinjaman ditolak tidak dihitung
   const cicPokok = angs.reduce((s,g) => s + (+g.pokok || 0), 0), cicJasa = angs.reduce((s,g) => s + (+g.bunga || 0), 0), cicTotal = angs.reduce((s,g) => s + (+g.total || 0), 0);
   const aktif = pinjaman.filter(p => p.status === 'cair');
   const hutPokok = aktif.reduce((s,p) => s + (+p.sisaPokok || 0), 0);
@@ -3708,7 +3702,7 @@ function ajukanPinjamanAnggota(){
 
 function renderMemberAngsuran(a){
   const pinjaman = DB.load('pinjaman').filter(p => p.anggotaId === a.id);
-  const angsuran = DB.load('angsuran').filter(g => pinjaman.some(p => p.id === g.pinjamanId));
+  const angsuran = DB.load('angsuran').filter(g => pinjaman.some(p => p.id === g.pinjamanId && p.status !== 'ditolak'));
   if (!angsuran.length){ document.getElementById('mListAngsuran').innerHTML = '<p class="text-muted">Belum ada angsuran.</p>'; return; }
   document.getElementById('mListAngsuran').innerHTML = angsuran.slice().reverse().map(g => '<div class="loan-schedule-box lunas"><div class="row-1"><span class="ke">'+g.no+'</span><span class="tgl">'+tgl(g.tanggal)+'</span></div><div class="jumlah">'+rupiah(g.total)+'</div><div class="detail">Pokok: '+rupiah(g.pokok)+' • Bunga: '+rupiah(g.bunga)+'</div></div>').join('');
 }
@@ -3726,20 +3720,24 @@ async function gantiFotoAnggota(e){
   if (file.size > 8 * 1024 * 1024){ alert('Ukuran foto maksimal 8 MB.'); return; }
   const rd = new FileReader();
   rd.onerror = () => alert('Gagal membaca file.');
-  rd.onload = async ev => {
-    try {
-      let data = await compressFotoDataUrl(ev.target.result, 320, 0.82);
-      // jika masih besar (>180KB), kompres lebih agresif agar localStorage tidak penuh
-      if (data.length > 180000) data = await compressFotoDataUrl(ev.target.result, 240, 0.7);
-      try { await SYNC.pull('anggota'); } catch(_){}
+  rd.onload = ev => {
+    const img = new Image();
+    img.onerror = () => alert('Gambar tidak dapat dibaca.');
+    img.onload = async () => {
+      // potong persegi di tengah & perkecil agar ringan disimpan
+      const S = 320, c = document.createElement('canvas'); c.width = c.height = S;
+      const side = Math.min(img.width, img.height), sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+      const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, S, S);
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, S, S);
+      const data = c.toDataURL('image/jpeg', 0.85);
+      try { await SYNC.pull('anggota'); } catch(_){}   // ambil data terbaru dulu agar tidak menimpa perubahan admin
       const list = DB.load('anggota'), a = list.find(x => x.id === currentUser.anggotaId);
       if (!a){ alert('Data anggota tidak ditemukan.'); return; }
-      const prev = a.foto;
-      a.foto = data;
-      if (!DB.save('anggota', list)){ a.foto = prev; return; }
+      a.foto = data; DB.save('anggota', list);
       renderMemberHome(a); renderMemberProfil(a);
       toast('✅ Foto profil berhasil diperbarui.');
-    } catch(err){ alert(err.message || 'Gagal memproses foto.'); }
+    };
+    img.src = ev.target.result;
   };
   rd.readAsDataURL(file);
 }
@@ -4784,6 +4782,274 @@ function payTip(r, i){
   const it = r.items.filter(x => jenisOf(x.p) === jn); if (!it.length) return '';
   return ' title="' + esc(it.map(x => x.p.no + ' • angsuran ke-' + x.j.ke + '/' + x.p.tenor + (x.p.pending ? ' • PENGAJUAN ' + rupiah(x.p.jumlah) + ' (menunggu persetujuan)' : ' • disetujui ' + rupiah(x.p.jumlah) + ' (' + tgl(x.p.tanggalSetuju) + ')')).join('\n')) + '"';
 }
+
+
+// ============================================================
+// v6.0 : BANK (saldo awal editable) + TRANSAKSI BANK + TRANSAKSI KAS
+//        + dashboard terhubung + perbaikan foto profil
+// ============================================================
+function bankRows(){ return DB.load('bank').filter(b => b.tipe !== 'kas'); }
+function bankTrxAll(){ return DB.load('bank_trx'); }
+function kasTrxAll(){ return DB.load('kas_trx'); }
+function sgn(t){ return t.trx === 'masuk' ? t.jumlah : -t.jumlah; }
+function bankSaldoMap(){
+  const m = {}; bankRows().forEach(b => { m[b.id] = {awal: +b.saldo || 0, mutasi: 0}; });
+  bankTrxAll().forEach(t => { if (m[t.bankId]) m[t.bankId].mutasi += sgn(t); });
+  Object.values(m).forEach(o => { o.kini = o.awal + o.mutasi; });
+  return m;
+}
+function totalBank(){ return Object.values(bankSaldoMap()).reduce((z, o) => z + o.kini, 0); }
+function kasAwal(){ const c = DB.get('kas_cfg', null); return c ? (+c.saldoAwal || 0) : 0; }
+function kasTunai(){ return kasAwal() + kasTrxAll().reduce((z, t) => z + sgn(t), 0); }
+function kasOperasional(){ return +((DB.get('kas', {saldo:0}) || {}).saldo) || 0; }
+function totalKasBank(){ return kasOperasional() + totalBank() + kasTunai(); }
+function bankNama(id){ const b = DB.load('bank').find(x => x.id === id); return b ? b.nama + (b.rek && b.rek !== '-' ? ' (' + b.rek + ')' : '') : '-'; }
+function sumCard(cls, ic, lbl, val, sub){ return '<div class="col-6 col-md-3"><div class="stat-card ' + cls + '"><div class="lbl"><i class="bi ' + ic + ' me-1"></i>' + lbl + '</div><div class="val" style="font-size:17px">' + val + '</div>' + (sub ? '<div class="sub">' + sub + '</div>' : '') + '</div></div>'; }
+
+// migrasi: baris "Kas Utama" lama (tipe kas) -> saldo awal Kas Tunai
+(function(){
+  const k = DB.load('bank').find(b => b.tipe === 'kas');
+  if (k && +k.saldo && DB.get('kas_cfg', null) === null) DB.set('kas_cfg', {saldoAwal: +k.saldo});
+})();
+
+// ---------- BANK & REKENING ----------
+function renderBank(){
+  const bank = bankRows(), sm = bankSaldoMap();
+  document.getElementById('tblBank').innerHTML = bank.length ? bank.map(b => { const o = sm[b.id];
+    return '<tr><td>' + esc(b.kode) + '</td><td>' + esc(b.nama) + '</td><td>' + esc(b.rek || '-') + '</td><td>' + esc(b.an || '-') + '</td>'
+      + '<td class="text-end">' + rupiah(o.awal) + '</td><td class="text-end ' + (o.mutasi < 0 ? 'text-danger' : 'text-success') + '">' + (o.mutasi < 0 ? '-' : '+') + ' ' + rupiah(Math.abs(o.mutasi)) + '</td><td class="text-end fw-bold">' + rupiah(o.kini) + '</td>'
+      + '<td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-success btn-sm-c" title="Transaksi" onclick="openBankTrx(' + b.id + ')"><i class="bi bi-arrow-left-right"></i></button> '
+      + '<button class="btn btn-sm btn-outline-primary btn-sm-c" title="Edit / saldo awal" onclick="openBankModal(' + b.id + ')"><i class="bi bi-pencil"></i></button> '
+      + '<button class="btn btn-sm btn-outline-danger btn-sm-c" title="Hapus" onclick="hapusBank(' + b.id + ')"><i class="bi bi-trash"></i></button></td></tr>'; }).join('')
+    + '<tr style="font-weight:800;background:#f8fafc"><td colspan="6" class="text-end">TOTAL SALDO BANK</td><td class="text-end">' + rupiah(totalBank()) + '</td><td></td></tr>'
+    : '<tr><td colspan="8" class="text-center text-muted py-4">Belum ada bank</td></tr>';
+  const anggota = DB.load('anggota').filter(a => a.bank && a.rek);
+  document.getElementById('tblRekAnggota').innerHTML = anggota.length ? anggota.map(a => '<tr><td>' + esc(noAng(a)) + '</td><td>' + esc(a.nama) + '</td><td>' + esc(a.bank || '-') + '</td><td>' + esc(a.rek || '-') + '</td><td>' + esc(a.nama) + '</td><td class="text-end"><span class="badge-soft info">-</span></td></tr>').join('') : '<tr><td colspan="6" class="text-center text-muted py-3">Belum ada data rekening anggota</td></tr>';
+}
+function openBankModal(id){
+  const b = id ? DB.load('bank').find(x => x.id === id) : null;
+  document.getElementById('modalBankTitle').textContent = b ? 'Edit Bank & Saldo Awal' : 'Tambah Bank';
+  document.getElementById('bankId').value = b ? b.id : '';
+  document.getElementById('bankKode').value = b ? b.kode : ''; document.getElementById('bankNama').value = b ? b.nama : '';
+  document.getElementById('bankRek').value = b ? (b.rek || '') : ''; document.getElementById('bankAn').value = b ? (b.an || '') : '';
+  document.getElementById('bankSaldo').value = b ? (+b.saldo || 0) : 0;
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalBank')).show();
+}
+function simpanBank(){
+  const kode = $g('bankKode').trim(), nama = $g('bankNama').trim(), id = +$g('bankId');
+  if (!kode || !nama){ alert('Kode & nama wajib diisi'); return; }
+  const bank = DB.load('bank'), data = {kode, nama, rek: $g('bankRek'), an: $g('bankAn'), saldo: +$g('bankSaldo') || 0};
+  if (id){ const b = bank.find(x => x.id === id); if (!b) return; Object.assign(b, data); }
+  else bank.push(Object.assign({id: uid()}, data));
+  DB.save('bank', bank);
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalBank')).hide();
+  renderBank(); renderBankTrx(); loadDashboard(); toast('✅ Data bank tersimpan');
+}
+function hapusBank(id){
+  const n = bankTrxAll().filter(t => t.bankId === id).length;
+  if (!confirm('Hapus bank ini' + (n ? ' beserta ' + n + ' transaksinya' : '') + '?')) return;
+  const del = bankTrxAll().filter(t => t.bankId === id).map(t => t.ref).filter(Boolean);
+  DB.save('bank_trx', bankTrxAll().filter(t => t.bankId !== id));
+  if (del.length) DB.save('kas_trx', kasTrxAll().filter(t => !del.includes(t.id)));
+  DB.save('bank', DB.load('bank').filter(b => b.id !== id));
+  renderBank(); renderBankTrx(); renderKasTrx(); loadDashboard();
+}
+
+// ---------- TRANSAKSI BANK ----------
+function fillBankSelects(){
+  const opts = bankRows().map(b => '<option value="' + b.id + '">' + esc(b.nama) + (b.rek && b.rek !== '-' ? ' - ' + esc(b.rek) : '') + '</option>').join('');
+  const f = document.getElementById('btFilterBank'); if (f){ const v = f.value; f.innerHTML = '<option value="">Semua Bank</option>' + opts; f.value = v; }
+  const m = document.getElementById('btmBank'); if (m){ const v = m.value; m.innerHTML = opts; if (v) m.value = v; }
+  const k = document.getElementById('ktmBank'); if (k){ const v = k.value; k.innerHTML = '<option value="">- Tanpa transfer bank -</option>' + opts; k.value = v; }
+}
+function renderBankTrx(){
+  if (!document.getElementById('btTbl')) return;
+  fillBankSelects();
+  const sm = bankSaldoMap(), banks = bankRows();
+  document.getElementById('btRingkas').innerHTML = banks.map((b, i) => sumCard(['violet','teal','orange','pink'][i % 4], 'bi-bank', esc(b.nama), rupiah(sm[b.id].kini), 'Awal ' + rupiah(sm[b.id].awal)))
+    .concat(sumCard('green', 'bi-wallet2', 'Total Saldo Bank', rupiah(totalBank()), 'Terhubung ke Dashboard')).join('');
+  const all = bankTrxAll().slice().sort((a, b) => String(a.tanggal).localeCompare(String(b.tanggal)) || a.id - b.id), run = {};
+  banks.forEach(b => { run[b.id] = +b.saldo || 0; });
+  const fb = +$g('btFilterBank') || 0, d = $g('btDari'), s = $g('btSampai'), ft = $g('btFilterTrx');
+  const rows = all.map(t => { run[t.bankId] = (run[t.bankId] || 0) + sgn(t); return Object.assign({}, t, {saldo: run[t.bankId]}); })
+    .filter(t => (!fb || t.bankId === fb) && (!d || t.tanggal >= d) && (!s || t.tanggal <= s) && (!ft || t.trx === ft)).reverse();
+  document.getElementById('btTbl').innerHTML = rows.length ? rows.map(t => '<tr><td>' + tgl(t.tanggal) + '</td><td><code style="font-size:11px">' + esc(t.no) + '</code></td><td>' + esc(bankNama(t.bankId)) + '</td><td>' + esc(t.ket || '-') + (t.ref ? ' <span class="badge-soft info">transfer kas</span>' : '') + '</td>'
+    + '<td class="text-end text-success">' + (t.trx === 'masuk' ? rupiah(t.jumlah) : '-') + '</td><td class="text-end text-danger">' + (t.trx === 'keluar' ? rupiah(t.jumlah) : '-') + '</td><td class="text-end fw-bold">' + rupiah(t.saldo) + '</td>'
+    + '<td class="text-end"><button class="btn btn-sm btn-outline-danger btn-sm-c" onclick="hapusBankTrx(' + t.id + ')"><i class="bi bi-trash"></i></button></td></tr>').join('')
+    : '<tr><td colspan="8" class="text-center text-muted py-4">Belum ada transaksi bank</td></tr>';
+}
+function openBankTrx(bankId){
+  if (!bankRows().length){ alert('Tambahkan bank terlebih dahulu di menu Bank & Rekening.'); return; }
+  fillBankSelects();
+  document.getElementById('btmTanggal').value = todayStr(); document.getElementById('btmTrx').value = 'masuk';
+  document.getElementById('btmJumlah').value = ''; document.getElementById('btmKet').value = '';
+  if (bankId) document.getElementById('btmBank').value = bankId;
+  const sel = document.getElementById('btmBank'), upd = () => { const o = bankSaldoMap()[+sel.value]; document.getElementById('btmInfo').textContent = o ? 'Saldo bank saat ini: ' + rupiah(o.kini) : ''; };
+  sel.onchange = upd; upd();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalBankTrx')).show();
+}
+function simpanBankTrx(){
+  const bankId = +$g('btmBank'), trx = $g('btmTrx'), jumlah = +$g('btmJumlah'), tanggal = $g('btmTanggal');
+  if (!bankId || !tanggal || !(jumlah > 0)){ alert('Bank, tanggal & jumlah wajib diisi.'); return; }
+  const o = bankSaldoMap()[bankId];
+  if (trx === 'keluar' && o && jumlah > o.kini){ alert('Saldo bank tidak cukup: ' + rupiah(o.kini)); return; }
+  const l = bankTrxAll(); l.push({id: uid(), no: noTrx('BK'), tanggal, bankId, trx, jumlah, ket: $g('btmKet').trim(), user: currentUser.username}); DB.save('bank_trx', l);
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalBankTrx')).hide();
+  renderBankTrx(); renderBank(); loadDashboard(); toast('✅ Transaksi bank tersimpan: ' + (trx === 'masuk' ? '+' : '-') + ' ' + rupiah(jumlah));
+}
+function hapusBankTrx(id){
+  const t = bankTrxAll().find(x => x.id === id); if (!t) return;
+  if (!confirm('Hapus transaksi ' + t.no + '?' + (t.ref ? '\nTransaksi kas pasangannya juga dihapus.' : ''))) return;
+  DB.save('bank_trx', bankTrxAll().filter(x => x.id !== id));
+  if (t.ref) DB.save('kas_trx', kasTrxAll().filter(x => x.id !== t.ref));
+  renderBankTrx(); renderKasTrx(); renderBank(); loadDashboard();
+}
+
+// ---------- TRANSAKSI KAS ----------
+function renderKasTrx(){
+  if (!document.getElementById('ktTbl')) return;
+  const aw = kasAwal(), all = kasTrxAll().slice().sort((a, b) => String(a.tanggal).localeCompare(String(b.tanggal)) || a.id - b.id);
+  const masuk = all.filter(t => t.trx === 'masuk').reduce((z, t) => z + t.jumlah, 0), keluar = all.filter(t => t.trx === 'keluar').reduce((z, t) => z + t.jumlah, 0);
+  document.getElementById('ktRingkas').innerHTML = sumCard('violet', 'bi-box-arrow-in-down', 'Saldo Awal', rupiah(aw), '')
+    + sumCard('green', 'bi-arrow-down-circle', 'Total Kas Masuk', rupiah(masuk), '') + sumCard('red', 'bi-arrow-up-circle', 'Total Kas Keluar', rupiah(keluar), '')
+    + sumCard('gold', 'bi-cash-stack', 'Saldo Kas Tunai', rupiah(kasTunai()), 'Terhubung ke Dashboard');
+  let run = aw; const d = $g('ktDari'), s = $g('ktSampai'), ft = $g('ktFilterTrx');
+  const rows = all.map(t => { run += sgn(t); return Object.assign({}, t, {saldo: run}); }).filter(t => (!d || t.tanggal >= d) && (!s || t.tanggal <= s) && (!ft || t.trx === ft)).reverse();
+  document.getElementById('ktTbl').innerHTML = rows.length ? rows.map(t => '<tr><td>' + tgl(t.tanggal) + '</td><td><code style="font-size:11px">' + esc(t.no) + '</code></td><td>' + esc(t.ket || '-') + (t.ref ? ' <span class="badge-soft info">' + (t.trx === 'keluar' ? 'setor ke ' : 'tarik dari ') + esc(bankNama(t.bankId)) + '</span>' : '') + '</td>'
+    + '<td class="text-end text-success">' + (t.trx === 'masuk' ? rupiah(t.jumlah) : '-') + '</td><td class="text-end text-danger">' + (t.trx === 'keluar' ? rupiah(t.jumlah) : '-') + '</td><td class="text-end fw-bold">' + rupiah(t.saldo) + '</td>'
+    + '<td class="text-end"><button class="btn btn-sm btn-outline-danger btn-sm-c" onclick="hapusKasTrx(' + t.id + ')"><i class="bi bi-trash"></i></button></td></tr>').join('')
+    : '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada transaksi kas</td></tr>';
+  renderHitungCash();
+}
+function openKasAwal(){ document.getElementById('kaSaldo').value = kasAwal(); bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKasAwal')).show(); }
+function simpanKasAwal(){
+  DB.set('kas_cfg', {saldoAwal: +$g('kaSaldo') || 0});
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKasAwal')).hide(); renderKasTrx(); loadDashboard(); toast('✅ Saldo awal kas tersimpan');
+}
+function ktmUpdate(){
+  const trx = $g('ktmTrx'), bk = +$g('ktmBank');
+  document.getElementById('ktmBankLbl').textContent = trx === 'keluar' ? 'Setor ke bank (opsional)' : 'Tarik dari bank (opsional)';
+  document.getElementById('ktmInfo').innerHTML = 'Saldo kas tunai saat ini: <b>' + rupiah(kasTunai()) + '</b>' + (bk ? '<br>' + (trx === 'keluar' ? 'Dana otomatis tercatat sebagai <b>dana masuk</b> di bank terpilih.' : 'Dana otomatis tercatat sebagai <b>dana keluar</b> dari bank terpilih.') : '');
+}
+function openKasTrx(){
+  fillBankSelects();
+  document.getElementById('ktmTanggal').value = todayStr(); document.getElementById('ktmTrx').value = 'masuk';
+  document.getElementById('ktmJumlah').value = ''; document.getElementById('ktmKet').value = ''; document.getElementById('ktmBank').value = '';
+  ktmUpdate(); bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKasTrx')).show();
+}
+function simpanKasTrx(){
+  const trx = $g('ktmTrx'), jumlah = +$g('ktmJumlah'), tanggal = $g('ktmTanggal'), bankId = +$g('ktmBank') || 0, ket = $g('ktmKet').trim();
+  if (!tanggal || !(jumlah > 0)){ alert('Tanggal & jumlah wajib diisi.'); return; }
+  if (trx === 'keluar' && jumlah > kasTunai()){ alert('Saldo kas tunai tidak cukup: ' + rupiah(kasTunai())); return; }
+  if (bankId && trx === 'masuk'){ const o = bankSaldoMap()[bankId]; if (o && jumlah > o.kini){ alert('Saldo bank tidak cukup: ' + rupiah(o.kini)); return; } }
+  const kl = kasTrxAll(), kt = {id: uid(), no: noTrx('KS'), tanggal, trx, jumlah, ket, user: currentUser.username};
+  if (bankId){
+    const bt = {id: uid() + 1, no: noTrx('BK'), tanggal, bankId, trx: trx === 'keluar' ? 'masuk' : 'keluar', jumlah, ket: ket || (trx === 'keluar' ? 'Setoran dari kas tunai' : 'Penarikan ke kas tunai'), user: currentUser.username, ref: kt.id};
+    kt.ref = bt.id; kt.bankId = bankId; const bl = bankTrxAll(); bl.push(bt); DB.save('bank_trx', bl);
+  }
+  kl.push(kt); DB.save('kas_trx', kl);
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKasTrx')).hide();
+  renderKasTrx(); renderBankTrx(); renderBank(); loadDashboard(); toast('✅ Transaksi kas tersimpan');
+}
+function hapusKasTrx(id){
+  const t = kasTrxAll().find(x => x.id === id); if (!t) return;
+  if (!confirm('Hapus transaksi ' + t.no + '?' + (t.ref ? '\nTransaksi bank pasangannya juga dihapus.' : ''))) return;
+  DB.save('kas_trx', kasTrxAll().filter(x => x.id !== id));
+  if (t.ref) DB.save('bank_trx', bankTrxAll().filter(x => x.id !== t.ref));
+  renderKasTrx(); renderBankTrx(); renderBank(); loadDashboard();
+}
+
+// ---------- Perhitungan uang cash (kas opname) ----------
+var PECAHAN = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 200, 100];
+function hcCounts(){ return (DB.get('kas_hitung', null) || {}).counts || {}; }
+function renderHitungCash(){
+  const body = document.getElementById('hcBody'); if (!body) return;
+  if (!body.children.length){
+    body.innerHTML = PECAHAN.map(p => '<tr><td>' + rupiah(p) + '</td><td><input type="number" min="0" class="form-control form-control-sm" data-pec="' + p + '" oninput="hitungCash()"></td><td class="text-end" id="hcSub' + p + '">Rp 0</td></tr>').join('');
+    const c = hcCounts(); body.querySelectorAll('input[data-pec]').forEach(i => { if (c[i.dataset.pec]) i.value = c[i.dataset.pec]; });
+  }
+  hitungCash(true);
+}
+function hitungCash(skipSave){
+  const counts = {}; let tot = 0;
+  document.querySelectorAll('#hcBody input[data-pec]').forEach(i => { const n = Math.max(0, Math.floor(+i.value || 0)); counts[i.dataset.pec] = n; const sub = n * +i.dataset.pec; tot += sub; document.getElementById('hcSub' + i.dataset.pec).textContent = rupiah(sub); });
+  if (skipSave !== true) DB.set('kas_hitung', {counts, tgl: todayStr()});
+  const buku = kasTunai(), sel = tot - buku;
+  document.getElementById('hcHasil').innerHTML = '<div class="p-3" style="background:#f8fafc;border-radius:10px"><div class="d-flex justify-content-between mb-1"><span>Total uang fisik (hasil hitung)</span><b>' + rupiah(tot) + '</b></div>'
+    + '<div class="d-flex justify-content-between mb-1"><span>Saldo kas tunai menurut buku</span><b>' + rupiah(buku) + '</b></div><hr class="my-2">'
+    + '<div class="d-flex justify-content-between"><span>Selisih</span><b class="' + (sel === 0 ? 'text-success' : 'text-danger') + '">' + (sel > 0 ? '+ ' : sel < 0 ? '- ' : '') + rupiah(Math.abs(sel)) + (sel === 0 ? ' ✓ sesuai' : sel > 0 ? ' (lebih)' : ' (kurang)') + '</b></div></div>'
+    + (sel !== 0 && tot > 0 ? '<button class="btn btn-sm btn-outline-warning mt-3" onclick="catatSelisihCash(' + sel + ')"><i class="bi bi-pencil-square me-1"></i> Catat selisih sebagai penyesuaian kas</button>' : '');
+}
+function catatSelisihCash(sel){
+  if (!sel) return;
+  if (!confirm('Catat penyesuaian kas ' + (sel > 0 ? 'masuk ' : 'keluar ') + rupiah(Math.abs(sel)) + ' agar saldo buku sama dengan uang fisik?')) return;
+  const l = kasTrxAll(); l.push({id: uid(), no: noTrx('KS'), tanggal: todayStr(), trx: sel > 0 ? 'masuk' : 'keluar', jumlah: Math.abs(sel), ket: 'Penyesuaian selisih kas opname', user: currentUser.username}); DB.save('kas_trx', l);
+  renderKasTrx(); loadDashboard(); toast('✅ Penyesuaian kas tercatat');
+}
+function resetHitungCash(){ document.querySelectorAll('#hcBody input[data-pec]').forEach(i => { i.value = ''; }); hitungCash(); }
+
+// ---------- DASHBOARD: satu tampilan, tidak ganda ----------
+function renderDashDana(){
+  const el = document.getElementById('dashDana'); if (!el) return;
+  const s = danaSaldo(), ORD = ['DANA CADANGAN','DANA SOSIAL','DANA PDK','DANA PENDIDIKAN'], ic = {'DANA CADANGAN':'bi-shield-check','DANA SOSIAL':'bi-heart','DANA PDK':'bi-briefcase','DANA PENDIDIKAN':'bi-mortarboard'}, cl = {'DANA CADANGAN':'violet','DANA SOSIAL':'teal','DANA PDK':'pink','DANA PENDIDIKAN':'orange'};
+  const tot = DANA.reduce((z, x) => z + s[x], 0), op = kasOperasional(), bk = totalBank(), kt = kasTunai(), grand = tot, simp = DB.load('mutasi').reduce((z, m) => m.trx === 'setor' ? z + m.jumlah : z - m.jumlah, 0), kb = grand + kt + bk + simp;
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  set('stBank', rupiah(bk)); set('stKasTunai', rupiah(kt)); set('stKas', rupiah(kb));
+  el.innerHTML = ORD.map(x => '<div class="col-6 col-md-3"><div class="stat-card ' + cl[x] + '"><div class="lbl"><i class="bi ' + ic[x] + ' me-1"></i>' + x + '</div><div class="val" style="font-size:17px">' + rupiah(s[x] || 0) + '</div></div></div>').join('')
+    + '<div class="col-12"><div class="stat-card" style="background:linear-gradient(135deg,#0a1e3f,#1a3d7a);border-left-color:#c9a227"><div class="lbl" style="color:#e6c34b"><i class="bi bi-safe2 me-1"></i>Kekayaan Koperasi</div><div class="val" style="color:#fff;font-size:24px">' + rupiah(grand) + '</div><div class="sub" style="color:rgba(255,255,255,.8)">Total seluruh pos dana</div></div></div>';
+}
+(function(){
+  const _ld6 = loadDashboard; loadDashboard = function(){ _ld6(); renderDashDana(); };
+  pageTitles.banktrx = 'Transaksi Bank'; pageTitles.kastrx = 'Transaksi Kas';
+  const _gp6 = goPage;
+  goPage = function(p, n){ _gp6(p, n); if (p === 'banktrx') renderBankTrx(); if (p === 'kastrx') renderKasTrx(); };
+})();
+
+// ============================================================
+// FOTO PROFIL: kompres otomatis + penyimpanan aman
+// ============================================================
+function fotoKompres(src, S){
+  S = S || 320;
+  return new Promise((ok, no) => {
+    const go = url => { const img = new Image(); img.onerror = () => no(new Error('Gambar tidak dapat dibaca')); img.onload = () => {
+      const c = document.createElement('canvas'); c.width = c.height = S; const side = Math.min(img.width, img.height), sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, S, S); x.drawImage(img, sx, sy, side, side, 0, 0, S, S); ok(c.toDataURL('image/jpeg', 0.85)); }; img.src = url; };
+    if (typeof src === 'string') return go(src);
+    const rd = new FileReader(); rd.onerror = () => no(new Error('Gagal membaca file')); rd.onload = ev => go(ev.target.result); rd.readAsDataURL(src);
+  });
+}
+function previewFotoAnggota(e){
+  const file = e.target.files && e.target.files[0]; if (!file) return;
+  e.target.value = '';   // agar memilih file yang sama lagi tetap memicu perubahan
+  if (!/^image\//.test(file.type)){ alert('File harus berupa gambar (JPG/PNG).'); return; }
+  if (file.size > 25 * 1024 * 1024){ alert('Ukuran foto maksimal 25 MB.'); return; }
+  fotoKompres(file).then(data => {
+    document.getElementById('angFotoData').value = data;
+    document.getElementById('previewFoto').innerHTML = '<img src="' + data + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+  }).catch(err => alert(err.message));
+}
+async function gantiFotoAnggota(e){
+  const file = e.target.files && e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  if (!/^image\//.test(file.type)){ alert('File harus berupa gambar (JPG/PNG).'); return; }
+  if (file.size > 25 * 1024 * 1024){ alert('Ukuran foto maksimal 25 MB.'); return; }
+  let data; try { data = await fotoKompres(file); } catch(err){ alert(err.message); return; }
+  try { await SYNC.pull('anggota'); } catch(_){}
+  const list = DB.load('anggota'), a = list.find(x => x.id == currentUser.anggotaId);   // == : id bisa angka/teks
+  if (!a){ alert('Data anggota tidak ditemukan.'); return; }
+  a.foto = data;
+  try { DB.save('anggota', list); } catch(err){ alert('Foto gagal disimpan (penyimpanan browser penuh). Hubungi admin.'); return; }
+  renderMemberHome(a); renderMemberProfil(a); toast('✅ Foto profil berhasil diperbarui.');
+}
+// perkecil foto lama yang terlalu besar (penyebab penyimpanan penuh & gagal sync)
+async function fotoCompactAll(){
+  const list = DB.load('anggota'); let n = 0;
+  for (const a of list){
+    if (a.foto && a.foto.length > 90000){ try { a.foto = await fotoKompres(a.foto); n++; } catch(_){} }
+  }
+  if (n){ try { DB.save('anggota', list); console.log('Foto dikompres:', n); } catch(_){} }
+}
+setTimeout(() => { fotoCompactAll().catch(() => {}); }, 2500);
 
 </script>
 <script>
