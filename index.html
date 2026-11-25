@@ -33,7 +33,7 @@ const SYNC = (function(){
       ok:['#198754','☁ Tersinkron'], connecting:['#6c757d','☁ Menghubungkan…'],
       local:['#6c757d','💾 Mode lokal'], error:['#dc3545','⚠ Gagal sync']
     };
-    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v5.8'; b.title = stateMsg || '';
+    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v5.9'; b.title = stateMsg || '';
   }
   function setState(s, m){ state = s; stateMsg = m || ''; paint(); }
 
@@ -691,7 +691,7 @@ html.lenis,html.lenis body{height:auto}
             <div class="col-6 col-md-3"><select class="form-select" id="filterPinJenis" onchange="renderPinjaman()"></select></div>
             <div class="col-6 col-md-3"><select class="form-select" id="filterPinStatus" onchange="renderPinjaman()"><option value="">Semua Status</option><option value="pengajuan">Pengajuan</option><option value="disetujui">Disetujui</option><option value="cair">Cair</option><option value="lunas">Lunas</option><option value="ditolak">Ditolak</option></select></div>
           </div>
-          <div class="table-responsive"><table class="table"><thead><tr><th>No. Pinjaman</th><th>Anggota</th><th>Jenis</th><th class="text-end">Diajukan</th><th class="text-end">Disetujui</th><th>Tenor</th><th class="text-end">Cicilan/bln</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody id="tblPinjaman"></tbody></table></div></div>
+          <div class="table-responsive"><table class="table"><thead><tr><th>No. Pinjaman</th><th>Anggota</th><th>Jenis</th><th class="text-end">Diajukan</th><th class="text-end">Disetujui</th><th>Tenor</th><th>Sisa Tenor</th><th class="text-end">Tagihan/bln</th><th class="text-end">Total Tagihan</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody id="tblPinjaman"></tbody></table></div></div>
       </div>
     </div>
 
@@ -1577,8 +1577,8 @@ const DB = {
 };
 
 // kolom tabel potongan payroll (dipakai layar, PDF, Excel, print, CSV)
-var PAYHEAD = ['NIP','NIK','NAMA','DEPARTEMEN','SIMPANAN WAJIB','USP','SISA TENOR USP','EMG','SISA TENOR EMG','LAIN2','SISA TENOR LAIN2','KONSUMSI','KASBON'];
-var PAYMONEY = [4,5,7,9,11,12];
+var PAYHEAD = ['NIP','NIK','NAMA','DEPARTEMEN','SIMPANAN WAJIB','USP','SISA TENOR USP','EMG','SISA TENOR EMG','LAIN2','SISA TENOR LAIN2','KONSUMSI','KASBON','TOTAL TAGIHAN'];
+var PAYMONEY = [4,5,7,9,11,12,13];
 
 // ============ SEED DATA (v4: tanpa data contoh anggota) ============
 const JENIS_PINJAMAN = ['Pinjaman USP','Pinjaman EMG','Pinjaman Lain2','Pinjaman Kasbon','Pinjaman Barang'];
@@ -2717,17 +2717,20 @@ function renderPinjaman(){
     const a = anggota.find(x => x.id === p.anggotaId);
     const ok = isApproved(p.status), c = cicilanOf(p);
     const diaj = p.jumlahPengajuan !== undefined ? p.jumlahPengajuan : p.jumlah;
+    const tinf = tagihanInfo(p);
     let acts = '';
     if (p.status === 'pengajuan') acts += '<button class="btn btn-sm btn-outline-warning btn-sm-c" onclick="openSetuju('+p.id+')" title="Proses Persetujuan"><i class="bi bi-clipboard-check"></i></button>';
     if (p.status === 'disetujui') acts += '<button class="btn btn-sm btn-outline-success btn-sm-c" onclick="cairkanPinjaman('+p.id+')" title="Cairkan"><i class="bi bi-cash"></i></button>';
     if (ok) acts += '<button class="btn btn-sm btn-outline-secondary btn-sm-c" onclick="lihatJadwal('+p.id+')" title="Jadwal"><i class="bi bi-calendar"></i></button>';
     acts += '<button class="btn btn-sm btn-outline-primary btn-sm-c" onclick="openEditPinjaman('+p.id+')" title="Edit / Koreksi"><i class="bi bi-pencil"></i></button>';
     return '<tr><td><code style="font-size:11px">'+esc(p.no)+'</code></td><td>'+esc(a ? a.nama : '-')+'</td><td><span class="chip lain">'+esc(jenisOf(p))+'</span></td>'
-      + '<td class="text-end">'+rupiah(diaj)+'</td><td class="text-end">'+(ok ? '<b>'+rupiah(p.jumlah)+'</b>' : '-')+'</td><td>'+p.tenor+' bln</td>'
-      + '<td class="text-end">'+(ok ? rupiah(c.total)+'<div class="emp-meta">P '+rupiah(c.pokok)+' + J '+rupiah(c.jasa)+'</div>' : '-')+'</td>'
+      + '<td class="text-end">'+rupiah(diaj)+'</td><td class="text-end">'+(ok ? '<b>'+rupiah(p.jumlah)+'</b>' : '-')+'</td><td>'+tinf.tenor+' bln'+(ok ? '' : '<div class="emp-meta">diajukan</div>')+'</td>'
+      + '<td><b>'+tinf.sisa+'</b> bln</td>'
+      + '<td class="text-end">'+rupiah(tinf.c.total)+'<div class="emp-meta">P '+rupiah(tinf.c.pokok)+' + J '+rupiah(tinf.c.jasa)+(ok ? '' : ' • estimasi pengajuan')+'</div></td>'
+      + '<td class="text-end fw-bold">'+rupiah(tinf.totalTagihan)+(ok && p.status !== 'lunas' ? '<div class="emp-meta">sisa '+rupiah(sisaInfo(p).tagihan)+'</div>' : '')+'</td>'
       + '<td><span class="badge-soft '+statusBadgeClass(p.status)+'">'+esc(p.status)+'</span></td>'
       + '<td class="text-end text-nowrap"><div class="d-inline-flex gap-1">'+acts+'</div></td></tr>';
-  }).join('') : '<tr><td colspan="9" class="text-center text-muted py-4">Belum ada pinjaman</td></tr>';
+  }).join('') : '<tr><td colspan="11" class="text-center text-muted py-4">Belum ada pinjaman</td></tr>';
   updateBadgePengajuan();
 }
 
@@ -3568,9 +3571,13 @@ function renderMemberPinjaman(a){
     if (ok){
       d += '<div class="detail">Disetujui '+tgl(p.tanggalSetuju)+': <b>'+rupiah(p.jumlah)+'</b> / <b>'+p.tenor+' bln</b> • Jasa '+p.bunga+'%/bln</div>'
         + '<div class="detail">Cicilan/bulan: <b>'+rupiah(c.total)+'</b> (Pokok '+rupiah(c.pokok)+' + Jasa '+rupiah(c.jasa)+')</div>'
+        + '<div class="detail">Total tagihan: <b>'+rupiah(tagihanInfo(p).totalTagihan)+'</b> • Sisa tenor: <b>'+tagihanInfo(p).sisa+' bln</b></div>'
         + '<div class="detail">Sisa pokok: '+rupiah(p.sisaPokok || 0)+(next ? ' • Jatuh tempo berikutnya: '+tgl(next.tanggal) : '')+'</div>';
     } else if (p.status === 'pengajuan'){
-      d += '<div class="detail">⏳ Menunggu persetujuan pengurus.</div>';
+      const ti = tagihanInfo(p);
+      d += '<div class="detail">⏳ Menunggu persetujuan pengurus.</div>'
+        + '<div class="detail">Tagihan per bulan (sesuai pengajuan): <b>'+rupiah(ti.c.total)+'</b> (Pokok '+rupiah(ti.c.pokok)+' + Jasa '+rupiah(ti.c.jasa)+')</div>'
+        + '<div class="detail">Total tagihan: <b>'+rupiah(ti.totalTagihan)+'</b> • Tenor: <b>'+ti.tenor+' bln</b> • Masuk potongan payroll bulan berjalan</div>';
     } else if (p.status === 'ditolak'){
       d += '<div class="detail">Pengajuan ditolak.'+(p.catatan ? ' Catatan: '+esc(p.catatan) : '')+'</div>';
     }
@@ -3653,6 +3660,14 @@ const PNG = () => DB.get('pengaturan', {});
 const inP = (t, d, s) => !!t && (!d || t >= d) && (!s || t <= s);
 const pad2 = n => String(n).padStart(2, '0');
 function perLabel(d, s){ return (d || s) ? 'Periode: ' + (d ? tglPanjang(d) : 'awal') + ' s/d ' + (s ? tglPanjang(s) : 'sekarang') : 'Semua periode'; }
+// Tagihan bulanan, total tagihan & sisa tenor: dari data disetujui, atau dari data pengajuan bila belum disetujui
+function tagihanInfo(p){
+  const ok = isApproved(p.status);
+  const jm = ok ? p.jumlah : (p.jumlahPengajuan !== undefined ? p.jumlahPengajuan : p.jumlah), tn = ok ? p.tenor : (p.tenorPengajuan !== undefined ? p.tenorPengajuan : p.tenor);
+  const bg = (p.bunga || p.bunga === 0) ? p.bunga : bungaDefault(jenisOf(p)), c = cicilanOf({jumlah: jm, tenor: tn, bunga: bg});
+  const sisa = p.status === 'lunas' ? 0 : (ok ? ((p.jadwal || generateJadwalFromPinjaman(p)).filter(x => x.status === 'belum').length) : tn);
+  return {c, tenor: tn, sisa, totalTagihan: Math.round(jm + c.jasa * tn)};
+}
 function sisaInfo(p){ const j = (p.jadwal || generateJadwalFromPinjaman(p)).filter(x => x.status === 'belum'); return {n: j.length, tagihan: j.reduce((s,x) => s + x.total, 0), pokok: p.sisaPokok || 0, next: j[0] ? j[0].tanggal : ''}; }
 
 // ---------- mesin laporan (Print / PDF / Excel) ----------
@@ -3703,7 +3718,7 @@ function rptPDF(k){
   const d = new window.jspdf.jsPDF({orientation: r.head.length > 7 ? 'l' : 'p', unit:'mm', format:'a4'}), f = footRow(r), cs = {};
   (r.money || []).forEach(i => cs[i] = {halign:'right'});
   pdfHeader(d, PNG(), r.title.toUpperCase(), r.sub);
-  d.autoTable({startY:46, head:[r.head], body:fmtRows(r), foot: f ? [f] : undefined, theme:'striped', styles:{fontSize:9.5, cellPadding:2.2}, headStyles:{fillColor:[10,30,63], textColor:255}, footStyles:{fillColor:[201,162,39], textColor:[10,30,63]}, alternateRowStyles:{fillColor:[244,246,251]}, columnStyles:cs, margin:{left:14,right:14}});
+  d.autoTable({startY:46, head:[r.head], body:fmtRows(r), foot: f ? [f] : undefined, theme:'striped', styles:{fontSize:r.fontSize || 9.5, cellPadding:2.2}, headStyles:{fillColor:[10,30,63], textColor:255}, footStyles:{fillColor:[201,162,39], textColor:[10,30,63]}, alternateRowStyles:{fillColor:[244,246,251]}, columnStyles:cs, margin:{left:14,right:14}});
   pdfPages(d); d.save((r.file || k) + '-kopkarin-' + todayStr() + '.pdf');
 }
 function barHTML(k, c){
@@ -4513,25 +4528,25 @@ function sisaTenorTxt(r, jn){
   return v.length === 1 ? v[0] : v.join('/');
 }
 function payrollTable(d){
-  return d.rows.map(r => [noAng(r.a), r.a.nik || '', r.a.nama + (r.items.some(x => x.p.pending) ? ' (pengajuan)' : ''), r.a.dept || '', r.wajib || 0, r.jen.usp || 0, sisaTenorTxt(r, 'Pinjaman USP'), r.jen.emg || 0, sisaTenorTxt(r, 'Pinjaman EMG'), r.jen.lain || 0, sisaTenorTxt(r, 'Pinjaman Lain2'), r.jen.konsum || 0, r.jen.kasbon || 0]);
+  return d.rows.map(r => [noAng(r.a), r.a.nik || '', r.a.nama + (r.items.some(x => x.p.pending) ? ' (pengajuan)' : ''), r.a.dept || '', r.wajib || 0, r.jen.usp || 0, sisaTenorTxt(r, 'Pinjaman USP'), r.jen.emg || 0, sisaTenorTxt(r, 'Pinjaman EMG'), r.jen.lain || 0, sisaTenorTxt(r, 'Pinjaman Lain2'), r.jen.konsum || 0, r.jen.kasbon || 0, (r.wajib || 0) + (r.jen.usp || 0) + (r.jen.emg || 0) + (r.jen.lain || 0) + (r.jen.konsum || 0) + (r.jen.kasbon || 0)]);
 }
-REP.payroll = () => { const d = payrollData(); return {title:'Daftar Potongan Payroll ' + periodeLabel(d.periode), file:'payroll-' + d.periode, sub:'Potongan bulan berjalan: ' + periodeLabel(d.periode) + (d.rows.some(r => r.items.some(x => x.p.pending)) ? ' • termasuk pengajuan yang belum disetujui (tanda "pengajuan")' : ''), head:PAYHEAD, rows:payrollTable(d), money:PAYMONEY, total:PAYMONEY, zeroDash:true}; };
+REP.payroll = () => { const d = payrollData(); return {title:'Daftar Potongan Payroll ' + periodeLabel(d.periode), file:'payroll-' + d.periode, sub:'Potongan bulan berjalan: ' + periodeLabel(d.periode) + (d.rows.some(r => r.items.some(x => x.p.pending)) ? ' • termasuk pengajuan yang belum disetujui (tanda "pengajuan")' : ''), head:PAYHEAD, rows:payrollTable(d), money:PAYMONEY, total:PAYMONEY, zeroDash:true, fontSize:8}; };
 function payrollExportRows(d){ return payrollTable(d).map(row => { const o = {}; PAYHEAD.forEach((h,i) => { o[h] = row[i]; }); return o; }); }
 function renderPayroll(){
   const perEl = document.getElementById('prPeriode'); if (!perEl) return; if (!perEl.value) perEl.value = curPeriode();
   const d = payrollData(), rows = payrollTable(d), tb = document.getElementById('prTbody'), tbl = tb.closest('table');
   document.getElementById('prWajibNom').textContent = rupiah(d.wajibNom);
-  tbl.style.minWidth = '1300px';
+  tbl.style.minWidth = '1450px';
   tbl.querySelector('thead').innerHTML = '<tr>' + PAYHEAD.map((h, i) => '<th' + (PAYMONEY.includes(i) ? ' class="text-end"' : (i >= 6 && !PAYMONEY.includes(i) ? ' class="text-center"' : '')) + '>' + h + '</th>').join('') + '</tr>';
   const sum = i => rows.reduce((z, x) => z + (+x[i] || 0), 0);
   const box = (i, c, n, t) => '<div class="hr-stat"><div class="i ' + c + '"><i class="bi ' + i + '"></i></div><div><div class="n" style="font-size:15px">' + n + '</div><div class="t">' + t + '</div></div></div>';
-  document.getElementById('prStats').innerHTML = box('bi-people-fill', 'i-navy', rows.length, 'Anggota Dipotong') + box('bi-cash-coin', 'i-gold', rupiah(sum(5) + sum(7) + sum(9) + sum(11) + sum(12)), 'Total Angsuran Pinjaman') + box('bi-piggy-bank', 'i-green', rupiah(sum(4)), 'Simpanan Wajib') + box('bi-wallet2', 'i-red', rupiah(PAYMONEY.reduce((z, i) => z + sum(i), 0)), 'Total Potongan');
+  document.getElementById('prStats').innerHTML = box('bi-people-fill', 'i-navy', rows.length, 'Anggota Dipotong') + box('bi-cash-coin', 'i-gold', rupiah(sum(5) + sum(7) + sum(9) + sum(11) + sum(12)), 'Total Angsuran Pinjaman') + box('bi-piggy-bank', 'i-green', rupiah(sum(4)), 'Simpanan Wajib') + box('bi-wallet2', 'i-red', rupiah(sum(13)), 'Total Tagihan');
   tb.innerHTML = rows.length ? rows.map((row, ri) => '<tr' + (d.rows[ri].items.some(x => x.p.pending) ? ' class="table-warning"' : '') + '>' + row.map((v, i) => {
-    if (PAYMONEY.includes(i)) return '<td class="text-end"' + payTip(d.rows[ri], i) + '>' + (v ? rupiah(v) : '-') + '</td>';
+    if (PAYMONEY.includes(i)) return '<td class="text-end' + (i === 13 ? ' fw-bold' : '') + '"' + payTip(d.rows[ri], i) + '>' + (v ? rupiah(v) : '-') + '</td>';
     if (i === 0) return '<td><code style="font-size:12px">' + esc(v) + '</code></td>';
     if (i === 2) return '<td class="fw-semibold">' + esc(v) + '</td>';
     if (i >= 6) return '<td class="text-center">' + (v === '' ? '-' : esc(v)) + '</td>';
-    return '<td>' + esc(v || '-') + '</td>'; }).join('') + '</tr>').join('') : '<tr><td colspan="13" class="text-center text-muted py-4">Tidak ada potongan untuk periode ini</td></tr>';
+    return '<td>' + esc(v || '-') + '</td>'; }).join('') + '</tr>').join('') : '<tr><td colspan="14" class="text-center text-muted py-4">Tidak ada potongan untuk periode ini</td></tr>';
   document.getElementById('prTfoot').innerHTML = rows.length ? '<tr style="font-weight:800;background:#f8fafc"><td colspan="4" class="text-end">TOTAL</td>' + PAYHEAD.slice(4).map((h, k) => PAYMONEY.includes(k + 4) ? '<td class="text-end">' + rupiah(sum(k + 4)) + '</td>' : '<td></td>').join('') + '</tr>' : '';
 }
 
