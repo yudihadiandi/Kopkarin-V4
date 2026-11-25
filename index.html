@@ -33,7 +33,7 @@ const SYNC = (function(){
       ok:['#198754','☁ Tersinkron'], connecting:['#6c757d','☁ Menghubungkan…'],
       local:['#6c757d','💾 Mode lokal'], error:['#dc3545','⚠ Gagal sync']
     };
-    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v5.6'; b.title = stateMsg || '';
+    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v5.8'; b.title = stateMsg || '';
   }
   function setState(s, m){ state = s; stateMsg = m || ''; paint(); }
 
@@ -516,6 +516,7 @@ html.lenis,html.lenis body{height:auto}
       <a class="nav-link-c" data-page="tabungan"><i class="bi bi-journal-bookmark"></i> Buku Tabungan</a>
       <a class="nav-link-c" data-page="pinjaman"><i class="bi bi-cash-coin"></i> Pinjaman</a>
       <a class="nav-link-c" data-page="persetujuan"><i class="bi bi-clipboard-check"></i> Persetujuan Pengajuan <span class="nav-badge" id="badgePengajuan" style="display:none">0</span></a>
+      <a class="nav-link-c" data-page="batas"><i class="bi bi-speedometer2"></i> Maksimal Pinjaman</a>
       <a class="nav-link-c" data-page="pencairan"><i class="bi bi-cash-stack"></i> Pencairan Masal</a>
       <a class="nav-link-c" data-page="angsuran"><i class="bi bi-receipt"></i> Angsuran</a>
       <a class="nav-link-c" data-page="jadwal"><i class="bi bi-calendar-week"></i> Jadwal Angsuran</a>
@@ -781,16 +782,62 @@ html.lenis,html.lenis body{height:auto}
           </div>
         </div>
         <div class="panel-body">
-          <div class="alert alert-info py-2 mb-3" style="font-size:12px"><i class="bi bi-info-circle me-1"></i> Daftar anggota yang pinjamannya sudah <b>disetujui</b> beserta angsuran jatuh tempo (pokok + jasa) untuk periode terpilih. Export ke sistem payroll, lalu klik <b>Catat Terbayar</b> setelah gaji dipotong.</div>
+          <div class="alert alert-info py-2 mb-3" style="font-size:12px"><i class="bi bi-info-circle me-1"></i> Daftar anggota yang pinjamannya sudah <b>disetujui</b> (dan pengajuan baru dari anggota, ditandai <i>pengajuan</i>) beserta angsuran jatuh tempo (pokok + jasa) untuk periode terpilih. Export ke sistem payroll, lalu klik <b>Catat Terbayar</b> setelah gaji dipotong.</div>
           <div class="row g-2 mb-3 align-items-end">
             <div class="col-6 col-md-2"><label class="form-label">Periode</label><input type="month" class="form-control" id="prPeriode" onchange="renderPayroll()"></div>
             <div class="col-6 col-md-3"><label class="form-label">Jenis Pinjaman</label><select class="form-select" id="prJenis" onchange="renderPayroll()"></select></div>
             <div class="col-12 col-md-3"><label class="form-label">Cari</label><input class="form-control" id="prSearch" oninput="renderPayroll()" placeholder="Nama / NIP / Dept"></div>
             <div class="col-12 col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="prWajib" onchange="renderPayroll()" checked><label class="form-check-label" for="prWajib" style="font-size:12px">Sertakan simpanan pokok (anggota baru) &amp; wajib (<span id="prWajibNom">Rp 0</span>/anggota, seluruh anggota aktif)</label></div></div>
+            <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="prPengajuan" onchange="renderPayroll()" checked><label class="form-check-label" for="prPengajuan" style="font-size:12px">Sertakan <b>pengajuan pinjaman yang menunggu persetujuan</b> (sesuai jumlah &amp; tenor pengajuan, ditandai "pengajuan"; belum ikut dicatat terbayar sebelum disetujui)</label></div></div>
           </div>
           <div class="hr-stats" id="prStats"></div>
           <div class="table-responsive"><table class="table table-hover-soft" style="min-width:900px"><thead><tr><th>No</th><th>NIP</th><th>Nama</th><th>Dept</th><th>Pinjaman Jatuh Tempo</th><th class="text-end">Pokok</th><th class="text-end">Jasa</th><th class="text-end">Angsuran</th><th class="text-end">S. Wajib</th><th class="text-end">Total Potongan</th></tr></thead><tbody id="prTbody"></tbody><tfoot id="prTfoot"></tfoot></table></div>
           <button class="btn btn-success mt-3" onclick="catatPayroll()"><i class="bi bi-check2-circle me-1"></i> Catat Terbayar (setelah payroll memotong)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAKSIMAL PINJAMAN -->
+    <div class="section" id="sec-batas">
+      <div class="row g-3 mb-3">
+        <div class="col-lg-7"><div class="panel h-100">
+          <div class="panel-head"><h6><i class="bi bi-speedometer2 me-1"></i> Pengaturan Maksimal Pinjaman</h6></div>
+          <div class="panel-body">
+            <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="bpAktif"><label class="form-check-label fw-semibold" for="bpAktif">Aktifkan batas maksimal pinjaman</label></div>
+            <div class="row g-3">
+              <div class="col-md-6"><label class="form-label">Dasar perhitungan simpanan</label>
+                <select class="form-select" id="bpDasar"><option value="wajib">Simpanan Wajib</option><option value="pokokwajib">Simpanan Pokok + Wajib</option><option value="total">Total Simpanan (pokok + wajib + sukarela)</option></select></div>
+              <div class="col-md-6"><label class="form-label">Kelipatan maksimal (&times;)</label>
+                <input type="number" class="form-control" id="bpKali" step="0.1" min="0" value="2"><div class="emp-meta mt-1">Contoh: simpanan wajib Rp 5.000.000 &times; 2 = batas Rp 10.000.000. Boleh diisi lebih dari 2.</div></div>
+              <div class="col-12"><label class="form-label">Kelipatan khusus per jenis pinjaman <span class="text-muted">(kosongkan = ikut kelipatan di atas)</span></label>
+                <div class="row g-2">
+                  <div class="col-6 col-md-4"><div class="input-group input-group-sm"><span class="input-group-text">USP</span><input type="number" class="form-control" id="bpJ_usp" step="0.1" min="0"></div></div>
+                  <div class="col-6 col-md-4"><div class="input-group input-group-sm"><span class="input-group-text">EMG</span><input type="number" class="form-control" id="bpJ_emg" step="0.1" min="0"></div></div>
+                  <div class="col-6 col-md-4"><div class="input-group input-group-sm"><span class="input-group-text">Lain2</span><input type="number" class="form-control" id="bpJ_lain" step="0.1" min="0"></div></div>
+                  <div class="col-6 col-md-4"><div class="input-group input-group-sm"><span class="input-group-text">Kasbon</span><input type="number" class="form-control" id="bpJ_kasbon" step="0.1" min="0"></div></div>
+                  <div class="col-6 col-md-4"><div class="input-group input-group-sm"><span class="input-group-text">Barang</span><input type="number" class="form-control" id="bpJ_barang" step="0.1" min="0"></div></div>
+                </div></div>
+              <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="bpSisa"><label class="form-check-label" for="bpSisa">Hitung bersama sisa pokok pinjaman yang masih berjalan (batas = simpanan &times; kelipatan &minus; pinjaman berjalan)</label></div></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="col-lg-5"><div class="panel h-100">
+          <div class="panel-head"><h6><i class="bi bi-calendar-check me-1"></i> Aturan Potongan Payroll</h6></div>
+          <div class="panel-body">
+            <label class="form-label">Angsuran pertama dipotong payroll pada</label>
+            <select class="form-select" id="bpMulai"><option value="sama">Bulan yang sama dengan persetujuan</option><option value="berikut">Bulan berikutnya</option></select>
+            <div class="emp-meta mt-2">Tagihan di menu Payroll mengikuti pinjaman anggota yang sudah disetujui (jumlah, tenor &amp; jasa hasil persetujuan). Aturan ini berlaku untuk jadwal yang dibuat setelah disimpan. Jatuh tempo selalu akhir bulan pada hari kerja.</div>
+            <button class="btn btn-primary-c mt-4 w-100" onclick="simpanBatas()"><i class="bi bi-check2-circle me-1"></i> Simpan Pengaturan</button>
+          </div>
+        </div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h6><i class="bi bi-people me-1"></i> Simulasi Batas Pinjaman per Anggota</h6>
+          <div class="d-flex gap-2"><button class="btn btn-sm btn-outline-secondary" onclick="rptPrint('batas')" style="font-size:12px"><i class="bi bi-printer"></i> Print</button><button class="btn btn-sm btn-outline-success" onclick="rptXLS('batas')" style="font-size:12px"><i class="bi bi-file-excel"></i> Excel</button></div></div>
+        <div class="panel-body">
+          <input class="form-control form-control-sm mb-2" style="max-width:340px" id="bpCari" oninput="renderBatasTabel()" placeholder="🔍 Cari nama / NIP...">
+          <div class="table-responsive"><table class="table table-hover-soft" style="min-width:760px"><thead><tr><th>NIP</th><th>Nama</th><th class="text-end">Simpanan Wajib</th><th class="text-end">Total Simpanan</th><th class="text-end">Batas Maksimal</th><th class="text-end">Pinjaman Berjalan</th><th class="text-end">Sisa Plafon</th></tr></thead><tbody id="tblBatas"></tbody></table></div>
+          <div class="emp-meta" id="bpInfo"></div>
         </div>
       </div>
     </div>
@@ -1025,6 +1072,7 @@ html.lenis,html.lenis body{height:auto}
           <div class="col-6 col-md-4"><label class="form-label">Jumlah Pengajuan (Rp) *</label><input type="number" class="form-control" id="mpJumlah" min="10000" inputmode="numeric"></div>
           <div class="col-6 col-md-4"><label class="form-label">Tenor Pengajuan (bulan) *</label><input type="number" class="form-control" id="mpTenor" value="12" min="1" max="60" inputmode="numeric"></div>
         </div>
+        <div id="mpBatasInfo" class="mt-3"></div>
         <div class="alert alert-info py-2 mt-3 mb-3" style="font-size:12px"><i class="bi bi-info-circle me-1"></i> Pengajuan akan diperiksa dan disetujui oleh pengurus. Jumlah, tenor, serta cicilan (pokok &amp; jasa) final ditentukan saat persetujuan.</div>
         <button class="btn-member" type="button" onclick="ajukanPinjamanAnggota()"><i class="bi bi-send me-1"></i> Kirim Pengajuan</button>
       </div></div>
@@ -1639,7 +1687,7 @@ function generateJadwalFromPinjaman(p){
     const pokok = i === n ? sisa : pokokPer;
     sisa -= pokok;
     jadwal.push({
-      ke: i, tanggal: dueDateEOM(base, i),
+      ke: i, tanggal: dueDateEOM(base, i - 1 + mulaiOffset()),
       pokok: pokok, jasa: jasaPer, total: pokok + jasaPer,
       sisaPokok: Math.max(0, sisa), sisaJasa: jasaPer * (n - i),
       status: 'belum'
@@ -1684,6 +1732,12 @@ function migrateData(){
   let pinjamanChanged = false;
   pinjaman.forEach(p => {
     if (p.status === 'cair' && !p.jadwal){ p.jadwal = generateJadwalFromPinjaman(p); pinjamanChanged = true; }
+    if (['disetujui','cair'].includes(p.status) && p.jadwal && p.jadwal.length){   // jadwal selalu sesuai pinjaman yang disetujui
+      const paidN = p.jadwal.filter(j => j.status === 'lunas').length, exp = generateJadwalFromPinjaman(p);
+      if (p.jadwal.length !== p.tenor || (paidN === 0 && exp[0] && (exp[0].total !== p.jadwal[0].total || exp[0].pokok !== p.jadwal[0].pokok || String(exp[0].tanggal).slice(0, 7) !== String(p.jadwal[0].tanggal).slice(0, 7)))){
+        p.jadwal = exp; for (let i = 0; i < Math.min(paidN, exp.length); i++) p.jadwal[i].status = 'lunas'; pinjamanChanged = true;
+      }
+    }
     (p.jadwal || []).forEach(j => { if (j.status === 'belum' && j.tanggal){ const nd = lastWorkday(+j.tanggal.slice(0,4), +j.tanggal.slice(5,7) - 1); if (nd !== j.tanggal){ j.tanggal = nd; pinjamanChanged = true; } } });
   });
   if (pinjamanChanged) DB.save('pinjaman', pinjaman);
@@ -2693,7 +2747,7 @@ function previewAngsuran(){
   const tenor = +document.getElementById('pinTenor').value || 1;
   const bunga = +document.getElementById('pinBunga').value || 0;
   const c = cicilanOf({jumlah, tenor, bunga});
-  document.getElementById('previewAngsuran').innerHTML = '<b>Estimasi angsuran/bulan: '+rupiah(c.total)+'</b><br>Pokok: '+rupiah(c.pokok)+' • Jasa: '+rupiah(c.jasa)+'<br><span class="text-muted">Jumlah, tenor &amp; jasa final ditetapkan saat persetujuan.</span>';
+  document.getElementById('previewAngsuran').innerHTML = '<b>Estimasi angsuran/bulan: '+rupiah(c.total)+'</b><br>Pokok: '+rupiah(c.pokok)+' • Jasa: '+rupiah(c.jasa)+'<br><span class="text-muted">Jumlah, tenor &amp; jasa final ditetapkan saat persetujuan.</span>' + batasNote(+document.getElementById('pinAnggota').value, document.getElementById('pinJenis').value, jumlah);
 }
 
 function simpanPinjaman(){
@@ -2706,6 +2760,7 @@ function simpanPinjaman(){
   if (!anggotaId){ alert('Pilih anggota terlebih dahulu.'); return; }
   if (!jumlah || jumlah < 10000){ alert('Minimal pinjaman Rp 10.000'); return; }
   if (!tenor || tenor < 1){ alert('Tenor minimal 1 bulan'); return; }
+  { const bt = cekBatas(anggotaId, jenis, jumlah); if (bt.over && !confirm(bt.msg + '\n\nTetap catat pengajuan ini (di luar batas)?')) return; }
   const data = DB.load('pinjaman');
   const p = { id: uid(), no: noTrx('PJM'), anggotaId, jenis, jumlah, tenor, bunga, status: 'pengajuan', tanggal, jumlahPengajuan: jumlah, tenorPengajuan: tenor, tanggalPengajuan: tanggal, sisaPokok: jumlah, totalBayar: 0, user: currentUser.username, sumber: 'admin' };
   data.push(p);
@@ -2758,7 +2813,7 @@ function openSetuju(id){
 function hitungSetuju(){
   const j = +document.getElementById('stJumlah').value || 0, t = Math.max(1, +document.getElementById('stTenor').value || 1), b = +document.getElementById('stBunga').value || 0;
   const c = cicilanOf({jumlah:j, tenor:t, bunga:b});
-  document.getElementById('stPreview').innerHTML = '<b>Cicilan per bulan: '+rupiah(c.total)+'</b><br>Pokok: '+rupiah(c.pokok)+' • Jasa: '+rupiah(c.jasa)+'<br>Total jasa: '+rupiah(c.jasa * t)+' • Total yang dibayar: '+rupiah(j + c.jasa * t);
+  document.getElementById('stPreview').innerHTML = '<b>Cicilan per bulan: '+rupiah(c.total)+'</b><br>Pokok: '+rupiah(c.pokok)+' • Jasa: '+rupiah(c.jasa)+'<br>Total jasa: '+rupiah(c.jasa * t)+' • Total yang dibayar: '+rupiah(j + c.jasa * t) + (function(){ const pp = DB.load('pinjaman').find(x => x.id === +document.getElementById('stId').value); return pp ? batasNote(pp.anggotaId, jenisOf(pp), j, pp.id) : ''; })() + (function(){ const d1 = dueDateEOM($g('stTanggal') || todayStr(), mulaiOffset()); return '<div class="mt-2">📅 Angsuran pertama jatuh tempo <b>' + tgl(d1) + '</b> → masuk tagihan payroll <b>' + periodeLabel(d1.slice(0, 7)) + '</b></div>'; })();
 }
 function simpanSetuju(){
   const id = +document.getElementById('stId').value;
@@ -2767,6 +2822,7 @@ function simpanSetuju(){
   if (isNaN(bunga) || bunga < 0){ alert('Jasa (%/bulan) tidak valid.'); return; }
   const data = DB.load('pinjaman'), p = data.find(x => x.id === id);
   if (!p) return;
+  { const bt = cekBatas(p.anggotaId, jenisOf(p), jumlah, id); if (bt.over && !confirm(bt.msg + '\n\nTetap setujui di luar batas?')) return; }
   p.jumlah = jumlah; p.tenor = tenor; p.bunga = bunga;
   p.status = 'disetujui';
   p.tanggalSetuju = document.getElementById('stTanggal').value || todayStr();
@@ -2981,6 +3037,14 @@ function payrollDataBase(){
   const wajibNom = +(DB.get('pengaturan', {}).wajib) || 0;
   const ang = DB.load('anggota').filter(a => a.status === 'aktif');
   const pin = DB.load('pinjaman').filter(p => ['disetujui','cair'].includes(p.status) && p.jadwal && p.jadwal.length);
+  const inclP = document.getElementById('prPengajuan');
+  if (inclP && inclP.checked){   // pengajuan anggota yang belum disetujui: tagihan dihitung dari data pengajuan
+    DB.load('pinjaman').filter(p => p.status === 'pengajuan').forEach(p => {
+      const jm = p.jumlahPengajuan !== undefined ? p.jumlahPengajuan : p.jumlah, tn = p.tenorPengajuan !== undefined ? p.tenorPengajuan : p.tenor;
+      const v = Object.assign({}, p, {jumlah: jm, tenor: tn, bunga: (p.bunga || p.bunga === 0) ? p.bunga : bungaDefault(jenisOf(p)), tanggalSetuju: todayStr(), pending: true});
+      v.jadwal = generateJadwalFromPinjaman(v); pin.push(v);
+    });
+  }
   const rows = [];
   ang.forEach(a => {
     const items = [];
@@ -3047,7 +3111,7 @@ function exportPayrollPDF(){
 }
 function catatPayroll(){
   const d = payrollData();
-  const nA = d.rows.reduce((s,r) => s + r.items.length, 0);
+  const nA = d.rows.reduce((s,r) => s + r.items.filter(x => !x.p.pending).length, 0);
   if (!nA && !d.inclW){ alert('Tidak ada potongan untuk dicatat.'); return; }
   if (!confirm('Catat potongan periode '+periodeLabel(d.periode)+' sebagai TERBAYAR?\n• '+nA+' angsuran pinjaman'+(d.inclW ? '\n• Simpanan wajib '+rupiah(d.wajibNom)+'/anggota (yang belum tercatat pada periode ini)' : '')+'\n\nLakukan hanya setelah payroll benar-benar memotong gaji.')) return;
   const pinAll = DB.load('pinjaman'), angs = DB.load('angsuran'), mutasi = DB.load('mutasi');
@@ -3055,6 +3119,7 @@ function catatPayroll(){
   let masuk = 0, cA = 0, cW = 0;
   d.rows.forEach(r => {
     r.items.forEach(x => {
+      if (x.p.pending) return;   // pengajuan belum disetujui tidak dicatat terbayar
       const pp = pinAll.find(p => p.id === x.p.id);
       const jj = pp && pp.jadwal.find(t => t.ke === x.j.ke && t.status === 'belum');
       if (!jj) return;
@@ -3523,6 +3588,7 @@ function ajukanPinjamanAnggota(){
   if (!tanggal){ alert('Tanggal pengajuan wajib diisi.'); return; }
   if (!jumlah || jumlah < 10000){ alert('Jumlah pengajuan minimal Rp 10.000.'); return; }
   if (!tenor || tenor < 1 || tenor > 60){ alert('Tenor pengajuan 1 - 60 bulan.'); return; }
+  { const bt = cekBatas(a.id, jenis, jumlah); if (bt.over){ alert(bt.msg); return; } }
   if (!confirm('Kirim pengajuan?\n'+jenis+'\nJumlah: '+rupiah(jumlah)+'\nTenor: '+tenor+' bulan')) return;
   const data = DB.load('pinjaman');
   const p = { id: uid(), no: noTrx('PJM'), anggotaId: a.id, jenis, jumlah, tenor, bunga: bungaDefault(jenis), status: 'pengajuan', tanggal, jumlahPengajuan: jumlah, tenorPengajuan: tenor, tanggalPengajuan: tanggal, sisaPokok: jumlah, totalBayar: 0, user: currentUser.username, sumber: 'portal' };
@@ -4447,9 +4513,9 @@ function sisaTenorTxt(r, jn){
   return v.length === 1 ? v[0] : v.join('/');
 }
 function payrollTable(d){
-  return d.rows.map(r => [noAng(r.a), r.a.nik || '', r.a.nama, r.a.dept || '', r.wajib || 0, r.jen.usp || 0, sisaTenorTxt(r, 'Pinjaman USP'), r.jen.emg || 0, sisaTenorTxt(r, 'Pinjaman EMG'), r.jen.lain || 0, sisaTenorTxt(r, 'Pinjaman Lain2'), r.jen.konsum || 0, r.jen.kasbon || 0]);
+  return d.rows.map(r => [noAng(r.a), r.a.nik || '', r.a.nama + (r.items.some(x => x.p.pending) ? ' (pengajuan)' : ''), r.a.dept || '', r.wajib || 0, r.jen.usp || 0, sisaTenorTxt(r, 'Pinjaman USP'), r.jen.emg || 0, sisaTenorTxt(r, 'Pinjaman EMG'), r.jen.lain || 0, sisaTenorTxt(r, 'Pinjaman Lain2'), r.jen.konsum || 0, r.jen.kasbon || 0]);
 }
-REP.payroll = () => { const d = payrollData(); return {title:'Daftar Potongan Payroll ' + periodeLabel(d.periode), file:'payroll-' + d.periode, sub:'Potongan bulan berjalan: ' + periodeLabel(d.periode), head:PAYHEAD, rows:payrollTable(d), money:PAYMONEY, total:PAYMONEY, zeroDash:true}; };
+REP.payroll = () => { const d = payrollData(); return {title:'Daftar Potongan Payroll ' + periodeLabel(d.periode), file:'payroll-' + d.periode, sub:'Potongan bulan berjalan: ' + periodeLabel(d.periode) + (d.rows.some(r => r.items.some(x => x.p.pending)) ? ' • termasuk pengajuan yang belum disetujui (tanda "pengajuan")' : ''), head:PAYHEAD, rows:payrollTable(d), money:PAYMONEY, total:PAYMONEY, zeroDash:true}; };
 function payrollExportRows(d){ return payrollTable(d).map(row => { const o = {}; PAYHEAD.forEach((h,i) => { o[h] = row[i]; }); return o; }); }
 function renderPayroll(){
   const perEl = document.getElementById('prPeriode'); if (!perEl) return; if (!perEl.value) perEl.value = curPeriode();
@@ -4460,8 +4526,8 @@ function renderPayroll(){
   const sum = i => rows.reduce((z, x) => z + (+x[i] || 0), 0);
   const box = (i, c, n, t) => '<div class="hr-stat"><div class="i ' + c + '"><i class="bi ' + i + '"></i></div><div><div class="n" style="font-size:15px">' + n + '</div><div class="t">' + t + '</div></div></div>';
   document.getElementById('prStats').innerHTML = box('bi-people-fill', 'i-navy', rows.length, 'Anggota Dipotong') + box('bi-cash-coin', 'i-gold', rupiah(sum(5) + sum(7) + sum(9) + sum(11) + sum(12)), 'Total Angsuran Pinjaman') + box('bi-piggy-bank', 'i-green', rupiah(sum(4)), 'Simpanan Wajib') + box('bi-wallet2', 'i-red', rupiah(PAYMONEY.reduce((z, i) => z + sum(i), 0)), 'Total Potongan');
-  tb.innerHTML = rows.length ? rows.map(row => '<tr>' + row.map((v, i) => {
-    if (PAYMONEY.includes(i)) return '<td class="text-end">' + (v ? rupiah(v) : '-') + '</td>';
+  tb.innerHTML = rows.length ? rows.map((row, ri) => '<tr' + (d.rows[ri].items.some(x => x.p.pending) ? ' class="table-warning"' : '') + '>' + row.map((v, i) => {
+    if (PAYMONEY.includes(i)) return '<td class="text-end"' + payTip(d.rows[ri], i) + '>' + (v ? rupiah(v) : '-') + '</td>';
     if (i === 0) return '<td><code style="font-size:12px">' + esc(v) + '</code></td>';
     if (i === 2) return '<td class="fw-semibold">' + esc(v) + '</td>';
     if (i >= 6) return '<td class="text-center">' + (v === '' ? '-' : esc(v)) + '</td>';
@@ -4489,6 +4555,7 @@ function countUps(sel){
 }
 function onPageShown(p){
   if (p === 'logs') renderLogs();
+  if (p === 'batas') renderBatas();
   animIn('#sec-' + p + '.active > .row > [class*="col"], #sec-' + p + '.active > .panel');
   if (p === 'dashboard') countUps('#sec-dashboard .stat-card .val');
 }
@@ -4520,6 +4587,93 @@ function onPageShown(p){
   }
 })();
 if (currentUser && currentUser.type === 'anggota'){ renderNotifBell(false); startNotifPolling(); }
+
+// ============ v5.7 : MAKSIMAL PINJAMAN ============
+var BP_JENIS = [['usp','Pinjaman USP'],['emg','Pinjaman EMG'],['lain','Pinjaman Lain2'],['kasbon','Pinjaman Kasbon'],['barang','Pinjaman Barang']];
+var BP_DASAR = {wajib:'Simpanan Wajib', pokokwajib:'Simpanan Pokok + Wajib', total:'Total Simpanan'};
+function batasCfg(){ return Object.assign({aktif:true, dasar:'wajib', kali:2, perJenis:{}, hitungSisa:false, mulai:'sama'}, DB.get('batasPinjaman', {}) || {}); }
+function mulaiOffset(){ return batasCfg().mulai === 'berikut' ? 1 : 0; }
+function simpananMap(){
+  const mp = {};
+  DB.load('mutasi').forEach(m => { const o = mp[m.anggotaId] || (mp[m.anggotaId] = {pokok:0, wajib:0, sukarela:0}), v = m.trx === 'setor' ? m.jumlah : -m.jumlah;
+    if (m.jenis === 'pokok') o.pokok += v; else if (m.jenis === 'sukarela') o.sukarela += v; else o.wajib += v; });
+  return mp;
+}
+function _bpHitung(c, sm, pinList, aid, jenis, excludeId){
+  const s = sm[aid] || {pokok:0, wajib:0, sukarela:0}, tot = s.pokok + s.wajib + s.sukarela;
+  const base = c.dasar === 'total' ? tot : c.dasar === 'pokokwajib' ? s.pokok + s.wajib : s.wajib;
+  const pj = c.perJenis && c.perJenis[jenis], kali = (pj !== undefined && pj !== null && pj !== '' && !isNaN(+pj)) ? +pj : +c.kali;
+  const maks = Math.max(0, Math.round(base * kali));
+  const pakai = c.hitungSisa ? pinList.filter(p => p.anggotaId === aid && ['disetujui','cair'].includes(p.status) && p.id !== excludeId).reduce((z,p) => z + (+p.sisaPokok || 0), 0) : 0;
+  return {aktif: !!c.aktif, base, tot, wajib: s.wajib, kali, maks, pakai, sisa: Math.max(0, maks - pakai)};
+}
+function batasPinjaman(aid, jenis, excludeId){ return _bpHitung(batasCfg(), simpananMap(), DB.load('pinjaman'), aid, jenis, excludeId); }
+function cekBatas(aid, jenis, jumlah, excludeId){
+  const b = batasPinjaman(aid, jenis, excludeId), c = batasCfg();
+  if (!b.aktif) return {over:false, b};
+  const over = jumlah > b.sisa + 0.5;
+  return {over, b, msg: 'Nilai pinjaman ' + rupiah(jumlah) + ' melebihi batas maksimal ' + rupiah(b.sisa) + '.\n(' + BP_DASAR[c.dasar] + ' ' + rupiah(b.base) + ' × ' + b.kali + (c.hitungSisa ? ' − pinjaman berjalan ' + rupiah(b.pakai) : '') + ')'};
+}
+function batasNote(aid, jenis, jumlah, excludeId){
+  if (!aid || !(jumlah > 0)) return '';
+  const r = cekBatas(aid, jenis, jumlah, excludeId); if (!r.b.aktif) return '';
+  return r.over ? '<div class="text-danger fw-bold mt-2">⚠️ Melebihi batas maksimal ' + rupiah(r.b.sisa) + '</div>' : '<div class="text-success mt-2">✓ Dalam batas maksimal ' + rupiah(r.b.sisa) + '</div>';
+}
+function updateMpBatas(){
+  const box = document.getElementById('mpBatasInfo'); if (!box || !currentUser || currentUser.type !== 'anggota') return;
+  const c = batasCfg(); if (!c.aktif){ box.innerHTML = ''; return; }
+  const jenis = $g('mpJenis'), jml = +$g('mpJumlah') || 0, b = batasPinjaman(currentUser.anggotaId, jenis);
+  let h = '<div class="alert alert-secondary py-2 mb-2" style="font-size:12.5px"><i class="bi bi-speedometer2 me-1"></i> Batas maksimal pinjaman Anda' + (jenis ? ' (' + esc(jenis) + ')' : '') + ': <b>' + rupiah(b.sisa) + '</b><div class="emp-meta">' + BP_DASAR[c.dasar] + ' ' + rupiah(b.base) + ' × ' + b.kali + (c.hitungSisa ? ' − pinjaman berjalan ' + rupiah(b.pakai) : '') + '</div></div>';
+  if (jml > b.sisa + 0.5) h += '<div class="alert alert-danger py-2 mb-0" style="font-size:13px"><b>⚠️ Nilai pinjaman ' + rupiah(jml) + ' melebihi batas maksimal ' + rupiah(b.sisa) + '.</b><br>Pengajuan tidak dapat dikirim. Silakan turunkan jumlah pinjaman.</div>';
+  box.innerHTML = h;
+}
+function renderBatas(){
+  if (!document.getElementById('bpKali')) return;
+  const c = batasCfg();
+  document.getElementById('bpAktif').checked = !!c.aktif; document.getElementById('bpDasar').value = c.dasar; document.getElementById('bpKali').value = c.kali;
+  document.getElementById('bpSisa').checked = !!c.hitungSisa; document.getElementById('bpMulai').value = c.mulai;
+  BP_JENIS.forEach(([id, jn]) => { const v = c.perJenis && c.perJenis[jn]; document.getElementById('bpJ_' + id).value = (v === undefined || v === null || v === '') ? '' : v; });
+  renderBatasTabel();
+}
+function batasRows(){
+  const c = batasCfg(), sm = simpananMap(), pin = DB.load('pinjaman'), q = ($g('bpCari') || '').toLowerCase().trim();
+  return DB.load('anggota').filter(a => a.status === 'aktif' && (!q || [a.nama, noAng(a), a.dept].join(' ').toLowerCase().includes(q)))
+    .sort((x, y) => String(x.nama || '').localeCompare(String(y.nama || ''), 'id', {sensitivity:'base'}))
+    .map(a => { const b = _bpHitung(c, sm, pin, a.id, 'Pinjaman USP'); return {a, b}; });
+}
+function renderBatasTabel(){
+  const tb = document.getElementById('tblBatas'); if (!tb) return;
+  const rows = batasRows(), r = v => '<td class="text-end">' + rupiah(v) + '</td>';
+  tb.innerHTML = rows.length ? rows.slice(0, 400).map(x => '<tr><td><code style="font-size:12px">' + esc(noAng(x.a)) + '</code></td><td class="fw-semibold">' + esc(x.a.nama) + '</td>' + r(x.b.wajib) + r(x.b.tot) + '<td class="text-end fw-bold text-primary">' + rupiah(x.b.maks) + '</td>' + r(x.b.pakai) + '<td class="text-end fw-bold">' + rupiah(x.b.sisa) + '</td></tr>').join('') : '<tr><td colspan="7" class="text-center text-muted py-4">Tidak ada data</td></tr>';
+  const c = batasCfg();
+  document.getElementById('bpInfo').textContent = (c.aktif ? 'Batas aktif: ' + BP_DASAR[c.dasar] + ' × ' + c.kali + ' (jenis USP/umum). ' : 'Batas maksimal sedang dinonaktifkan. ') + rows.length + ' anggota aktif.';
+}
+REP.batas = () => ({title:'Batas Maksimal Pinjaman Anggota', file:'batas-pinjaman', head:['NIP','Nama','Simpanan Wajib','Total Simpanan','Batas Maksimal','Pinjaman Berjalan','Sisa Plafon'],
+  rows: batasRows().map(x => [noAng(x.a), x.a.nama, x.b.wajib, x.b.tot, x.b.maks, x.b.pakai, x.b.sisa]), money:[2,3,4,5,6]});
+function simpanBatas(){
+  const kali = +document.getElementById('bpKali').value;
+  if (isNaN(kali) || kali < 0){ alert('Kelipatan maksimal tidak valid.'); return; }
+  const perJenis = {};
+  for (const [id, jn] of BP_JENIS){ const raw = document.getElementById('bpJ_' + id).value.trim(); if (raw !== ''){ const v = +raw; if (isNaN(v) || v < 0){ alert('Kelipatan ' + jn + ' tidak valid.'); return; } perJenis[jn] = v; } }
+  DB.save('batasPinjaman', {aktif: document.getElementById('bpAktif').checked, dasar: document.getElementById('bpDasar').value, kali, perJenis, hitungSisa: document.getElementById('bpSisa').checked, mulai: document.getElementById('bpMulai').value});
+  renderBatasTabel(); toast('✅ Pengaturan maksimal pinjaman tersimpan.');
+}
+pageTitles.batas = 'Maksimal Pinjaman';
+(function(){
+  const j = document.getElementById('mpJumlah'); if (j) j.addEventListener('input', updateMpBatas);
+  const jn = document.getElementById('mpJenis'); if (jn) jn.addEventListener('change', updateMpBatas);
+  const pa = document.getElementById('pinAnggota'); if (pa) pa.addEventListener('change', previewAngsuran);
+  const stt = document.getElementById('stTanggal'); if (stt) stt.addEventListener('change', hitungSetuju);
+  const _rmp = renderMemberPinjaman; renderMemberPinjaman = function(a){ _rmp(a); updateMpBatas(); };
+})();
+
+// ============ v5.7 : PAYROLL terintegrasi pinjaman anggota (asal tagihan) ============
+var PAYJ = {5:'Pinjaman USP', 7:'Pinjaman EMG', 9:'Pinjaman Lain2', 11:'Pinjaman Barang', 12:'Pinjaman Kasbon'};
+function payTip(r, i){
+  const jn = PAYJ[i]; if (!r || !jn) return '';
+  const it = r.items.filter(x => jenisOf(x.p) === jn); if (!it.length) return '';
+  return ' title="' + esc(it.map(x => x.p.no + ' • angsuran ke-' + x.j.ke + '/' + x.p.tenor + (x.p.pending ? ' • PENGAJUAN ' + rupiah(x.p.jumlah) + ' (menunggu persetujuan)' : ' • disetujui ' + rupiah(x.p.jumlah) + ' (' + tgl(x.p.tanggalSetuju) + ')')).join('\n')) + '"';
+}
 
 </script>
 <script>
