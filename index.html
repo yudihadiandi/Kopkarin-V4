@@ -33,7 +33,7 @@ const SYNC = (function(){
       ok:['#198754','☁ Tersinkron'], connecting:['#6c757d','☁ Menghubungkan…'],
       local:['#6c757d','💾 Mode lokal'], error:['#dc3545','⚠ Gagal sync']
     };
-    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v5.9'; b.title = stateMsg || '';
+    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v6.0'; b.title = stateMsg || '';
   }
   function setState(s, m){ state = s; stateMsg = m || ''; paint(); }
 
@@ -563,12 +563,12 @@ html.lenis,html.lenis body{height:auto}
     <div class="section active" id="sec-dashboard">
       <div class="row g-3 mb-3" id="dashDana"></div>
       <div class="row g-3 mb-3">
-<div class="col-6 col-md-4"><div class="stat-card "><div class="ico-float"><i class="bi bi-people-fill"></i></div><div class="lbl">Anggota Aktif</div><div class="val" id="stAktif" style="font-size:17px">0</div><div class="sub">Total terdaftar</div></div></div>
-        <div class="col-6 col-md-4"><div class="stat-card gold"><div class="ico-float"><i class="bi bi-piggy-bank-fill"></i></div><div class="lbl">Total Simpanan</div><div class="val" id="stSimpanan" style="font-size:17px">Rp 0</div><div class="sub">Pokok + Wajib + Sukarela</div></div></div>
-        <div class="col-6 col-md-4"><div class="stat-card red"><div class="ico-float"><i class="bi bi-cash-coin"></i></div><div class="lbl">Piutang Pinjaman</div><div class="val" id="stPiutang" style="font-size:17px">Rp 0</div><div class="sub">Sisa pokok</div></div></div>
-        <div class="col-6 col-md-4"><div class="stat-card teal"><div class="ico-float"><i class="bi bi-bank"></i></div><div class="lbl">Saldo di Bank</div><div class="val" id="stBank" style="font-size:17px">Rp 0</div><div class="sub">Semua rekening</div></div></div>
-        <div class="col-6 col-md-4"><div class="stat-card orange"><div class="ico-float"><i class="bi bi-cash-stack"></i></div><div class="lbl">Saldo Kas Tunai</div><div class="val" id="stKasTunai" style="font-size:17px">Rp 0</div><div class="sub">Uang cash</div></div></div>
-        <div class="col-6 col-md-4"><div class="stat-card green"><div class="ico-float"><i class="bi bi-bank2"></i></div><div class="lbl">Total Kas &amp; Bank</div><div class="val" id="stKas" style="font-size:17px">Rp 0</div><div class="sub" id="stKasSub">Kekayaan + Kas Tunai + Bank + Simpanan</div></div></div>
+<div class="col-6 col-md-3"><div class="stat-card "><div class="ico-float"><i class="bi bi-people-fill"></i></div><div class="lbl">Anggota Aktif</div><div class="val" id="stAktif" style="font-size:17px">0</div><div class="sub">Total terdaftar</div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card red"><div class="ico-float"><i class="bi bi-cash-coin"></i></div><div class="lbl">Piutang Pinjaman</div><div class="val" id="stPiutang" style="font-size:17px">Rp 0</div><div class="sub">Sisa pokok</div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card teal"><div class="ico-float"><i class="bi bi-bank"></i></div><div class="lbl">Saldo di Bank</div><div class="val" id="stBank" style="font-size:17px">Rp 0</div><div class="sub">Semua rekening</div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card orange"><div class="ico-float"><i class="bi bi-cash-stack"></i></div><div class="lbl">Saldo Kas Tunai</div><div class="val" id="stKasTunai" style="font-size:17px">Rp 0</div><div class="sub">Uang cash</div></div></div>
+        <div class="col-12"><div class="stat-card gold"><div class="ico-float"><i class="bi bi-piggy-bank-fill"></i></div><div class="lbl">Total Simpanan</div><div class="val" id="stSimpanan" style="font-size:24px">Rp 0</div><div class="sub">Pokok + Wajib + Sukarela</div></div></div>
+        <div class="col-12"><div class="stat-card green"><div class="ico-float"><i class="bi bi-bank2"></i></div><div class="lbl">Total Kas &amp; Bank</div><div class="val" id="stKas" style="font-size:24px">Rp 0</div><div class="sub" id="stKasSub">Kekayaan + Kas Tunai + Bank + Simpanan</div></div></div>
       </div>
       <div class="row g-3">
         <div class="col-md-8"><div class="panel"><div class="panel-head"><h6><i class="bi bi-graph-up-arrow me-1"></i> Perkembangan</h6></div><div class="panel-body"><div class="chart-box"><canvas id="chartMain"></canvas></div></div></div></div>
