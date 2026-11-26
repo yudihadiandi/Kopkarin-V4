@@ -16,8 +16,9 @@ const SUPABASE_KEY = 'sb_publishable_tRMH0ktU7RxbqHAq5Fp61g_GuyL6Rbl';
 // ===== LAPISAN SINKRONISASI =====
 // App tetap memakai localStorage (cepat & sinkron); setiap perubahan otomatis di-upsert ke tabel kv_store.
 // ===== VERSI APLIKASI (naikkan setiap ada perubahan) =====
-const APP_VERSION = '6.4', APP_BUILD = '2026-11-26';
+const APP_VERSION = '6.5', APP_BUILD = '2026-11-26';
 const APP_CHANGELOG = [
+  ['6.5', '2026-11-26', 'Alamat E-mail anggota; format tanggal Indonesia dd/mm/yyyy (impor/ekspor, CSV titik koma); PDF buku tabungan ringkas; kirim buku tabungan ke e-mail (satuan & masal)'],
   ['6.4', '2026-11-26', 'Dashboard admin: kartu Dana Cadangan/Sosial/PDK/Pendidikan/Donasi & Kekayaan Koperasi dipindah ke bawah Total Kas & Bank'],
   ['6.3', '2026-11-26', 'Akun BadanPengawas (hanya lihat); penanda versi di lencana, login, sidebar, judul tab'],
   ['6.2', '-', 'Versi sebelumnya (riwayat sebelum 6.3 tidak tercatat di aplikasi)'],
@@ -113,9 +114,9 @@ const SYNC = (function(){
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KOPKARIN v6.4 - Sistem Informasi Koperasi Karyawan</title>
-<meta name="app-version" content="6.4">
-<!-- KOPKARIN v6.4 build 2026-11-26 -->
+<title>KOPKARIN v6.5 - Sistem Informasi Koperasi Karyawan</title>
+<meta name="app-version" content="6.5">
+<!-- KOPKARIN v6.5 build 2026-11-26 -->
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -733,7 +734,7 @@ html.lenis,html.lenis body{height:auto}
     <div class="section" id="sec-tabungan">
       <div class="panel">
         <div class="panel-head"><h6><i class="bi bi-journal-bookmark me-1"></i> Buku Tabungan</h6>
-          <button class="btn btn-sm btn-outline-primary" onclick="window.print()" style="font-size:12px"><i class="bi bi-printer"></i> Cetak</button>
+          <div class="d-flex gap-2 flex-wrap"><button class="btn btn-sm btn-outline-danger" onclick="tabunganPDF()" style="font-size:12px"><i class="bi bi-file-pdf"></i> PDF</button><button class="btn btn-sm btn-outline-success" onclick="kirimBukuTabunganEmail()" style="font-size:12px"><i class="bi bi-envelope-paper"></i> Kirim ke E-mail</button><button class="btn btn-sm btn-outline-primary" onclick="window.print()" style="font-size:12px"><i class="bi bi-printer"></i> Cetak</button></div>
         </div>
         <div class="panel-body">
           <div class="row g-2 mb-3">
@@ -1088,6 +1089,7 @@ html.lenis,html.lenis body{height:auto}
             <div class="col-md-4"><div class="stat-card" style="cursor:pointer" onclick="laporanSimpanan()"><div class="ico-wrap mb-2"><i class="bi bi-piggy-bank"></i></div><div class="lbl">Laporan Simpanan</div><div class="sub">Rekap per anggota</div></div></div>
             <div class="col-md-4"><div class="stat-card" style="cursor:pointer" onclick="laporanPinjaman('')"><div class="ico-wrap mb-2"><i class="bi bi-cash-coin"></i></div><div class="lbl">Laporan Pinjaman Global</div><div class="sub">Semua jenis &amp; tunggakan</div></div></div>
             <div class="col-md-4"><div class="stat-card" style="cursor:pointer" onclick="laporanAnggota()"><div class="ico-wrap mb-2"><i class="bi bi-people"></i></div><div class="lbl">Laporan Anggota</div><div class="sub">Daftar &amp; rekap</div></div></div>
+            <div class="col-md-4"><div class="stat-card green" style="cursor:pointer" onclick="openKirimMasal()"><div class="ico-wrap mb-2"><i class="bi bi-envelope-paper"></i></div><div class="lbl">Kirim Buku Tabungan Masal</div><div class="sub">PDF ke e-mail semua anggota</div></div></div>
           </div>
           <div class="mb-3 no-print" id="barLaporanJenis"></div>
           <div class="export-bar mb-3 no-print">
@@ -1132,6 +1134,15 @@ html.lenis,html.lenis body{height:auto}
             </div>
           </div>
           <hr class="my-4">
+          <div class="p-3 rounded mt-3" style="background:#f8fafc;border:1px solid #e2e8f0">
+            <h6 class="fw-bold mb-2" style="font-size:13px"><i class="bi bi-envelope-at me-1"></i> Pengiriman E-mail (Buku Tabungan)</h6>
+            <div class="row g-3">
+              <div class="col-12"><label class="form-label">Alamat layanan pengirim e-mail (Supabase Edge Function)</label><input class="form-control" id="emFnUrl" placeholder="https://xxxx.supabase.co/functions/v1/kirim-email"><div class="emp-meta mt-1">Kosongkan untuk memakai alamat bawaan dari Project URL Supabase. Lihat petunjuk pemasangan fungsi <code>kirim-email</code>.</div></div>
+              <div class="col-md-6"><label class="form-label">Nama pengirim</label><input class="form-control" id="emFromName" placeholder="KOPKARIN"></div>
+              <div class="col-md-6"><label class="form-label">Balas ke (Reply-To)</label><input type="email" class="form-control" id="emReplyTo" placeholder="pengurus@email.com"></div>
+              <div class="col-12 d-flex gap-2 align-items-center flex-wrap"><button class="btn btn-sm btn-primary-c" onclick="simpanEmailCfg()">Simpan Pengaturan E-mail</button><button class="btn btn-sm btn-outline-secondary" onclick="tesEmailFn()">Cek Koneksi</button><span class="emp-meta" id="emStatus"></span></div>
+            </div>
+          </div>
           <button class="btn btn-success mt-3" onclick="simpanPengaturan()"><i class="bi bi-save me-1"></i> Simpan</button>
           <hr class="my-4">
           <h6 class="fw-bold">Data Management</h6>
@@ -1278,7 +1289,7 @@ html.lenis,html.lenis body{height:auto}
             </div></div>
             <div class="tab-pane fade" id="tabKontak"><div class="row g-3">
               <div class="col-md-6"><label class="form-label">No. HP / WhatsApp</label><input class="form-control" id="angHp" inputmode="tel" placeholder="08xxxxxxxxxx"></div>
-              <div class="col-md-6"><label class="form-label">Email</label><input type="email" class="form-control" id="angEmail" placeholder="nama@email.com"></div>
+              <div class="col-md-6"><label class="form-label">Alamat E-mail</label><input type="email" class="form-control" id="angEmail" placeholder="nama@email.com"></div>
               <div class="col-12"><label class="form-label">Alamat (sesuai KTP)</label><textarea class="form-control" id="angAlamat" rows="2"></textarea></div>
               <div class="col-12"><div class="d-flex justify-content-between align-items-center"><label class="form-label">Alamat Domisili</label><div class="form-check" style="font-size:12px"><input class="form-check-input" type="checkbox" id="samaKtp" onchange="if(this.checked) document.getElementById('angDomisili').value = document.getElementById('angAlamat').value"><label class="form-check-label" for="samaKtp">Sama dengan KTP</label></div></div><textarea class="form-control" id="angDomisili" rows="2"></textarea></div>
               <div class="col-md-6"><label class="form-label">Nama Kontak Darurat</label><input class="form-control" id="angDaruratNama"></div>
@@ -1378,6 +1389,45 @@ html.lenis,html.lenis body{height:auto}
     </div>
   </div></div>
 </div>
+
+<!-- MODAL KIRIM BUKU TABUNGAN (SATUAN) -->
+<div class="modal fade" id="modalKirimEmail" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h6 class="modal-title"><i class="bi bi-envelope-paper me-1"></i> Kirim Buku Tabungan ke E-mail</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body">
+    <div class="mb-2"><label class="form-label">Anggota</label><input class="form-control" id="keAnggota" readonly></div>
+    <div class="mb-2"><label class="form-label">Alamat e-mail tujuan *</label><input type="email" class="form-control" id="keTo" placeholder="nama@email.com"></div>
+    <div class="mb-2"><label class="form-label">Subjek</label><input class="form-control" id="keSubjek"></div>
+    <div class="mb-2"><label class="form-label">Pesan tambahan (opsional)</label><textarea class="form-control" id="kePesan" rows="3"></textarea></div>
+    <div class="emp-meta" id="keInfo"></div>
+    <div id="keStatus" class="mt-2" style="font-size:13px"></div>
+  </div>
+  <div class="modal-footer justify-content-between">
+    <button class="btn btn-outline-secondary" onclick="keMailto()"><i class="bi bi-box-arrow-up-right me-1"></i> Buka Aplikasi E-mail</button>
+    <div><button class="btn btn-light" data-bs-dismiss="modal">Tutup</button> <button class="btn btn-primary-c" id="keKirim" onclick="keKirim()"><i class="bi bi-send me-1"></i> Kirim</button></div>
+  </div>
+</div></div></div>
+
+<!-- MODAL KIRIM BUKU TABUNGAN MASAL -->
+<div class="modal fade" id="modalKirimMasal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+  <div class="modal-header"><h6 class="modal-title"><i class="bi bi-envelope-paper me-1"></i> Kirim Buku Tabungan Masal ke E-mail</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body">
+    <div class="row g-2 mb-2">
+      <div class="col-6 col-md-3"><label class="form-label">Dari tanggal</label><input type="date" class="form-control form-control-sm" id="kmDari"></div>
+      <div class="col-6 col-md-3"><label class="form-label">Sampai tanggal</label><input type="date" class="form-control form-control-sm" id="kmSampai"></div>
+      <div class="col-12 col-md-3"><label class="form-label">Departemen</label><select class="form-select form-select-sm" id="kmDept" onchange="renderKmList()"><option value="">Semua</option></select></div>
+      <div class="col-12 col-md-3"><label class="form-label">Cari</label><input class="form-control form-control-sm" id="kmCari" oninput="renderKmList()" placeholder="Nama / NIP"></div>
+    </div>
+    <div class="mb-2"><label class="form-label">Subjek <span class="text-muted">({nama} diganti nama anggota)</span></label><input class="form-control form-control-sm" id="kmSubjek" value="Buku Tabungan {nama}"></div>
+    <div class="mb-2"><label class="form-label">Pesan tambahan (opsional)</label><textarea class="form-control form-control-sm" id="kmPesan" rows="2"></textarea></div>
+    <div class="d-flex justify-content-between align-items-center mb-1"><div class="form-check"><input class="form-check-input" type="checkbox" id="kmAll" onchange="kmToggleAll(this)" checked><label class="form-check-label" for="kmAll">Pilih semua yang punya e-mail</label></div><span class="emp-meta" id="kmCount"></span></div>
+    <div style="max-height:240px;overflow:auto;border:1px solid #e5e7eb;border-radius:10px" data-lenis-prevent><table class="table table-sm mb-0"><tbody id="kmList"></tbody></table></div>
+    <div class="form-check mt-2"><input class="form-check-input" type="checkbox" id="kmLewat" checked><label class="form-check-label" for="kmLewat" style="font-size:13px">Lewati anggota yang tidak punya transaksi pada periode</label></div>
+    <div class="progress mt-3" style="height:10px;display:none" id="kmProgWrap"><div class="progress-bar bg-success" id="kmProg" style="width:0%"></div></div>
+    <div class="emp-meta mt-1" id="kmStatus"></div>
+    <div id="kmLog" style="max-height:140px;overflow:auto;font-size:12px" data-lenis-prevent></div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-light" data-bs-dismiss="modal" id="kmTutup">Tutup</button><button class="btn btn-outline-danger" id="kmBatal" style="display:none" onclick="_kmAbort=true">Hentikan</button><button class="btn btn-primary-c" id="kmKirim" onclick="mulaiKirimMasal()"><i class="bi bi-send me-1"></i> Kirim ke yang Dipilih</button></div>
+</div></div></div>
 
 <!-- MODAL SUKARELA -->
 <div class="modal fade" id="modalSukarela" tabindex="-1">
@@ -1719,12 +1769,14 @@ function masaKerjaBulan(d){
 function tglMasukOf(a){ return a.tglMasuk || a.tgl || ''; }
 function statusKarClass(s){ s = (s || '').toLowerCase(); return s.startsWith('tetap') ? 'tetap' : (s.startsWith('kontrak') ? 'kontrak' : 'lain'); }
 function avatarHTML(a, cls){ cls = cls || 'avatar-sm'; return '<div class="'+cls+'">' + (a.foto ? '<img src="'+a.foto+'" alt="">' : esc((a.nama || '?').charAt(0).toUpperCase())) + '</div>'; }
+// Format tanggal regional Indonesia: dd/mm/yyyy (ekspor) — impor menerima dd/mm/yyyy, dd-mm-yyyy, dd.mm.yyyy, yyyy-mm-dd, tanggal Excel
+function tglID(v){ const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '/' + m[2] + '/' + m[1] : (v || ''); }
 function normDate(v){
   if (v === undefined || v === null || v === '') return '';
   if (v instanceof Date){ if (isNaN(v)) return ''; const d = new Date(v.getTime() + 12*3600e3); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
   if (typeof v === 'number'){ const d = new Date(Math.round((v - 25569) * 86400000)); return d.toISOString().slice(0,10); }
   const s = String(v).trim();
-  const m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  const m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})(?:[\sT].*)?$/);
   if (m) return m[3] + '-' + m[2].padStart(2,'0') + '-' + m[1].padStart(2,'0');
   return s.slice(0,10);
 }
@@ -2411,6 +2463,7 @@ function simpanAnggota(){
   if (data.some(x => nipOf(x) === nip && String(x.id) !== String(id)) || DB.load('users').some(u => u.username === nip && !(u.type === 'anggota' && String(u.anggotaId) === String(id)))){
     showAngTab('tabKerja'); alert('NIP ' + nip + ' sudah dipakai (anggota/user lain).'); return;
   }
+  { const em = g('angEmail'); if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)){ showAngTab('tabKontak'); alert('Format Alamat E-mail tidak valid.'); return; } }
   const payload = {};
   Object.entries(ANG_MAP).forEach(([el, key]) => payload[key] = g(el));
   payload.foto = document.getElementById('angFotoData').value;
@@ -2451,7 +2504,7 @@ function profilGroups(a){
     {t:'Keanggotaan Koperasi', i:'bi-people', rows:[
       ['Tgl Bergabung Koperasi', tglPanjang(a.tgl)], ['Lama Keanggotaan', hitungMasaKerja(a.tgl || '')], ['Status Anggota', a.status]]},
     {t:'Kontak & Alamat', i:'bi-geo-alt', rows:[
-      ['No. HP / WA', a.hp], ['Email', a.email], ['Alamat (KTP)', a.alamat], ['Domisili', a.domisili],
+      ['No. HP / WA', a.hp], ['Alamat E-mail', a.email], ['Alamat (KTP)', a.alamat], ['Domisili', a.domisili],
       ['Kontak Darurat', (a.daruratNama || '') + (a.daruratHp ? ' • ' + a.daruratHp : '')]]},
     {t:'Bank, Pajak & BPJS', i:'bi-bank', rows:[
       ['Bank', a.bank], ['No. Rekening', a.rek], ['NPWP', a.npwp], ['BPJS Ketenagakerjaan', a.bpjsTk], ['BPJS Kesehatan', a.bpjsKes]]},
@@ -2614,11 +2667,11 @@ function openSimpananWajibManual(id){
 // ============ EXPORT ANGGOTA (v3.3: kolom lengkap) ============
 const EXPORT_COLS = [
   ['NIP', a => noAng(a)], ['Nama', a => a.nama], ['NIK', a => a.nik], ['Jenis Kelamin', a => jkLabel(a.jk)],
-  ['Tempat Lahir', a => a.tempatLahir], ['Tanggal Lahir', a => a.tglLahir], ['Umur', a => hitungUmur(a.tglLahir)],
+  ['Tempat Lahir', a => a.tempatLahir], ['Tanggal Lahir', a => tglID(a.tglLahir)], ['Umur', a => hitungUmur(a.tglLahir)],
   ['Agama', a => a.agama], ['Status Nikah', a => a.statusNikah], ['Gol. Darah', a => a.golDarah], ['Pendidikan', a => a.pendidikan],
   ['Departemen', a => a.dept], ['Jabatan', a => a.jabatan], ['Status Karyawan', a => a.statusKaryawan],
-  ['Tanggal Masuk', a => tglMasukOf(a)], ['Masa Kerja', a => hitungMasaKerja(tglMasukOf(a))], ['Tgl Bergabung Koperasi', a => a.tgl],
-  ['No. HP', a => a.hp], ['Email', a => a.email], ['Alamat KTP', a => a.alamat], ['Domisili', a => a.domisili],
+  ['Tanggal Masuk', a => tglID(tglMasukOf(a))], ['Masa Kerja', a => hitungMasaKerja(tglMasukOf(a))], ['Tgl Bergabung Koperasi', a => tglID(a.tgl)],
+  ['No. HP', a => a.hp], ['Alamat E-mail', a => a.email], ['Alamat KTP', a => a.alamat], ['Domisili', a => a.domisili],
   ['Kontak Darurat', a => a.daruratNama], ['HP Darurat', a => a.daruratHp],
   ['Bank', a => a.bank], ['No. Rekening', a => a.rek], ['NPWP', a => a.npwp], ['BPJS TK', a => a.bpjsTk], ['BPJS Kesehatan', a => a.bpjsKes],
   ['Ahli Waris', a => a.waris], ['Hubungan Waris', a => a.warisHub], ['HP Ahli Waris', a => a.warisHp], ['Status', a => a.status]
@@ -2627,8 +2680,8 @@ function exportRows(){ return DB.load('anggota').map(a => { const o = {}; EXPORT
 
 function exportAnggotaCSV(){
   const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-  let csv = EXPORT_COLS.map(c => q(c[0])).join(',') + '\n';
-  exportRows().forEach(r => { csv += EXPORT_COLS.map(c => q(r[c[0]])).join(',') + '\n'; });
+  let csv = EXPORT_COLS.map(c => q(c[0])).join(';') + '\n';
+  exportRows().forEach(r => { csv += EXPORT_COLS.map(c => q(r[c[0]])).join(';') + '\n'; });
   downloadFile('data-karyawan-kopkarin.csv', '\ufeff' + csv, 'text/csv;charset=utf-8');
 }
 
@@ -2734,7 +2787,7 @@ function prosesImport(){
       statusKaryawan: s(['Status_Karyawan','status_karyawan']),
       tglMasuk: normDate(pick(row, ['Tanggal_Masuk','Tgl_Masuk','tglMasuk'])) || tglBergabung,
       tgl: tglBergabung || today,
-      hp: s(['HP','hp','NoHP','No_HP']), email: s(['Email','email']),
+      hp: s(['HP','hp','NoHP','No_HP']), email: s(['Alamat_Email','Alamat E-mail','Email','email','E-mail']).toLowerCase(),
       alamat: s(['Alamat','alamat']), domisili: s(['Domisili','domisili']),
       daruratNama: s(['Kontak_Darurat']), daruratHp: s(['HP_Darurat']),
       bank: s(['Bank','bank']), rek: s(['No_Rekening','rekening']),
@@ -2754,11 +2807,12 @@ function prosesImport(){
 
 function downloadTemplateAnggota(){
   const ws = XLSX.utils.json_to_sheet([
-    {Nama:'Budi Santoso', NIK:'3273011205900001', No_Karyawan:'KRY-2015-0112', JK:'L', Tempat_Lahir:'Bandung', Tanggal_Lahir:'1990-05-12', Agama:'Islam', Status_Nikah:'Menikah', Gol_Darah:'O', Pendidikan:'SMA/SMK', Departemen:'Engineering', Jabatan:'Operator', Status_Karyawan:'Tetap (PKWTT)', Tanggal_Masuk:'2015-03-02', Tanggal_Bergabung:'2024-01-15', HP:'081234567890', Email:'budi@email.com', Alamat:'Jl. Contoh No.1', Domisili:'Jl. Contoh No.1', Kontak_Darurat:'Siti', HP_Darurat:'081300000001', Bank:'BCA', No_Rekening:'1234567890', NPWP:'12.345.678.9-012.000', BPJS_TK:'15012345678', BPJS_Kesehatan:'0001234567890', Ahli_Waris:'Siti', Hubungan_Waris:'Istri', HP_Ahli_Waris:'081300000001'}
+    {Nama:'Budi Santoso', NIK:'3273011205900001', No_Karyawan:'KRY-2015-0112', JK:'L', Tempat_Lahir:'Bandung', Tanggal_Lahir:'12/05/1990', Agama:'Islam', Status_Nikah:'Menikah', Gol_Darah:'O', Pendidikan:'SMA/SMK', Departemen:'Engineering', Jabatan:'Operator', Status_Karyawan:'Tetap (PKWTT)', Tanggal_Masuk:'02/03/2015', Tanggal_Bergabung:'15/01/2024', HP:'081234567890', Alamat_Email:'budi@email.com', Alamat:'Jl. Contoh No.1', Domisili:'Jl. Contoh No.1', Kontak_Darurat:'Siti', HP_Darurat:'081300000001', Bank:'BCA', No_Rekening:'1234567890', NPWP:'12.345.678.9-012.000', BPJS_TK:'15012345678', BPJS_Kesehatan:'0001234567890', Ahli_Waris:'Siti', Hubungan_Waris:'Istri', HP_Ahli_Waris:'081300000001'}
   ]);
   ws['!cols'] = Object.keys(ws).filter(k => /^[A-Z]+1$/.test(k)).map(() => ({wch: 18}));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Template');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['PETUNJUK'],['Format tanggal: dd/mm/yyyy (contoh 12/05/1990)'],['Kolom wajib: Nama, NIK, No_Karyawan (NIP)'],['Alamat_Email: alamat e-mail anggota (untuk pengiriman buku tabungan)']]), 'Petunjuk');
   writeXLS(wb, 'template-import-karyawan.xlsx');
 }
 
@@ -2803,7 +2857,7 @@ function simpanSimpanan(){
 function exportSimpananXLS(){
   const data = DB.load('mutasi').filter(m => m.jenis !== 'sukarela');
   const anggota = DB.load('anggota');
-  const ws = XLSX.utils.json_to_sheet(data.map(m => { const a = anggota.find(x => x.id === m.anggotaId); return {Tanggal:m.tanggal, NoTransaksi:m.no, Anggota:a?a.nama:'-', Jenis:m.jenis, Transaksi:m.trx, Jumlah:m.jumlah, Keterangan:m.ket||''}; }));
+  const ws = XLSX.utils.json_to_sheet(data.map(m => { const a = anggota.find(x => x.id === m.anggotaId); return {Tanggal:tglID(m.tanggal), NoTransaksi:m.no, Anggota:a?a.nama:'-', Jenis:m.jenis, Transaksi:m.trx, Jumlah:m.jumlah, Keterangan:m.ket||''}; }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Simpanan');
   writeXLS(wb, 'simpanan-kopkarin.xlsx');
@@ -2812,7 +2866,7 @@ function exportSimpananXLS(){
 function exportPinjamanXLS(){
   const data = DB.load('pinjaman');
   const anggota = DB.load('anggota');
-  const ws = XLSX.utils.json_to_sheet(data.map(p => { const a = anggota.find(x => x.id === p.anggotaId); return {NoPinjaman:p.no, Anggota:a?a.nama:'-', Jumlah:p.jumlah, Tenor:p.tenor, Bunga:p.bunga, Status:p.status, SisaPokok:p.sisaPokok||0, Tanggal:p.tanggal}; }));
+  const ws = XLSX.utils.json_to_sheet(data.map(p => { const a = anggota.find(x => x.id === p.anggotaId); return {NoPinjaman:p.no, Anggota:a?a.nama:'-', Jumlah:p.jumlah, Tenor:p.tenor, Bunga:p.bunga, Status:p.status, SisaPokok:p.sisaPokok||0, Tanggal:tglID(p.tanggal)}; }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Pinjaman');
   writeXLS(wb, 'pinjaman-kopkarin.xlsx');
@@ -3304,7 +3358,7 @@ function exportPayrollXLS(){
 function exportPayrollCSV(){
   const d = payrollData();
   if (!d.rows.length){ alert('Tidak ada data potongan untuk periode ini.'); return; }
-  const csv = XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(payrollExportRows(d)));
+  const csv = XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(payrollExportRows(d)), {FS:';'});
   downloadFile('payroll-potongan-kopkarin-' + d.periode + '.csv', '\ufeff' + csv, 'text/csv;charset=utf-8');
 }
 function exportPayrollPDF(){
@@ -3650,7 +3704,7 @@ function exportLaporanCSV(){
   const tbl = document.querySelector('#hasilLaporan table[data-main]') || document.querySelector('#hasilLaporan table');
   if (!tbl){ alert('Buka laporan dulu'); return; }
   const wb = XLSX.utils.table_to_book(tbl);
-  const csv = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]]);
+  const csv = XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]], {FS:';'});
   downloadFile('laporan-kopkarin.csv', '\ufeff' + csv, 'text/csv;charset=utf-8');
 }
 
@@ -4013,7 +4067,7 @@ function exportPinjamanXLS(){ rptXLS('pinjaman'); }
 // ---------- Import Excel simpanan pokok / wajib awal ----------
 function templateSimpanan(){
   const ang = DB.load('anggota').filter(a => a.status === 'aktif').slice(0, 3);
-  const ex = (ang.length ? ang : [{nomor:'A-0001'},{nomor:'A-0002'}]).map((a,i) => ({NIP: noAng(a), Jenis: i % 2 ? 'wajib_awal' : 'pokok', Jumlah: i % 2 ? 100000 : (PNG().pokok || 50000), Tanggal: todayStr(), Keterangan: 'Saldo awal'}));
+  const ex = (ang.length ? ang : [{nomor:'A-0001'},{nomor:'A-0002'}]).map((a,i) => ({NIP: noAng(a), Jenis: i % 2 ? 'wajib_awal' : 'pokok', Jumlah: i % 2 ? 100000 : (PNG().pokok || 50000), Tanggal: tglID(todayStr()), Keterangan: 'Saldo awal'}));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ex), 'Template');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['PETUNJUK'],['NIP : harus sama dengan NIP anggota di sistem'],['Jenis : isi pokok  atau  wajib_awal'],['Jumlah : angka tanpa titik / Rp'],['Tanggal : format YYYY-MM-DD'],['Anggota yang sudah punya simpanan pokok / wajib awal akan dilewati (tidak dobel)']]), 'Petunjuk');
@@ -4056,28 +4110,50 @@ function importSimpanan(ev){
 }
 
 // ---------- Buku Tabungan PDF ----------
+// Data buku tabungan satu anggota (dipakai PDF, e-mail satuan & masal)
+function bukuData(id, dari, sampai){
+  const a = ANGF(id), all = DB.load('mutasi').filter(m => m.anggotaId === id).sort((x,y) => x.tanggal.localeCompare(y.tanggal));
+  let saldo = all.filter(m => dari && m.tanggal < dari).reduce((z,m) => m.trx === 'setor' ? z + m.jumlah : z - m.jumlah, 0);
+  const awal = saldo, list = all.filter(m => inP(m.tanggal, dari, sampai));
+  let tS = 0, tT = 0;
+  const body = list.map((m,i) => { if (m.trx === 'setor'){ saldo += m.jumlah; tS += m.jumlah; } else { saldo -= m.jumlah; tT += m.jumlah; } return [i+1, tgl(m.tanggal), m.no, pdfTxt(m.ket || (jenisLabel(m.jenis) + ' - ' + m.trx)), m.trx === 'tarik' ? rupiah(m.jumlah) : '-', m.trx === 'setor' ? rupiah(m.jumlah) : '-', rupiah(saldo)]; });
+  return {a, awal, body, tS, tT, saldoAkhir: saldo, kosong: !body.length && !awal};
+}
+// PDF buku tabungan versi ringkas (dipepetkan: header kecil, huruf & jarak tabel rapat)
+function buildBukuTabunganPDF(id, dari, sampai){
+  const D = bukuData(id, dari, sampai); if (D.kosong) return null;
+  const a = D.a, p = PNG(), d = new window.jspdf.jsPDF({unit:'mm', format:'a4'}), W = d.internal.pageSize.getWidth(), L = 10, R = W - 10;
+  d.setFillColor(10,30,63); d.rect(0, 0, W, 14, 'F'); d.setFillColor(201,162,39); d.rect(0, 14, W, 0.8, 'F');
+  d.setTextColor(255,255,255); d.setFont('helvetica','bold'); d.setFontSize(11); d.text(pdfTxt(p.nama || 'KOPKARIN'), L, 8.8);
+  d.setFontSize(9); d.text('BUKU TABUNGAN', R, 6.3, {align:'right'});
+  d.setFont('helvetica','normal'); d.setFontSize(7); d.text(pdfTxt((dari || sampai) ? 'Periode ' + (dari ? tgl(dari) : 'awal') + ' - ' + (sampai ? tgl(sampai) : 'sekarang') : 'Seluruh periode'), R, 11, {align:'right'});
+  d.setTextColor(10,30,63); d.setFont('helvetica','bold'); d.setFontSize(10); d.text(pdfTxt(a.nama || '-'), L, 21);
+  d.setFont('helvetica','normal'); d.setFontSize(7.5); d.setTextColor(90,90,90);
+  d.text(pdfTxt('NIP ' + (noAng(a) || '-') + '  |  ' + (a.dept || '-') + (a.bank ? '  |  ' + a.bank + ' ' + (a.rek || '') : '')), L, 25.5);
+  d.text('Dicetak ' + tgl(todayStr()), R, 21, {align:'right'});
+  const bw = (R - L - 6) / 3;
+  [['TOTAL SETORAN', D.tS, [22,163,74]], ['TOTAL PENARIKAN', D.tT, [220,38,38]], ['SALDO AKHIR', D.saldoAkhir, [10,30,63]]].forEach((b, i) => {
+    const x = L + i * (bw + 3); d.setFillColor(b[2][0], b[2][1], b[2][2]); d.roundedRect(x, 28, bw, 9, 1.5, 1.5, 'F');
+    d.setTextColor(255,255,255); d.setFont('helvetica','normal'); d.setFontSize(6.5); d.text(b[0], x + 2.5, 31.6);
+    d.setFont('helvetica','bold'); d.setFontSize(9); d.text(rupiah(b[1]), x + bw - 2.5, 35, {align:'right'});
+  });
+  const body = D.body.slice(); if (D.awal) body.unshift(['', '', '', 'Saldo awal periode', '', '', rupiah(D.awal)]);
+  d.autoTable({startY: 40, head:[['No','Tanggal','Kode','Keterangan','Penarikan','Setoran','Saldo']], body, theme:'striped',
+    styles:{fontSize:8, cellPadding:{top:1, bottom:1, left:1.6, right:1.6}, lineWidth:0}, headStyles:{fillColor:[10,30,63], textColor:255, fontSize:7.5},
+    alternateRowStyles:{fillColor:[244,246,251]},
+    columnStyles:{0:{cellWidth:9, halign:'center'}, 1:{cellWidth:19}, 2:{cellWidth:28}, 4:{halign:'right', cellWidth:26}, 5:{halign:'right', cellWidth:26}, 6:{halign:'right', fontStyle:'bold', cellWidth:28}},
+    margin:{left:L, right:L, top:12, bottom:12}});
+  let y = d.lastAutoTable.finalY + 5; if (y > 282){ d.addPage(); y = 16; }
+  d.setFont('helvetica','italic'); d.setFontSize(7); d.setTextColor(120,120,120);
+  d.text(pdfTxt('Dokumen ini dicetak otomatis oleh sistem ' + (p.nama || 'KOPKARIN') + '.'), L, y);
+  pdfPages(d);
+  return {doc: d, D};
+}
 function tabunganPDF(){
   const id = +$g('pilihAnggotaTab'); if (!id){ alert('Pilih anggota terlebih dahulu.'); return; }
   if (!(window.jspdf && window.jspdf.jsPDF)){ alert('Library PDF belum termuat (perlu internet). Gunakan tombol Cetak.'); return; }
-  const a = ANGF(id), dari = $g('tabDari'), sampai = $g('tabSampai'), all = DB.load('mutasi').filter(m => m.anggotaId === id).sort((x,y) => x.tanggal.localeCompare(y.tanggal));
-  let saldo = all.filter(m => dari && m.tanggal < dari).reduce((s,m) => m.trx === 'setor' ? s + m.jumlah : s - m.jumlah, 0);
-  const awal = saldo, list = all.filter(m => inP(m.tanggal, dari, sampai));
-  let tS = 0, tT = 0; const body = list.map((m,i) => { if (m.trx === 'setor'){ saldo += m.jumlah; tS += m.jumlah; } else { saldo -= m.jumlah; tT += m.jumlah; } return [i+1, tgl(m.tanggal), m.no, m.ket || (jenisLabel(m.jenis) + ' - ' + m.trx), m.trx === 'tarik' ? rupiah(m.jumlah) : '-', m.trx === 'setor' ? rupiah(m.jumlah) : '-', rupiah(saldo)]; });
-  if (!body.length && !awal){ alert('Tidak ada transaksi.'); return; }
-  const d = new window.jspdf.jsPDF({unit:'mm', format:'a4'}), W = d.internal.pageSize.getWidth(), p = PNG();
-  pdfHeader(d, p, 'BUKU TABUNGAN ANGGOTA', perLabel(dari, sampai));
-  d.setDrawColor(201,162,39); d.setFillColor(250,248,240); d.roundedRect(14, 45, W - 28, 24, 2, 2, 'FD');
-  d.setTextColor(10,30,63); d.setFont('helvetica','bold'); d.setFontSize(12); d.text(a.nama || '-', 19, 53);
-  d.setFont('helvetica','normal'); d.setFontSize(9); d.setTextColor(80,80,80);
-  d.text('NIP : ' + (noAng(a) || '-'), 19, 59);
-  d.text('Departemen : ' + (a.dept || '-') + '     Bank : ' + (a.bank || '-') + ' ' + (a.rek || ''), 19, 64);
-  const bx = (x, t, v, c) => { d.setFillColor(c[0],c[1],c[2]); d.roundedRect(x, 74, (W - 28 - 8) / 3, 15, 2, 2, 'F'); d.setTextColor(255,255,255); d.setFontSize(7.5); d.text(t, x + 4, 80); d.setFont('helvetica','bold'); d.setFontSize(11); d.text(v, x + 4, 86); d.setFont('helvetica','normal'); };
-  const bw = (W - 28 - 8) / 3; bx(14, 'TOTAL SETORAN', rupiah(tS), [22,163,74]); bx(14 + bw + 4, 'TOTAL PENARIKAN', rupiah(tT), [220,38,38]); bx(14 + 2 * (bw + 4), 'SALDO AKHIR', rupiah(saldo), [10,30,63]);
-  if (awal) body.unshift(['', '', '', 'Saldo awal periode', '', '', rupiah(awal)]);
-  d.autoTable({startY:95, head:[['No','Tanggal','Kode','Keterangan','Penarikan','Setoran','Saldo']], body, theme:'striped', styles:{fontSize:9.5, cellPadding:2.2}, headStyles:{fillColor:[10,30,63], textColor:255}, alternateRowStyles:{fillColor:[244,246,251]}, columnStyles:{4:{halign:'right'},5:{halign:'right'},6:{halign:'right', fontStyle:'bold'}}, margin:{left:14,right:14}});
-  let y = d.lastAutoTable.finalY + 14; if (y > 255){ d.addPage(); y = 30; }
-  d.setFontSize(9); d.setTextColor(10,30,63); d.text('Pengurus ' + (p.nama || 'KOPKARIN'), W - 14, y, {align:'right'}); d.line(W - 60, y + 22, W - 14, y + 22);
-  pdfPages(d); d.save('buku-tabungan-' + (noAng(a) || id) + '.pdf');
+  const r = buildBukuTabunganPDF(id, $g('tabDari'), $g('tabSampai')); if (!r){ alert('Tidak ada transaksi.'); return; }
+  r.doc.save('buku-tabungan-' + (noAng(r.D.a) || id) + '.pdf');
 }
 
 // ---------- Pencairan: kolom bank, no rek, jumlah pencairan ----------
@@ -4487,7 +4563,7 @@ function templatePotongMasal(){
     const jad = (p.jadwal && p.jadwal.length) ? p.jadwal : generateJadwalFromPinjaman(p), j = jad.find(x => x.status === 'belum');
     if (!j || angs.some(g => g.pinjamanId === p.id && g.periode === per)) return;
     const a = ANGF(p.anggotaId);
-    all.push({due: j.tanggal.slice(0, 7) <= per, row: {NIP: noAng(a), Nama: a.nama || '', No_Pinjaman: p.no, Jenis: jenisOf(p), Periode: per, Angsuran_Ke: j.ke + '/' + p.tenor, Tanggal_Potong: todayStr(), Pokok: j.pokok, Jasa: j.jasa, Total: j.total}});
+    all.push({due: j.tanggal.slice(0, 7) <= per, row: {NIP: noAng(a), Nama: a.nama || '', No_Pinjaman: p.no, Jenis: jenisOf(p), Periode: per, Angsuran_Ke: j.ke + '/' + p.tenor, Tanggal_Potong: tglID(todayStr()), Pokok: j.pokok, Jasa: j.jasa, Total: j.total}});
   });
   let rows = all.filter(x => x.due).map(x => x.row), note = '';
   if (!rows.length){ rows = all.map(x => x.row); note = 'Tidak ada angsuran yang jatuh tempo pada periode ini, template memuat angsuran berikutnya semua pinjaman aktif.'; }
@@ -4499,7 +4575,7 @@ function templatePotongMasal(){
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['PETUNJUK POTONGAN MASAL'],
     ['No_Pinjaman : kunci utama pencocokan pinjaman (jangan diubah). Jika kosong, dicari lewat NIP + Jenis (harus hanya 1 pinjaman aktif).'],
     ['Periode : format YYYY-MM (contoh ' + per + ')'],
-    ['Tanggal_Potong : format YYYY-MM-DD; jika kosong memakai tanggal upload'],
+    ['Tanggal_Potong : format dd/mm/yyyy; jika kosong memakai tanggal upload'],
     ['Pokok & Jasa : angka tanpa titik / Rp. Total dihitung otomatis dari Pokok + Jasa'],
     ['Hapus baris anggota yang tidak dipotong pada periode ini'],
     ['Satu pinjaman hanya bisa dipotong satu kali per periode (baris duplikat dilewati)'],
@@ -4680,7 +4756,7 @@ async function logLogin(status, u, alasan){
 const LOG_LBL = {berhasil:'Login berhasil', gagal:'Login gagal', logout:'Logout', 'ubah-password':'Ganti password'};
 const LOG_CLS = {berhasil:'active', gagal:'inactive', logout:'info', 'ubah-password':'pending'};
 const _localDay = iso => { const t = new Date(iso); return t.getFullYear() + '-' + pad2(t.getMonth() + 1) + '-' + pad2(t.getDate()); };
-const _fmtDT = iso => new Date(iso).toLocaleString('id-ID', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit'});
+const _fmtDT = iso => new Date(iso).toLocaleString('id-ID', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false});
 function logRows(d, s){
   const st = $g('rx-logs'), tp = $g('lgTipe'), q = ($g('lgCari') || '').toLowerCase().trim();
   return DB.load('log_login').filter(l => inP(_localDay(l.tgl), d, s) && (!st || l.status === st) && (!tp || l.type === tp) && (!q || [l.username, l.nama, l.role].join(' ').toLowerCase().includes(q))).sort((a,b) => b.tgl.localeCompare(a.tgl));
@@ -5254,7 +5330,7 @@ function roBlock(k){
   if (t - _roWarnAt > 2500){ _roWarnAt = t; try { toast('🔒 Akun Badan Pengawas hanya dapat melihat data, tidak dapat mengubah.'); } catch(e){} }
   return true;
 }
-var RO_CLICK = /^(simpan|hapus|batal|cairkan|catat|tolak|ajukan|reset|forceMigrate|clearLogs|gantiPass|genPassword|editAnggota|editDariDetail|koreksi|proses|openUserModal|openSetuju|openEditPinjaman|openPinjaman|openPeng|openDonasi|openBank|openSukarelaModal|openSimpanan|openPotong|openPelunasan|openKas|openAngsuranModal|openAnggotaModal|openImportAnggota|openArusKas|openGantiPass)/;
+var RO_CLICK = /^(simpan|hapus|batal|cairkan|catat|tolak|ajukan|reset|forceMigrate|clearLogs|gantiPass|genPassword|editAnggota|editDariDetail|koreksi|proses|openUserModal|openSetuju|openEditPinjaman|openPinjaman|openKirim|kirim|openPeng|openDonasi|openBank|openSukarelaModal|openSimpanan|openPotong|openPelunasan|openKas|openAngsuranModal|openAnggotaModal|openImportAnggota|openArusKas|openGantiPass)/;
 var RO_CHANGE = /^(importPotongMasal|importSimpanan|previewImport|uploadLogo|togglePeng|previewFotoAnggota)$/;
 function applyReadOnlyUI(){
   if (!isReadOnly()) return;
@@ -5275,6 +5351,120 @@ function roInit(){
   const _sa5 = showApp; showApp = function(){ _sa5(); roInit(); };
   if (isReadOnly() && document.getElementById('appShell') && document.getElementById('appShell').style.display === 'block') roInit();
 })();
+
+// ============ v6.5 : KIRIM BUKU TABUNGAN KE E-MAIL ============
+function emailCfg(){ return Object.assign({url:'', fromName:'', replyTo:''}, DB.get('emailCfg', {}) || {}); }
+function emailFnUrl(){ const u = (emailCfg().url || '').trim(); return u || (String(SUPABASE_URL).replace(/\/$/, '') + '/functions/v1/kirim-email'); }
+function loadEmailCfg(){ const c = emailCfg(), set = (id, v) => { const e = document.getElementById(id); if (e) e.value = v || ''; }; set('emFnUrl', c.url); set('emFromName', c.fromName); set('emReplyTo', c.replyTo); }
+function simpanEmailCfg(){
+  const rt = $g('emReplyTo').trim(); if (rt && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(rt)){ alert('Format e-mail Reply-To tidak valid.'); return; }
+  DB.set('emailCfg', {url: $g('emFnUrl').trim(), fromName: $g('emFromName').trim(), replyTo: rt});
+  document.getElementById('emStatus').textContent = '✅ Tersimpan.'; toast('✅ Pengaturan e-mail tersimpan.');
+}
+async function tesEmailFn(){
+  const st = document.getElementById('emStatus'); st.textContent = 'Memeriksa…';
+  try { const r = await fetch(emailFnUrl(), {method:'OPTIONS'}); st.textContent = r.ok ? '✅ Layanan terjangkau (' + r.status + ').' : '⚠️ Layanan menjawab status ' + r.status + '.'; }
+  catch(e){ st.textContent = '❌ Tidak terjangkau: fungsi belum dipasang / alamat salah.'; }
+}
+loadPengaturan = (function(_lp){ return function(){ _lp(); loadEmailCfg(); }; })(loadPengaturan);
+const _validEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(e || '').trim());
+async function kirimEmailServer(o){
+  const r = await fetch(emailFnUrl(), {method:'POST', headers:{'Content-Type':'application/json', 'apikey':SUPABASE_KEY, 'Authorization':'Bearer ' + SUPABASE_KEY},
+    body: JSON.stringify({to:o.to, subject:o.subject, html:o.html, filename:o.filename, pdf:o.pdf, fromName: emailCfg().fromName, replyTo: emailCfg().replyTo})});
+  let j = {}; try { j = await r.json(); } catch(e){}
+  if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+  return j;
+}
+function bukuEmailHTML(D, dari, sampai, pesan){
+  const p = PNG(), a = D.a, per = (dari || sampai) ? 'Periode ' + (dari ? tgl(dari) : 'awal') + ' s.d. ' + (sampai ? tgl(sampai) : 'sekarang') : 'Seluruh periode';
+  const row = (k, v) => '<tr><td style="padding:4px 14px 4px 0;color:#555">' + k + '</td><td style="padding:4px 0"><b>' + v + '</b></td></tr>';
+  return '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;max-width:560px">'
+    + '<p>Yth. <b>' + esc(a.nama) + '</b> (NIP ' + esc(noAng(a)) + '),</p>'
+    + (pesan ? '<p>' + esc(pesan).replace(/\n/g, '<br>') + '</p>' : '')
+    + '<p>Terlampir buku tabungan Anda. Ringkasan (' + esc(per) + '):</p>'
+    + '<table style="border-collapse:collapse">' + row('Total setoran', rupiah(D.tS)) + row('Total penarikan', rupiah(D.tT)) + row('Saldo akhir', rupiah(D.saldoAkhir)) + '</table>'
+    + '<p style="margin-top:18px">Hormat kami,<br><b>Pengurus ' + esc(p.nama || 'KOPKARIN') + '</b></p>'
+    + '<p style="font-size:11px;color:#888">E-mail ini dikirim otomatis oleh sistem. Jika ada ketidaksesuaian data, hubungi pengurus koperasi.</p></div>';
+}
+var _keCtx = null;
+function kirimBukuTabunganEmail(){
+  const id = +$g('pilihAnggotaTab'); if (!id){ alert('Pilih anggota terlebih dahulu.'); return; }
+  if (!(window.jspdf && window.jspdf.jsPDF)){ alert('Library PDF belum termuat (perlu internet).'); return; }
+  const a = ANGF(id), dari = $g('tabDari'), sampai = $g('tabSampai'), D = bukuData(id, dari, sampai);
+  if (D.kosong){ alert('Tidak ada transaksi pada periode ini.'); return; }
+  _keCtx = {id, dari, sampai};
+  document.getElementById('keAnggota').value = a.nama + ' (' + noAng(a) + ')';
+  document.getElementById('keTo').value = a.email || '';
+  document.getElementById('keSubjek').value = 'Buku Tabungan ' + a.nama + ' - ' + (PNG().nama || 'KOPKARIN');
+  document.getElementById('kePesan').value = '';
+  document.getElementById('keInfo').textContent = 'Lampiran: buku-tabungan-' + (noAng(a) || id) + '.pdf • ' + ((dari || sampai) ? 'Periode ' + (dari ? tgl(dari) : 'awal') + ' s.d. ' + (sampai ? tgl(sampai) : 'sekarang') : 'Seluruh periode') + (a.email ? '' : ' • Anggota ini belum punya Alamat E-mail (isi di sini atau di Data Anggota).');
+  document.getElementById('keStatus').textContent = '';
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKirimEmail')).show();
+}
+async function keKirim(){
+  const to = $g('keTo').trim(), st = document.getElementById('keStatus'), btn = document.getElementById('keKirim');
+  if (!_validEmail(to)){ alert('Alamat e-mail tujuan tidak valid.'); return; }
+  const r = buildBukuTabunganPDF(_keCtx.id, _keCtx.dari, _keCtx.sampai); if (!r){ alert('Tidak ada transaksi.'); return; }
+  btn.disabled = true; st.innerHTML = '<span class="text-muted">Mengirim…</span>';
+  try {
+    await kirimEmailServer({to, subject: $g('keSubjek'), html: bukuEmailHTML(r.D, _keCtx.dari, _keCtx.sampai, $g('kePesan')), filename: 'buku-tabungan-' + (noAng(r.D.a) || _keCtx.id) + '.pdf', pdf: r.doc.output('datauristring').split('base64,')[1]});
+    st.innerHTML = '<span class="text-success fw-bold">✅ Terkirim ke ' + esc(to) + '</span>'; toast('✅ Buku tabungan terkirim ke ' + esc(to));
+  } catch(e){ st.innerHTML = '<span class="text-danger">❌ Gagal: ' + esc(e.message) + '</span><div class="emp-meta">Pastikan fungsi pengirim e-mail sudah dipasang (Pengaturan &gt; Pengiriman E-mail), atau gunakan tombol "Buka Aplikasi E-mail".</div>'; }
+  btn.disabled = false;
+}
+function keMailto(){
+  const to = $g('keTo').trim(), r = buildBukuTabunganPDF(_keCtx.id, _keCtx.dari, _keCtx.sampai); if (!r){ alert('Tidak ada transaksi.'); return; }
+  r.doc.save('buku-tabungan-' + (noAng(r.D.a) || _keCtx.id) + '.pdf');   // unduh agar bisa dilampirkan manual
+  const body = 'Yth. ' + r.D.a.nama + ',\n\nTerlampir buku tabungan Anda.\nTotal setoran: ' + rupiah(r.D.tS) + '\nTotal penarikan: ' + rupiah(r.D.tT) + '\nSaldo akhir: ' + rupiah(r.D.saldoAkhir) + '\n\n' + ($g('kePesan') ? $g('kePesan') + '\n\n' : '') + 'Hormat kami,\nPengurus ' + (PNG().nama || 'KOPKARIN');
+  location.href = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent($g('keSubjek')) + '&body=' + encodeURIComponent(body);
+  document.getElementById('keStatus').innerHTML = '<span class="text-muted">PDF diunduh. Lampirkan file tersebut pada e-mail yang terbuka.</span>';
+}
+// ---- masal ----
+var _kmAbort = false;
+function kmListData(){
+  const dept = $g('kmDept'), q = ($g('kmCari') || '').toLowerCase().trim();
+  return DB.load('anggota').filter(a => a.status === 'aktif' && (!dept || a.dept === dept) && (!q || [a.nama, noAng(a)].join(' ').toLowerCase().includes(q)))
+    .sort((x, y) => String(x.nama || '').localeCompare(String(y.nama || ''), 'id', {sensitivity:'base'}));
+}
+function renderKmList(){
+  const l = kmListData(), all = document.getElementById('kmAll').checked;
+  document.getElementById('kmList').innerHTML = l.length ? l.map(a => { const ok = _validEmail(a.email);
+    return '<tr><td style="width:34px"><input type="checkbox" class="km-chk" value="' + a.id + '"' + (ok ? (all ? ' checked' : '') : ' disabled') + ' onchange="kmCount()"></td><td><b>' + esc(a.nama) + '</b><div class="emp-meta">' + esc(noAng(a)) + ' • ' + esc(a.dept || '-') + '</div></td><td>' + (ok ? esc(a.email) : '<span class="text-danger" style="font-size:12px">tidak ada e-mail</span>') + '</td></tr>'; }).join('') : '<tr><td class="text-center text-muted py-3">Tidak ada anggota</td></tr>';
+  kmCount();
+}
+function kmCount(){
+  const n = document.querySelectorAll('.km-chk:checked').length, tot = document.querySelectorAll('.km-chk:not(:disabled)').length, noMail = kmListData().filter(a => !_validEmail(a.email)).length;
+  document.getElementById('kmCount').textContent = n + ' dipilih dari ' + tot + ' ber-e-mail' + (noMail ? ' • ' + noMail + ' tanpa e-mail' : '');
+}
+function kmToggleAll(cb){ document.querySelectorAll('.km-chk:not(:disabled)').forEach(c => { c.checked = cb.checked; }); kmCount(); }
+function openKirimMasal(){
+  if (!(window.jspdf && window.jspdf.jsPDF)){ alert('Library PDF belum termuat (perlu internet).'); return; }
+  const depts = [...new Set(DB.load('anggota').map(a => a.dept).filter(Boolean))].sort();
+  document.getElementById('kmDept').innerHTML = '<option value="">Semua</option>' + depts.map(d => '<option>' + esc(d) + '</option>').join('');
+  document.getElementById('kmAll').checked = true; document.getElementById('kmLog').innerHTML = ''; document.getElementById('kmStatus').textContent = ''; document.getElementById('kmProgWrap').style.display = 'none';
+  renderKmList(); bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKirimMasal')).show();
+}
+async function mulaiKirimMasal(){
+  const ids = [...document.querySelectorAll('.km-chk:checked')].map(c => +c.value); if (!ids.length){ alert('Pilih minimal satu anggota ber-e-mail.'); return; }
+  const dari = $g('kmDari'), sampai = $g('kmSampai'), subj = $g('kmSubjek') || 'Buku Tabungan {nama}', pesan = $g('kmPesan');
+  if (!confirm('Kirim buku tabungan ke ' + ids.length + ' anggota?')) return;
+  const log = document.getElementById('kmLog'), prog = document.getElementById('kmProg'), st = document.getElementById('kmStatus'), add = (h) => { log.insertAdjacentHTML('beforeend', '<div>' + h + '</div>'); log.scrollTop = log.scrollHeight; };
+  _kmAbort = false; log.innerHTML = ''; document.getElementById('kmProgWrap').style.display = ''; document.getElementById('kmKirim').disabled = true; document.getElementById('kmBatal').style.display = ''; document.getElementById('kmTutup').disabled = true;
+  let ok = 0, gagal = 0, lewat = 0;
+  for (let i = 0; i < ids.length; i++){
+    if (_kmAbort){ add('<span class="text-warning">⏹ Dihentikan oleh pengguna.</span>'); break; }
+    const a = ANGF(ids[i]); st.textContent = 'Memproses ' + (i + 1) + ' / ' + ids.length + ' — ' + a.nama; prog.style.width = Math.round(i / ids.length * 100) + '%';
+    try {
+      const r = buildBukuTabunganPDF(a.id, dari, sampai);
+      if (!r){ lewat++; add('<span class="text-muted">– ' + esc(a.nama) + ': dilewati (tidak ada transaksi)</span>'); continue; }
+      await kirimEmailServer({to: a.email.trim(), subject: subj.replace(/\{nama\}/g, a.nama), html: bukuEmailHTML(r.D, dari, sampai, pesan), filename: 'buku-tabungan-' + (noAng(a) || a.id) + '.pdf', pdf: r.doc.output('datauristring').split('base64,')[1]});
+      ok++; add('<span class="text-success">✓ ' + esc(a.nama) + ' → ' + esc(a.email) + '</span>');
+    } catch(e){ gagal++; add('<span class="text-danger">✗ ' + esc(a.nama) + ': ' + esc(e.message) + '</span>'); if (/Failed to fetch|NetworkError/i.test(e.message)){ add('<b class="text-danger">Layanan e-mail tidak terjangkau — pengiriman dihentikan. Periksa Pengaturan &gt; Pengiriman E-mail.</b>'); break; } }
+    await new Promise(r => setTimeout(r, 700));
+  }
+  prog.style.width = '100%'; st.innerHTML = '<b>Selesai:</b> terkirim ' + ok + ', gagal ' + gagal + ', dilewati ' + lewat + '.';
+  document.getElementById('kmKirim').disabled = false; document.getElementById('kmBatal').style.display = 'none'; document.getElementById('kmTutup').disabled = false;
+}
 
 </script>
 <script>
