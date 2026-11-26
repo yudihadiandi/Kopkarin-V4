@@ -33,7 +33,7 @@ const SYNC = (function(){
       ok:['#198754','☁ Tersinkron'], connecting:['#6c757d','☁ Menghubungkan…'],
       local:['#6c757d','💾 Mode lokal'], error:['#dc3545','⚠ Gagal sync']
     };
-    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v6.0'; b.title = stateMsg || '';
+    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v6.2'; b.title = stateMsg || '';
   }
   function setState(s, m){ state = s; stateMsg = m || ''; paint(); }
 
@@ -442,10 +442,50 @@ html.lenis,html.lenis body{height:auto}
 .lenis.lenis-smooth{scroll-behavior:auto!important}
 .lenis.lenis-stopped{overflow:hidden}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* v6.2 tampilan: sudut membulat + latar bertema keuangan */
+#appShell{background:
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3E%3Cg fill='none' stroke='%230a1e3f' stroke-width='1.6' opacity='.09'%3E%3Ccircle cx='46' cy='48' r='22'/%3E%3Ccircle cx='46' cy='48' r='16' stroke-dasharray='3 3'/%3E%3Cpath d='M150 70l22-18 18 12 30-30' stroke='%23c9a227' stroke-width='2.4'/%3E%3Cpath d='M214 34h8v8'/%3E%3Cpath d='M30 190v-26M44 190v-40M58 190v-20M72 190v-52' stroke-width='6' stroke-linecap='round'/%3E%3Crect x='150' y='170' width='60' height='38' rx='8'/%3E%3Ccircle cx='180' cy='189' r='9'/%3E%3C/g%3E%3Cg fill='%230a1e3f' opacity='.07' font-family='Arial' font-weight='700'%3E%3Ctext x='96' y='140' font-size='26'%3ERp%3C/text%3E%3Ctext x='220' y='130' font-size='22'%3E%25%3C/text%3E%3Ctext x='100' y='235' font-size='24'%3E$%3C/text%3E%3C/g%3E%3C/svg%3E") 0 0/260px 260px repeat,
+  linear-gradient(180deg,#e3edff 0,#f1f5fb 420px) no-repeat,#f4f6fb!important;background-attachment:fixed,scroll,scroll}
+.panel{border-radius:20px!important;overflow:hidden;background:rgba(255,255,255,.94)}
+.panel-head{border-radius:20px 20px 0 0!important}
+.table-responsive{border-radius:14px;border:1px solid rgba(10,30,63,.08);overflow:auto;background:#fff}
+.table-responsive>.table{margin-bottom:0}
+.table thead th:first-child{border-top-left-radius:12px}.table thead th:last-child{border-top-right-radius:12px}
+.form-control,.form-select{border-radius:12px!important}
+.btn{border-radius:12px!important}
+.btn-sm-c,.btn-sm{border-radius:10px!important}
+.modal-content{border-radius:22px!important;overflow:hidden;border:0;box-shadow:0 24px 60px rgba(10,30,63,.28)}
+.badge-soft{border-radius:999px!important}
+.nav-link-c{border-radius:12px!important}
+.stat-card{border-radius:20px!important}
+.dash-title{backdrop-filter:blur(1px)}
+/* kartu kecil: ikon di atas, angka memakai seluruh lebar kartu */
+#sec-dashboard .stat-card:not(.wide){flex-direction:column;align-items:flex-start;gap:10px;padding:16px}
+#sec-dashboard .stat-card:not(.wide) .ico-chip{flex:0 0 auto;width:38px;height:38px;border-radius:12px;font-size:18px}
+#sec-dashboard .stat-card:not(.wide) .stat-body{width:100%}
+#sec-dashboard .stat-card:not(.wide) .val{font-size:clamp(16px,1.5vw,20px)!important;white-space:nowrap;overflow-wrap:normal;word-break:normal}
+
 /* v6.1 dashboard: angka tidak terpotong */
 #sec-dashboard .stat-card .ico-float{display:none}
-#sec-dashboard .stat-card .val{font-size:clamp(16px,2.2vw,22px)!important;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+.dash-title{font-weight:700;font-size:13px;letter-spacing:.6px;text-transform:uppercase;color:#0a1e3f;display:flex;align-items:center;gap:8px;margin-top:6px!important}
+.dash-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(10,30,63,.25),transparent)}
+.dash-title i{color:#c9a227}
+.stat-card.sky{background:linear-gradient(135deg,#0369a1,#38bdf8)!important;box-shadow:0 8px 22px rgba(14,165,233,.30)!important}
+#sec-dashboard .stat-card.navy{background:linear-gradient(135deg,#0a1e3f,#1d4ed8 70%,#3b82f6);box-shadow:0 10px 26px rgba(10,30,63,.35);border-left:0}
+#sec-dashboard .stat-card{display:flex;align-items:center;gap:14px;border-radius:20px;padding:16px 18px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
+#sec-dashboard .stat-card::before{content:'';position:absolute;right:-30px;top:-34px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.13)}
+#sec-dashboard .stat-card::after{content:'';position:absolute;right:30px;bottom:-46px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.08)}
+#sec-dashboard .stat-card:hover{transform:translateY(-3px)}
+#sec-dashboard .ico-chip,#sec-donasi .ico-chip{flex:0 0 46px;width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,.22);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;font-size:21px;color:#fff;position:relative;z-index:1}
+#sec-donasi .stat-card{display:flex;align-items:center;gap:14px;border:0;color:#fff;border-radius:20px;padding:16px 18px}
+#sec-donasi .stat-card.green{background:linear-gradient(135deg,#047857,#34d399)}#sec-donasi .stat-card.red{background:linear-gradient(135deg,#be123c,#fb7185)}
+#sec-donasi .stat-card .lbl,#sec-donasi .stat-card .sub{color:rgba(255,255,255,.9)}#sec-donasi .stat-card .val{color:#fff}
+.stat-body{min-width:0;flex:1;position:relative;z-index:1}
+#sec-dashboard .stat-card .val,#sec-donasi .stat-card .val{font-size:clamp(16px,1.7vw,21px)!important;font-weight:800;white-space:normal;overflow-wrap:anywhere;word-break:break-word;margin-top:3px}
+#sec-dashboard .stat-card.wide .val{font-size:clamp(20px,2.6vw,28px)!important}
 #sec-dashboard .stat-card .lbl,#sec-dashboard .stat-card .sub{overflow-wrap:anywhere}
+#sec-dashboard .stat-card .lbl{font-weight:600;letter-spacing:.4px}
 </style>
 </head>
 <body>
@@ -530,6 +570,7 @@ html.lenis,html.lenis body{height:auto}
       <a class="nav-link-c" data-page="payroll"><i class="bi bi-cash-coin"></i> Potongan Payroll</a>
       <div class="nav-sec">Lainnya</div>
       <a class="nav-link-c" data-page="aruskas"><i class="bi bi-journal-richtext"></i> Arus Kas Buku Besar</a>
+      <a class="nav-link-c" data-page="donasi"><i class="bi bi-gift"></i> Donasi (Dana SHU)</a>
       <a class="nav-link-c" data-page="pengumuman"><i class="bi bi-megaphone"></i> Pengumuman</a>
       <a class="nav-link-c" data-page="logs"><i class="bi bi-shield-check"></i> Log Aktivitas</a>
       <a class="nav-link-c" data-page="keluar"><i class="bi bi-person-dash"></i> Mutasi Keluar</a>
@@ -563,12 +604,13 @@ html.lenis,html.lenis body{height:auto}
     <div class="section active" id="sec-dashboard">
       <div class="row g-3 mb-3" id="dashDana"></div>
       <div class="row g-3 mb-3">
-<div class="col-6 col-md-3"><div class="stat-card "><div class="ico-float"><i class="bi bi-people-fill"></i></div><div class="lbl">Anggota Aktif</div><div class="val" id="stAktif" style="font-size:17px">0</div><div class="sub">Total terdaftar</div></div></div>
-        <div class="col-6 col-md-3"><div class="stat-card red"><div class="ico-float"><i class="bi bi-cash-coin"></i></div><div class="lbl">Piutang Pinjaman</div><div class="val" id="stPiutang" style="font-size:17px">Rp 0</div><div class="sub">Sisa pokok</div></div></div>
-        <div class="col-6 col-md-3"><div class="stat-card teal"><div class="ico-float"><i class="bi bi-bank"></i></div><div class="lbl">Saldo di Bank</div><div class="val" id="stBank" style="font-size:17px">Rp 0</div><div class="sub">Semua rekening</div></div></div>
-        <div class="col-6 col-md-3"><div class="stat-card orange"><div class="ico-float"><i class="bi bi-cash-stack"></i></div><div class="lbl">Saldo Kas Tunai</div><div class="val" id="stKasTunai" style="font-size:17px">Rp 0</div><div class="sub">Uang cash</div></div></div>
-        <div class="col-12"><div class="stat-card gold"><div class="ico-float"><i class="bi bi-piggy-bank-fill"></i></div><div class="lbl">Total Simpanan</div><div class="val" id="stSimpanan" style="font-size:24px">Rp 0</div><div class="sub">Pokok + Wajib + Sukarela</div></div></div>
-        <div class="col-12"><div class="stat-card green"><div class="ico-float"><i class="bi bi-bank2"></i></div><div class="lbl">Total Kas &amp; Bank</div><div class="val" id="stKas" style="font-size:24px">Rp 0</div><div class="sub" id="stKasSub">Kekayaan + Kas Tunai + Bank + Simpanan</div></div></div>
+<div class="col-12 dash-title"><i class="bi bi-graph-up-arrow"></i> Ringkasan Keuangan &amp; Anggota</div>
+        <div class="col-6 col-md-3"><div class="stat-card "><div class="ico-chip"><i class="bi bi-people-fill"></i></div><div class="stat-body"><div class="lbl">Anggota Aktif</div><div class="val" id="stAktif">0</div><div class="sub">Total terdaftar</div></div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card red"><div class="ico-chip"><i class="bi bi-cash-coin"></i></div><div class="stat-body"><div class="lbl">Piutang Pinjaman</div><div class="val" id="stPiutang">Rp 0</div><div class="sub">Sisa pokok</div></div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card teal"><div class="ico-chip"><i class="bi bi-bank"></i></div><div class="stat-body"><div class="lbl">Saldo di Bank</div><div class="val" id="stBank">Rp 0</div><div class="sub">Semua rekening</div></div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card orange"><div class="ico-chip"><i class="bi bi-cash-stack"></i></div><div class="stat-body"><div class="lbl">Saldo Kas Tunai</div><div class="val" id="stKasTunai">Rp 0</div><div class="sub">Uang cash</div></div></div></div>
+        <div class="col-12"><div class="stat-card gold wide"><div class="ico-chip"><i class="bi bi-piggy-bank-fill"></i></div><div class="stat-body"><div class="lbl">Total Simpanan</div><div class="val" id="stSimpanan">Rp 0</div><div class="sub">Pokok + Wajib + Sukarela</div></div></div></div>
+        <div class="col-12"><div class="stat-card green wide"><div class="ico-chip"><i class="bi bi-bank2"></i></div><div class="stat-body"><div class="lbl">Total Kas &amp; Bank</div><div class="val" id="stKas">Rp 0</div><div class="sub" id="stKasSub">Kekayaan + Kas Tunai + Bank + Simpanan</div></div></div></div>
       </div>
       <div class="row g-3">
         <div class="col-md-8"><div class="panel"><div class="panel-head"><h6><i class="bi bi-graph-up-arrow me-1"></i> Perkembangan</h6></div><div class="panel-body"><div class="chart-box"><canvas id="chartMain"></canvas></div></div></div></div>
@@ -935,6 +977,25 @@ html.lenis,html.lenis body{height:auto}
       </div>
     </div>
 
+
+    <!-- DONASI -->
+    <div class="section" id="sec-donasi">
+      <div class="row g-3 mb-3" id="dnRingkas"></div>
+      <div class="panel">
+        <div class="panel-head"><h6><i class="bi bi-people me-1"></i> Penerima Donasi <span class="badge-soft info ms-1">Dana SHU</span></h6>
+          <button class="btn btn-sm btn-primary-c" onclick="openDonasiPenerima()" style="font-size:12px"><i class="bi bi-plus-lg"></i> Tambah Penerima</button></div>
+        <div class="panel-body"><div class="table-responsive"><table class="table"><thead><tr><th>Nama Penerima</th><th>Kontak / Alamat</th><th>Keterangan</th><th class="text-end">Total Diterima</th><th class="text-end">Aksi</th></tr></thead><tbody id="dnPenerima"></tbody></table></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h6><i class="bi bi-arrow-left-right me-1"></i> Mutasi Donasi</h6>
+          <button class="btn btn-sm btn-primary-c" onclick="openDonasiTrx()" style="font-size:12px"><i class="bi bi-plus-lg"></i> Mutasi Baru</button></div>
+        <div class="panel-body">
+          <div class="row g-2 mb-3"><div class="col-12 col-md-4"><select class="form-select form-select-sm" id="dnFilterPen" onchange="renderDonasi()"></select></div>
+            <div class="col-12 col-md-3"><select class="form-select form-select-sm" id="dnFilterTrx" onchange="renderDonasi()"><option value="">Semua Jenis</option><option value="masuk">Donasi Masuk</option><option value="keluar">Disalurkan</option></select></div></div>
+          <div class="table-responsive"><table class="table"><thead><tr><th>Tanggal</th><th>No.</th><th>Keterangan</th><th class="text-end">Masuk</th><th class="text-end">Keluar</th><th class="text-end">Saldo</th><th></th></tr></thead><tbody id="dnTbl"></tbody></table></div>
+        </div>
+      </div>
+    </div>
 
     <!-- TRANSAKSI BANK -->
     <div class="section" id="sec-banktrx">
@@ -1474,6 +1535,28 @@ html.lenis,html.lenis body{height:auto}
 
 <!-- SCRIPTS (hanya 1x — TIDAK duplikat) -->
 
+
+<div class="modal fade" id="modalDonasiPenerima" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h6 class="modal-title">Penerima Donasi</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body"><input type="hidden" id="dpId">
+    <div class="mb-3"><label class="form-label">Nama Penerima *</label><input class="form-control" id="dpNama"></div>
+    <div class="mb-3"><label class="form-label">Kontak / Alamat</label><input class="form-control" id="dpKontak"></div>
+    <div class="mb-3"><label class="form-label">Keterangan</label><input class="form-control" id="dpKet"></div></div>
+  <div class="modal-footer"><button class="btn btn-light" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary-c" onclick="simpanDonasiPenerima()">Simpan</button></div>
+</div></div></div>
+
+<div class="modal fade" id="modalDonasiTrx" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h6 class="modal-title">Mutasi Donasi</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body">
+    <div class="row g-2 mb-3"><div class="col-7"><label class="form-label">Tanggal</label><input type="date" class="form-control" id="dtmTanggal"></div>
+      <div class="col-5"><label class="form-label">Jenis</label><select class="form-select" id="dtmTrx" onchange="dtmUpdate()"><option value="masuk">Donasi Masuk</option><option value="keluar">Disalurkan</option></select></div></div>
+    <div class="mb-3" id="dtmDonaturWrap"><label class="form-label">Donatur</label><input class="form-control" id="dtmDonatur" placeholder="Nama donatur (opsional)"></div>
+    <div class="mb-3" id="dtmPenWrap" style="display:none"><label class="form-label">Penerima Donasi</label><select class="form-select" id="dtmPen"></select></div>
+    <div class="mb-3"><label class="form-label">Jumlah (Rp)</label><input type="number" class="form-control" id="dtmJumlah" min="1"></div>
+    <div class="mb-3"><label class="form-label">Keterangan</label><input class="form-control" id="dtmKet"></div>
+    <div id="dtmInfo" class="emp-meta"></div></div>
+  <div class="modal-footer"><button class="btn btn-light" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary-c" onclick="simpanDonasiTrx()">Simpan</button></div>
+</div></div></div>
 
 <div class="modal fade" id="modalBankTrx" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
   <div class="modal-header"><h6 class="modal-title">Transaksi Bank</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
@@ -4989,14 +5072,21 @@ function catatSelisihCash(sel){
 function resetHitungCash(){ document.querySelectorAll('#hcBody input[data-pec]').forEach(i => { i.value = ''; }); hitungCash(); }
 
 // ---------- DASHBOARD: satu tampilan, tidak ganda ----------
+function dCard(cls, ic, lbl, val, sub, opt){
+  opt = opt || {};
+  return '<div class="' + (opt.col || 'col-6 col-md-3') + '"><div class="stat-card ' + cls + (opt.wide ? ' wide' : '') + '"><div class="ico-chip"><i class="bi ' + ic + '"></i></div><div class="stat-body"><div class="lbl">' + lbl + '</div><div class="val"' + (opt.id ? ' id="' + opt.id + '"' : '') + '>' + val + '</div>' + (sub ? '<div class="sub">' + sub + '</div>' : '') + '</div></div></div>';
+}
 function renderDashDana(){
   const el = document.getElementById('dashDana'); if (!el) return;
-  const s = danaSaldo(), ORD = ['DANA CADANGAN','DANA SOSIAL','DANA PDK','DANA PENDIDIKAN'], ic = {'DANA CADANGAN':'bi-shield-check','DANA SOSIAL':'bi-heart','DANA PDK':'bi-briefcase','DANA PENDIDIKAN':'bi-mortarboard'}, cl = {'DANA CADANGAN':'violet','DANA SOSIAL':'teal','DANA PDK':'pink','DANA PENDIDIKAN':'orange'};
-  const tot = DANA.reduce((z, x) => z + s[x], 0), op = kasOperasional(), bk = totalBank(), kt = kasTunai(), grand = tot, simp = DB.load('mutasi').reduce((z, m) => m.trx === 'setor' ? z + m.jumlah : z - m.jumlah, 0), kb = grand + kt + bk + simp;
+  const s = danaSaldo(), ORD = ['DANA CADANGAN','DANA SOSIAL','DANA PDK','DANA PENDIDIKAN'], ic = {'DANA CADANGAN':'bi-shield-check','DANA SOSIAL':'bi-heart-pulse','DANA PDK':'bi-briefcase','DANA PENDIDIKAN':'bi-mortarboard'}, cl = {'DANA CADANGAN':'violet','DANA SOSIAL':'teal','DANA PDK':'pink','DANA PENDIDIKAN':'orange'};
+  const tDana = DANA.reduce((z, x) => z + s[x], 0), dn = saldoDonasi(), kekayaan = tDana + dn;
+  const bk = totalBank(), kt = kasTunai(), simp = DB.load('mutasi').reduce((z, m) => m.trx === 'setor' ? z + m.jumlah : z - m.jumlah, 0), kb = kekayaan + kt + bk + simp;
   const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
   set('stBank', rupiah(bk)); set('stKasTunai', rupiah(kt)); set('stKas', rupiah(kb));
-  el.innerHTML = ORD.map(x => '<div class="col-6 col-md-3"><div class="stat-card ' + cl[x] + '"><div class="lbl"><i class="bi ' + ic[x] + ' me-1"></i>' + x + '</div><div class="val" style="font-size:17px">' + rupiah(s[x] || 0) + '</div></div></div>').join('')
-    + '<div class="col-12"><div class="stat-card" style="background:linear-gradient(135deg,#0a1e3f,#1a3d7a);border-left-color:#c9a227"><div class="lbl" style="color:#e6c34b"><i class="bi bi-safe2 me-1"></i>Kekayaan Koperasi</div><div class="val" style="color:#fff;font-size:24px">' + rupiah(grand) + '</div><div class="sub" style="color:rgba(255,255,255,.8)">Total seluruh pos dana</div></div></div>';
+  el.innerHTML = '<div class="col-12 dash-title"><i class="bi bi-layers"></i> Pos Dana &amp; Donasi</div>'
+    + ORD.map(x => dCard(cl[x], ic[x], x, rupiah(s[x] || 0), '', {col: 'col-6 col-md-4 col-xl'})).join('')
+    + dCard('sky', 'bi-gift', 'DANA DONASI', rupiah(dn), donasiPenerima().length + ' penerima', {col: 'col-6 col-md-4 col-xl'})
+    + dCard('navy', 'bi-safe2', 'Kekayaan Koperasi', rupiah(kekayaan), 'Pos dana ' + rupiah(tDana) + ' + Donasi ' + rupiah(dn), {col: 'col-12', wide: true});
 }
 (function(){
   const _ld6 = loadDashboard; loadDashboard = function(){ _ld6(); renderDashDana(); };
@@ -5050,6 +5140,80 @@ async function fotoCompactAll(){
   if (n){ try { DB.save('anggota', list); console.log('Foto dikompres:', n); } catch(_){} }
 }
 setTimeout(() => { fotoCompactAll().catch(() => {}); }, 2500);
+
+
+// ============================================================
+// DONASI: penerima + mutasi, terhubung ke dashboard & kekayaan
+// ============================================================
+function donasiPenerima(){ return DB.load('donasi_penerima'); }
+function donasiTrx(){ return DB.load('donasi_trx'); }
+function saldoDonasi(){ return donasiTrx().reduce((z, t) => z + sgn(t), 0); }
+function namaPenerima(id){ const p = donasiPenerima().find(x => x.id === id); return p ? p.nama : '-'; }
+function renderDonasi(){
+  if (!document.getElementById('dnTbl')) return;
+  const pen = donasiPenerima(), all = donasiTrx().slice().sort((a, b) => String(a.tanggal).localeCompare(String(b.tanggal)) || a.id - b.id);
+  const masuk = all.filter(t => t.trx === 'masuk').reduce((z, t) => z + t.jumlah, 0), keluar = all.filter(t => t.trx === 'keluar').reduce((z, t) => z + t.jumlah, 0);
+  document.getElementById('dnRingkas').innerHTML = dCard('green', 'bi-box-arrow-in-down', 'Donasi Masuk', rupiah(masuk), '', {col: 'col-12 col-md-4'})
+    + dCard('red', 'bi-box-arrow-up', 'Disalurkan', rupiah(keluar), '', {col: 'col-12 col-md-4'})
+    + dCard('sky', 'bi-gift', 'Saldo Donasi', rupiah(masuk - keluar), 'Masuk ke Kekayaan Koperasi', {col: 'col-12 col-md-4'});
+  const rec = {}; all.filter(t => t.trx === 'keluar').forEach(t => { rec[t.penerimaId] = (rec[t.penerimaId] || 0) + t.jumlah; });
+  document.getElementById('dnPenerima').innerHTML = pen.length ? pen.map(p => '<tr><td class="fw-semibold">' + esc(p.nama) + '</td><td>' + esc(p.kontak || '-') + '</td><td>' + esc(p.ket || '-') + '</td><td class="text-end">' + rupiah(rec[p.id] || 0) + '</td>'
+    + '<td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-success btn-sm-c" title="Salurkan donasi" onclick="openDonasiTrx(' + p.id + ')"><i class="bi bi-send"></i></button> <button class="btn btn-sm btn-outline-primary btn-sm-c" onclick="openDonasiPenerima(' + p.id + ')"><i class="bi bi-pencil"></i></button> <button class="btn btn-sm btn-outline-danger btn-sm-c" onclick="hapusDonasiPenerima(' + p.id + ')"><i class="bi bi-trash"></i></button></td></tr>').join('')
+    : '<tr><td colspan="5" class="text-center text-muted py-4">Belum ada penerima donasi</td></tr>';
+  const f = document.getElementById('dnFilterPen'); if (f){ const v = f.value; f.innerHTML = '<option value="">Semua Penerima</option>' + pen.map(p => '<option value="' + p.id + '">' + esc(p.nama) + '</option>').join(''); f.value = v; }
+  let run = 0; const fp = +$g('dnFilterPen') || 0, ft = $g('dnFilterTrx');
+  const rows = all.map(t => { run += sgn(t); return Object.assign({}, t, {saldo: run}); }).filter(t => (!fp || t.penerimaId === fp) && (!ft || t.trx === ft)).reverse();
+  document.getElementById('dnTbl').innerHTML = rows.length ? rows.map(t => '<tr><td>' + tgl(t.tanggal) + '</td><td><code style="font-size:11px">' + esc(t.no) + '</code></td><td>' + (t.trx === 'masuk' ? 'Donasi dari ' + esc(t.donatur || 'donatur') : 'Disalurkan ke ' + esc(namaPenerima(t.penerimaId))) + (t.ket ? '<div class="emp-meta">' + esc(t.ket) + '</div>' : '') + '</td>'
+    + '<td class="text-end text-success">' + (t.trx === 'masuk' ? rupiah(t.jumlah) : '-') + '</td><td class="text-end text-danger">' + (t.trx === 'keluar' ? rupiah(t.jumlah) : '-') + '</td><td class="text-end fw-bold">' + rupiah(t.saldo) + '</td>'
+    + '<td class="text-end"><button class="btn btn-sm btn-outline-danger btn-sm-c" onclick="hapusDonasiTrx(' + t.id + ')"><i class="bi bi-trash"></i></button></td></tr>').join('')
+    : '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada mutasi donasi</td></tr>';
+}
+function openDonasiPenerima(id){
+  const p = id ? donasiPenerima().find(x => x.id === id) : null;
+  document.getElementById('dpId').value = p ? p.id : ''; document.getElementById('dpNama').value = p ? p.nama : '';
+  document.getElementById('dpKontak').value = p ? (p.kontak || '') : ''; document.getElementById('dpKet').value = p ? (p.ket || '') : '';
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDonasiPenerima')).show();
+}
+function simpanDonasiPenerima(){
+  const nama = $g('dpNama').trim(), id = +$g('dpId'); if (!nama){ alert('Nama penerima wajib diisi.'); return; }
+  const l = donasiPenerima(), d = {nama, kontak: $g('dpKontak').trim(), ket: $g('dpKet').trim()};
+  if (id){ Object.assign(l.find(x => x.id === id) || {}, d); } else l.push(Object.assign({id: uid()}, d));
+  DB.save('donasi_penerima', l); bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDonasiPenerima')).hide(); renderDonasi(); loadDashboard(); toast('✅ Penerima donasi tersimpan');
+}
+function hapusDonasiPenerima(id){
+  if (donasiTrx().some(t => t.penerimaId === id)){ alert('Penerima ini sudah memiliki mutasi donasi, tidak dapat dihapus. Hapus mutasinya terlebih dahulu.'); return; }
+  if (!confirm('Hapus penerima donasi ini?')) return;
+  DB.save('donasi_penerima', donasiPenerima().filter(x => x.id !== id)); renderDonasi(); loadDashboard();
+}
+function dtmUpdate(){
+  const k = $g('dtmTrx') === 'keluar';
+  document.getElementById('dtmPenWrap').style.display = k ? '' : 'none'; document.getElementById('dtmDonaturWrap').style.display = k ? 'none' : '';
+  document.getElementById('dtmInfo').textContent = 'Saldo donasi saat ini: ' + rupiah(saldoDonasi());
+}
+function openDonasiTrx(penId){
+  const pen = donasiPenerima();
+  document.getElementById('dtmPen').innerHTML = pen.map(p => '<option value="' + p.id + '">' + esc(p.nama) + '</option>').join('');
+  document.getElementById('dtmTanggal').value = todayStr(); document.getElementById('dtmTrx').value = penId ? 'keluar' : 'masuk';
+  ['dtmJumlah','dtmDonatur','dtmKet'].forEach(i => { document.getElementById(i).value = ''; }); if (penId) document.getElementById('dtmPen').value = penId;
+  dtmUpdate(); bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDonasiTrx')).show();
+}
+function simpanDonasiTrx(){
+  const trx = $g('dtmTrx'), jumlah = +$g('dtmJumlah'), tanggal = $g('dtmTanggal'), penId = +$g('dtmPen') || 0;
+  if (!tanggal || !(jumlah > 0)){ alert('Tanggal & jumlah wajib diisi.'); return; }
+  if (trx === 'keluar'){ if (!penId){ alert('Pilih penerima donasi (tambahkan dulu bila belum ada).'); return; } if (jumlah > saldoDonasi()){ alert('Saldo donasi tidak cukup: ' + rupiah(saldoDonasi())); return; } }
+  const l = donasiTrx(); l.push({id: uid(), no: noTrx('DN'), tanggal, trx, jumlah, penerimaId: trx === 'keluar' ? penId : 0, donatur: trx === 'masuk' ? $g('dtmDonatur').trim() : '', ket: $g('dtmKet').trim(), user: currentUser.username});
+  DB.save('donasi_trx', l); bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDonasiTrx')).hide(); renderDonasi(); loadDashboard(); toast('✅ Mutasi donasi tersimpan');
+}
+function hapusDonasiTrx(id){
+  const t = donasiTrx().find(x => x.id === id); if (!t) return;
+  const sisa = saldoDonasi() - sgn(t); if (sisa < 0){ alert('Tidak dapat dihapus: saldo donasi akan menjadi negatif.'); return; }
+  if (!confirm('Hapus mutasi ' + t.no + '?')) return;
+  DB.save('donasi_trx', donasiTrx().filter(x => x.id !== id)); renderDonasi(); loadDashboard();
+}
+(function(){
+  pageTitles.donasi = 'Donasi';
+  const _gp7 = goPage; goPage = function(p, n){ _gp7(p, n); if (p === 'donasi') renderDonasi(); };
+})();
 
 </script>
 <script>
