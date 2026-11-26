@@ -15,6 +15,19 @@ const SUPABASE_KEY = 'sb_publishable_tRMH0ktU7RxbqHAq5Fp61g_GuyL6Rbl';
 
 // ===== LAPISAN SINKRONISASI =====
 // App tetap memakai localStorage (cepat & sinkron); setiap perubahan otomatis di-upsert ke tabel kv_store.
+// ===== VERSI APLIKASI (naikkan setiap ada perubahan) =====
+const APP_VERSION = '6.3', APP_BUILD = '2026-11-26';
+const APP_CHANGELOG = [
+  ['6.3', '2026-11-26', 'Akun BadanPengawas (hanya lihat); penanda versi di lencana, login, sidebar, judul tab'],
+  ['6.2', '-', 'Versi sebelumnya (riwayat sebelum 6.3 tidak tercatat di aplikasi)'],
+];
+function showVersionInfo(){ alert('KOPKARIN v' + APP_VERSION + '\nBuild: ' + APP_BUILD + '\n\nRiwayat versi:\n' + APP_CHANGELOG.map(c => 'v' + c[0] + ' (' + c[1] + ') - ' + c[2]).join('\n')); }
+addEventListener('DOMContentLoaded', () => {
+  document.title = 'KOPKARIN v' + APP_VERSION + ' - Sistem Informasi Koperasi Karyawan';
+  document.querySelectorAll('.app-ver').forEach(e => { e.textContent = APP_VERSION; });
+  document.querySelectorAll('.app-build').forEach(e => { e.textContent = APP_BUILD; });
+});
+
 const SYNC = (function(){
   const P = 'kopkarin_';
   const client = (!/GANTI/.test(SUPABASE_URL) && window.supabase) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
@@ -25,15 +38,15 @@ const SYNC = (function(){
     if (!document.body) return;
     let b = document.getElementById('syncBadge');
     if (!b){
-      b = document.createElement('div'); b.id = 'syncBadge';
-      b.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99999;font:600 11px system-ui,sans-serif;padding:4px 10px;border-radius:20px;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:default';
+      b = document.createElement('div'); b.id = 'syncBadge'; b.onclick = showVersionInfo; b.title = 'Klik untuk melihat riwayat versi';
+      b.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99999;font:600 11px system-ui,sans-serif;padding:4px 10px;border-radius:20px;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer';
       document.body.appendChild(b);
     }
     const map = {
       ok:['#198754','☁ Tersinkron'], connecting:['#6c757d','☁ Menghubungkan…'],
       local:['#6c757d','💾 Mode lokal'], error:['#dc3545','⚠ Gagal sync']
     };
-    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v6.2'; b.title = stateMsg || '';
+    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v' + APP_VERSION; b.title = (stateMsg ? stateMsg + ' • ' : '') + 'Klik untuk riwayat versi';
   }
   function setState(s, m){ state = s; stateMsg = m || ''; paint(); }
 
@@ -99,7 +112,9 @@ const SYNC = (function(){
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KOPKARIN v4.1 - Sistem Informasi Koperasi Karyawan</title>
+<title>KOPKARIN v6.3 - Sistem Informasi Koperasi Karyawan</title>
+<meta name="app-version" content="6.3">
+<!-- KOPKARIN v6.3 build 2026-11-26 -->
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -486,6 +501,8 @@ html.lenis,html.lenis body{height:auto}
 #sec-dashboard .stat-card.wide .val{font-size:clamp(20px,2.6vw,28px)!important}
 #sec-dashboard .stat-card .lbl,#sec-dashboard .stat-card .sub{overflow-wrap:anywhere}
 #sec-dashboard .stat-card .lbl{font-weight:600;letter-spacing:.4px}
+.ro-hide{display:none!important}
+.ro-badge{display:inline-flex;align-items:center;gap:5px;margin-left:12px;padding:3px 11px;border-radius:20px;background:#fef3c7;color:#92400e;font-size:12.5px;font-weight:700;border:1px solid #fcd34d;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -534,6 +551,7 @@ html.lenis,html.lenis body{height:auto}
         <b>Login Anggota:</b><br>
         Gunakan <b>NIP (No. Karyawan)</b> sebagai username.<br>Password awal: password123. Koreksi password hanya dapat dilakukan oleh Super Admin.
       </div>
+      <div class="text-center mt-3" style="font-size:12px;color:#6b7280">KOPKARIN <b>v<span class="app-ver"></span></b> • build <span class="app-build"></span></div>
     </div>
   </div>
 </div>
@@ -577,6 +595,7 @@ html.lenis,html.lenis body{height:auto}
       <a class="nav-link-c" data-page="laporan"><i class="bi bi-file-earmark-bar-graph"></i> Laporan</a>
       <a class="nav-link-c" data-page="pengaturan"><i class="bi bi-gear"></i> Pengaturan</a>
     </nav>
+  <div style="padding:10px 16px;font-size:11.5px;color:rgba(255,255,255,.55);border-top:1px solid rgba(255,255,255,.1)">KOPKARIN <b>v<span class="app-ver"></span></b><br>Build <span class="app-build"></span></div>
   </aside>
 
   <div class="topbar">
@@ -1744,9 +1763,9 @@ function hitungMasaKerja(tglMasuk){
 
 const DB = {
   load(k){ try { return JSON.parse(localStorage.getItem('kopkarin_'+k) || '[]'); } catch(e){ return []; } },
-  save(k,v){ try { notifDiff(k, v); } catch(e){} try { localStorage.setItem('kopkarin_'+k, JSON.stringify(v)); } catch(e){ SYNC.push(k,v); throw e; } SYNC.push(k,v); },
+  save(k,v){ if (roBlock(k)) return; try { notifDiff(k, v); } catch(e){} try { localStorage.setItem('kopkarin_'+k, JSON.stringify(v)); } catch(e){ SYNC.push(k,v); throw e; } SYNC.push(k,v); },
   get(k,d){ const v = localStorage.getItem('kopkarin_'+k); return v ? JSON.parse(v) : d; },
-  set(k,v){ try { notifDiff(k, v); } catch(e){} localStorage.setItem('kopkarin_'+k, JSON.stringify(v)); SYNC.push(k,v); }
+  set(k,v){ if (roBlock(k)) return; try { notifDiff(k, v); } catch(e){} localStorage.setItem('kopkarin_'+k, JSON.stringify(v)); SYNC.push(k,v); }
 };
 
 // kolom tabel potongan payroll (dipakai layar, PDF, Excel, print, CSV)
@@ -1780,8 +1799,10 @@ function seedData(){
     {id:1, username:'superadmin', password:'password123', nama:'Super Admin', role:'Super Admin', type:'admin', active:1, lastLogin:null},
     {id:2, username:'admin', password:'password123', nama:'Admin Koperasi', role:'Admin Koperasi', type:'admin', active:1, lastLogin:null},
     {id:3, username:'bendahara', password:'password123', nama:'Bendahara', role:'Bendahara', type:'admin', active:1, lastLogin:null},
-    {id:4, username:'kasir', password:'password123', nama:'Kasir', role:'Kasir', type:'admin', active:1, lastLogin:null}
+    {id:4, username:'kasir', password:'password123', nama:'Kasir', role:'Kasir', type:'admin', active:1, lastLogin:null},
+    {id:5, username:'BadanPengawas', password:'password123', nama:'Badan Pengawas', role:'Badan Pengawas', type:'admin', active:1, lastLogin:null}
   ]);
+  DB.set('seedFlags', {bp:true});
   DB.save('anggota', []);
   DB.save('bank', [
     {id:1, kode:'KAS01', nama:'Kas Utama', rek:'-', an:'Koperasi Karyawan', saldo:0, tipe:'kas'}
@@ -1880,6 +1901,13 @@ function migrateData(){
     if (angCh) DB.save('anggota', angAll);
   }
   { const nAgt = users.length; for (let i = users.length - 1; i >= 0; i--) if (/^AGT-/i.test(String(users[i].username || ''))) users.splice(i, 1); if (users.length !== nAgt) changed = true; }   // buang username berawalan AGT-
+  { // akun Badan Pengawas (hanya lihat) dibuat sekali; bila dihapus admin, tidak dibuat ulang
+    const fl = DB.get('seedFlags', {}) || {};
+    if (!fl.bp){
+      if (!users.some(u => String(u.username || '').toLowerCase() === 'badanpengawas')){ users.push({id: uid(), username:'BadanPengawas', password:'password123', nama:'Badan Pengawas', role:'Badan Pengawas', type:'admin', active:1, lastLogin:null}); changed = true; }
+      fl.bp = true; DB.set('seedFlags', fl);
+    }
+  }
   const adminUsernames = ['superadmin','admin','bendahara','kasir'];
   users.forEach(u => {
     if (!u.type){ u.type = (adminUsernames.includes(u.username) || u.role !== 'Anggota') ? 'admin' : 'anggota'; changed = true; }
@@ -5213,6 +5241,38 @@ function hapusDonasiTrx(id){
 (function(){
   pageTitles.donasi = 'Donasi';
   const _gp7 = goPage; goPage = function(p, n){ _gp7(p, n); if (p === 'donasi') renderDonasi(); };
+})();
+
+// ============ v5.x : BADAN PENGAWAS (hanya lihat, tidak dapat mengubah data) ============
+var _roWarnAt = 0, _roTimer = null;
+function isReadOnly(){ try { return !!currentUser && currentUser.type === 'admin' && currentUser.role === 'Badan Pengawas'; } catch(e){ return false; } }
+// Penjaga utama: setiap penyimpanan data (termasuk ke server) ditolak untuk Badan Pengawas, kecuali catatan log login
+function roBlock(k){
+  if (!isReadOnly() || k === 'log_login') return false;
+  const t = Date.now();
+  if (t - _roWarnAt > 2500){ _roWarnAt = t; try { toast('🔒 Akun Badan Pengawas hanya dapat melihat data, tidak dapat mengubah.'); } catch(e){} }
+  return true;
+}
+var RO_CLICK = /^(simpan|hapus|batal|cairkan|catat|tolak|ajukan|reset|forceMigrate|clearLogs|gantiPass|genPassword|editAnggota|editDariDetail|koreksi|proses|openUserModal|openSetuju|openEditPinjaman|openPinjaman|openPeng|openDonasi|openBank|openSukarelaModal|openSimpanan|openPotong|openPelunasan|openKas|openAngsuranModal|openAnggotaModal|openImportAnggota|openArusKas|openGantiPass)/;
+var RO_CHANGE = /^(importPotongMasal|importSimpanan|previewImport|uploadLogo|togglePeng|previewFotoAnggota)$/;
+function applyReadOnlyUI(){
+  if (!isReadOnly()) return;
+  document.body.classList.add('ro');
+  document.querySelectorAll('[onclick]').forEach(el => { const m = (el.getAttribute('onclick') || '').match(/^\s*([A-Za-z_]\w*)\s*\(/); if (m && RO_CLICK.test(m[1])) el.classList.add('ro-hide'); });
+  document.querySelectorAll('[onchange]').forEach(el => { const m = (el.getAttribute('onchange') || '').match(/^\s*([A-Za-z_]\w*)\s*\(/); if (m && RO_CHANGE.test(m[1])) el.disabled = true; });
+  document.querySelectorAll('input[type=file]').forEach(el => { el.disabled = true; });
+  ['sec-pengaturan','sec-batas'].forEach(id => { const sc = document.getElementById(id); if (sc) sc.querySelectorAll('input:not(#bpCari),select,textarea').forEach(el => { el.disabled = true; }); });
+}
+function roInit(){
+  if (!isReadOnly() || window._roOn) return; window._roOn = true;
+  const t = document.getElementById('pageTitle');
+  if (t && !document.getElementById('roBadge')){ const b = document.createElement('span'); b.id = 'roBadge'; b.className = 'ro-badge'; b.innerHTML = '<i class="bi bi-eye"></i> Hanya Lihat'; t.insertAdjacentElement('afterend', b); }
+  applyReadOnlyUI();
+  new MutationObserver(() => { clearTimeout(_roTimer); _roTimer = setTimeout(applyReadOnlyUI, 60); }).observe(document.body, {childList:true, subtree:true});
+}
+(function(){
+  const _sa5 = showApp; showApp = function(){ _sa5(); roInit(); };
+  if (isReadOnly() && document.getElementById('appShell') && document.getElementById('appShell').style.display === 'block') roInit();
 })();
 
 </script>
