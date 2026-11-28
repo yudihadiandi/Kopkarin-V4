@@ -910,8 +910,8 @@ html.lenis,html.lenis body{height:auto}
             <table class="table table-sm table-bordered align-middle"><thead><tr>
               <th><input type="checkbox" id="legacyCheckAll" onchange="toggleLegacyCorrections(this.checked)"></th><th>Anggota / No. Pinjaman</th><th>Jenis</th>
               <th class="text-end">Pinjaman awal (Rp)</th><th class="text-end">Tenor awal</th><th class="text-end">Sisa tenor</th><th class="text-end">Cicilan/bln (Rp)</th>
-              <th class="text-end">Sisa pokok (Rp)</th><th class="text-end">Sisa jasa (Rp)</th><th class="text-end">Total sisa hutang (Rp)</th><th>Status</th><th>Tanggal pencairan</th>
-            </tr></thead><tbody id="legacyCorrectionBody"><tr><td colspan="12" class="text-center text-muted">Belum ada pinjaman INDEX.</td></tr></tbody></table>
+              <th class="text-end">Sisa pokok (Rp)</th><th class="text-end">Sisa jasa (Rp)</th><th class="text-end">Total sisa hutang (Rp)</th><th>Status</th><th>Tanggal pencairan</th><th class="text-center">Aksi</th>
+            </tr></thead><tbody id="legacyCorrectionBody"><tr><td colspan="13" class="text-center text-muted">Belum ada pinjaman INDEX.</td></tr></tbody></table>
           </div>
         </div>
       </div>
@@ -3423,8 +3423,33 @@ function renderLegacyCorrections(){
       '<td><input type="number" min="0" class="form-control form-control-sm" style="width:120px" id="lc-j-'+id+'" value="'+Math.round(c.jasa)+'"></td>'+
       '<td class="text-end fw-bold" id="lc-total-'+id+'">'+rupiah(total)+'</td>'+
       '<td><select class="form-select form-select-sm" style="width:105px" id="lc-status-'+id+'"><option value="cair" '+(c.status==='cair'?'selected':'')+'>Cair</option><option value="lunas" '+(c.status==='lunas'?'selected':'')+'>Lunas</option></select></td>'+
-      '<td><input type="date" class="form-control form-control-sm" style="width:145px" id="lc-tgl-'+id+'" value="'+esc(c.tgl||'')+'"></td></tr>';
-  }).join(''):'<tr><td colspan="12" class="text-center text-muted">Belum ada pinjaman INDEX.</td></tr>';
+      '<td><input type="date" class="form-control form-control-sm" style="width:145px" id="lc-tgl-'+id+'" value="'+esc(c.tgl||'')+'"></td>'+
+      '<td class="text-center text-nowrap"><button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="editLegacyCorrection(\''+esc(id)+'\')" title="Pilih dan edit data"><i class="bi bi-pencil-square"></i> Edit</button>'+
+      (p.legacyImport?'<button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteLegacyLoan(\''+esc(id)+'\')" title="Hapus data import pinjaman lama"><i class="bi bi-trash"></i> Hapus</button>':'<button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Hanya data hasil import pinjaman lama yang dapat dihapus dari menu ini"><i class="bi bi-lock"></i></button>')+'</td></tr>';
+  }).join(''):'<tr><td colspan="13" class="text-center text-muted">Belum ada pinjaman INDEX.</td></tr>';
+}
+function editLegacyCorrection(id){
+  const check=[...document.querySelectorAll('.legacy-corr-check')].find(x=>x.value===String(id));
+  if(check)check.checked=true;
+  const first=document.getElementById('lc-awal-'+id);
+  if(first){first.focus();first.scrollIntoView({behavior:'smooth',block:'center'});}
+  alert('Mode edit dipilih. Ubah kolom pada baris ini, lalu klik “Simpan koreksi terpilih”. Data baru tersimpan setelah tombol simpan ditekan.');
+}
+function deleteLegacyLoan(id){
+  const pins=DB.load('pinjaman'), p=pins.find(x=>String(x.id)===String(id));
+  if(!p){alert('Data pinjaman tidak ditemukan.');return;}
+  if(!p.legacyImport){alert('Penghapusan dari menu ini hanya diizinkan untuk pinjaman hasil import pinjaman lama.');return;}
+  const angs=DB.load('angsuran'), related=angs.filter(x=>String(x.pinjamanId)===String(p.id));
+  if(related.length){alert('Pinjaman tidak dapat dihapus karena sudah memiliki '+related.length+' transaksi angsuran/pelunasan. Koreksi data pembayaran terlebih dahulu agar riwayat akuntansi tidak terputus.');return;}
+  const rehabRef=pins.filter(x=>String(x.id)!==String(p.id)&&(String(x.rehabDariNo||'')===String(p.no||'')||String(x.rehabPinjamanLamaId||'')===String(p.id)));
+  if(rehabRef.length){alert('Pinjaman tidak dapat dihapus karena menjadi referensi '+rehabRef.length+' pinjaman rehab. Hapus/koreksi relasi rehab melalui proses yang sesuai terlebih dahulu.');return;}
+  const a=ANGF(p.anggotaId)||{};
+  if(!confirm('HAPUS DATA PINJAMAN LAMA INI?\n\nNo: '+(p.no||'-')+'\nAnggota: '+(a.nama||p.legacyNama||'-')+'\nJenis: '+jenisOf(p)+'\n\nData jadwal pinjaman ini akan dihapus dari database. Tindakan ini tidak dapat dibatalkan.'))return;
+  DB.save('pinjaman',pins.filter(x=>String(x.id)!==String(id)));
+  try{const logs=DB.load('logs');logs.push({id:uid(),tanggal:todayStr(),user:currentUser.username,aksi:'HAPUS PINJAMAN LAMA',detail:'Menghapus '+(p.no||id)+' / '+(a.nama||p.legacyNama||'')+' karena duplikasi/koreksi'});DB.save('logs',logs);}catch(e){}
+  delete legacyCorrections[String(id)];
+  renderLegacyCorrections();renderPinjaman();renderJadwalSelect();renderPayroll();loadDashboard();
+  alert('Data pinjaman lama berhasil dihapus.');
 }
 function toggleLegacyCorrections(v){document.querySelectorAll('.legacy-corr-check').forEach(x=>x.checked=v);}
 function applyLegacyCorrections(){
