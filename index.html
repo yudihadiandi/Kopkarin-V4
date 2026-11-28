@@ -16,8 +16,14 @@ const SUPABASE_KEY = 'sb_publishable_tRMH0ktU7RxbqHAq5Fp61g_GuyL6Rbl';
 // ===== LAPISAN SINKRONISASI =====
 // App tetap memakai localStorage (cepat & sinkron); setiap perubahan otomatis di-upsert ke tabel kv_store.
 // ===== VERSI APLIKASI (naikkan setiap ada perubahan) =====
-const APP_VERSION = '6.6', APP_BUILD = '2026-11-26';
+const APP_VERSION = '6.12', APP_BUILD = '2026-11-28';
 const APP_CHANGELOG = [
+  ['6.11', '2026-11-28', 'Perbaikan tombol koreksi dan hapus langsung pada riwayat angsuran'],
+  ['6.10', '2026-11-27', 'Pencegahan dobel potongan per pinjaman per periode; transaksi dapat dihapus melalui koreksi untuk membuka tagihan kembali'],
+  ['6.12', '2026-11-28', 'Dua konsep pinjaman yang dapat dipilih admin (bunga atau INDEX PAW), serta pengajuan rehab pinjaman anggota dengan perhitungan pelunasan dan dana bersih diterima'],
+  ['6.9', '2026-11-27', 'Koreksi masal pinjaman lama dilengkapi seluruh komponen termasuk pokok awal, tenor awal, status, dan tanggal pencairan'],
+  ['6.8', '2026-11-27', 'Perbaikan tagihan INDEX: tagihan dan pembayaran membaca jadwal PAW; cicilan tetap'],
+  ['6.7', '2026-11-27', 'Migrasi pinjaman lama metode INDEX, upload Excel PAW, koreksi masal, dan pembayaran berbasis jadwal tersimpan'],
   ['6.6', '2026-11-26', 'Buku Tabungan: sisakan satu tombol Export PDF; Laporan: filter departemen (anggota, simpanan, pinjaman) untuk cetak/PDF/Excel/CSV'],
   ['6.5', '2026-11-26', 'Alamat E-mail anggota; format tanggal Indonesia dd/mm/yyyy (impor/ekspor, CSV titik koma); PDF buku tabungan ringkas; kirim buku tabungan ke e-mail (satuan & masal)'],
   ['6.4', '2026-11-26', 'Dashboard admin: kartu Dana Cadangan/Sosial/PDK/Pendidikan/Donasi & Kekayaan Koperasi dipindah ke bawah Total Kas & Bank'],
@@ -583,6 +589,7 @@ html.lenis,html.lenis body{height:auto}
       <a class="nav-link-c" data-page="potongwajib"><i class="bi bi-calendar-check"></i> Potong Wajib Bulanan</a>
       <a class="nav-link-c" data-page="tabungan"><i class="bi bi-journal-bookmark"></i> Buku Tabungan</a>
       <a class="nav-link-c" data-page="pinjaman"><i class="bi bi-cash-coin"></i> Pinjaman</a>
+      <a class="nav-link-c" data-page="pinjamanlama"><i class="bi bi-cloud-upload"></i> Upload Pinjaman Lama</a>
       <a class="nav-link-c" data-page="persetujuan"><i class="bi bi-clipboard-check"></i> Persetujuan Pengajuan <span class="nav-badge" id="badgePengajuan" style="display:none">0</span></a>
       <a class="nav-link-c" data-page="batas"><i class="bi bi-speedometer2"></i> Maksimal Pinjaman</a>
       <a class="nav-link-c" data-page="pencairan"><i class="bi bi-cash-stack"></i> Pencairan Masal</a>
@@ -765,6 +772,73 @@ html.lenis,html.lenis body{height:auto}
             <div class="col-6 col-md-3"><select class="form-select" id="filterPinStatus" onchange="renderPinjaman()"><option value="">Semua Status</option><option value="pengajuan">Pengajuan</option><option value="disetujui">Disetujui</option><option value="cair">Cair</option><option value="lunas">Lunas</option><option value="ditolak">Ditolak</option></select></div>
           </div>
           <div class="table-responsive"><table class="table"><thead><tr><th>No. Pinjaman</th><th>Anggota</th><th>Jenis</th><th class="text-end">Diajukan</th><th class="text-end">Disetujui</th><th>Tenor</th><th>Sisa Tenor</th><th class="text-end">Tagihan/bln</th><th class="text-end">Total Tagihan</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody id="tblPinjaman"></tbody></table></div></div>
+      </div>
+    </div>
+
+
+    <!-- UPLOAD PINJAMAN LAMA / INDEX -->
+    <div class="section" id="sec-pinjamanlama">
+      <div class="panel">
+        <div class="panel-head"><h6><i class="bi bi-cloud-upload me-1"></i> Migrasi Pinjaman Lama (Metode INDEX)</h6></div>
+        <div class="panel-body">
+          <div class="alert alert-info py-2" style="font-size:12px">
+            <b>Dasar INDEX dari file PAW:</b> cicilan bulanan = pokok pinjaman × faktor INDEX sesuai tenor.
+            Contoh tenor 18 bulan: faktor 0,06760. Pinjaman Rp10.000.000 menghasilkan cicilan Rp676.000,
+            pokok Rp555.555,56 + jasa Rp120.444,44. Total tagihan awal Rp12.168.000.
+            Import akan menyimpan saldo pokok, saldo jasa, sisa tenor, dan jadwal sisa sesuai data sumber.
+          </div>
+          <details class="mb-3">
+            <summary class="fw-semibold text-primary">Lihat tabel faktor INDEX tenor 1–18 dan kalkulator</summary>
+            <div class="table-responsive mt-2"><table class="table table-sm table-bordered"><thead><tr><th>Tenor</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th></tr></thead><tbody><tr><th>Faktor</th><td>1.02500</td><td>0.51883</td><td>0.35014</td><td>0.26582</td><td>0.21525</td><td>0.18150</td><td>0.15640</td><td>0.13810</td><td>0.12390</td><td>0.11250</td><td>0.10350</td><td>0.09596</td><td>0.08955</td><td>0.08406</td><td>0.07939</td><td>0.07474</td><td>0.07095</td><td>0.06760</td></tr></tbody></table></div>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-4"><label class="form-label small">Jumlah pinjaman (Rp)</label><input type="number" class="form-control form-control-sm" id="legacyCalcAmount" value="10000000" oninput="calcLegacyIndex()"></div>
+              <div class="col-md-3"><label class="form-label small">Tenor (bulan)</label><select class="form-select form-select-sm" id="legacyCalcTenor" onchange="calcLegacyIndex()"><option value="1">1 bulan</option><option value="2">2 bulan</option><option value="3">3 bulan</option><option value="4">4 bulan</option><option value="5">5 bulan</option><option value="6">6 bulan</option><option value="7">7 bulan</option><option value="8">8 bulan</option><option value="9">9 bulan</option><option value="10">10 bulan</option><option value="11">11 bulan</option><option value="12">12 bulan</option><option value="13">13 bulan</option><option value="14">14 bulan</option><option value="15">15 bulan</option><option value="16">16 bulan</option><option value="17">17 bulan</option><option value="18" selected>18 bulan</option></select></div>
+              <div class="col-md-5"><div class="alert alert-success py-2 mb-0 small" id="legacyCalcResult">Cicilan per bulan: Rp676.000</div></div>
+            </div>
+            <div class="small text-muted mt-2">Rumus berdasarkan sheet INDEX: cicilan = pokok pinjaman × faktor tenor. Jasa per bulan = cicilan − (pokok pinjaman ÷ tenor). Nilai hasil pembulatan dapat berbeda beberapa rupiah dari tabel cicilan sumber.</div>
+          </details>
+          <div class="row g-3">
+            <div class="col-lg-6">
+              <label class="form-label fw-semibold">1. Pilih file Excel PAW (.xls / .xlsx) atau template</label>
+              <input class="form-control" type="file" id="legacyFile" accept=".xls,.xlsx,.csv" onchange="previewLegacyFile(event)">
+              <div class="form-text">File Excel laporan PAW dapat dibaca langsung. Pilih sheet USP, EMG, LAIN2, KASBON, atau KONS-TENOR.</div>
+            </div>
+            <div class="col-lg-3">
+              <label class="form-label fw-semibold">2. Jenis pinjaman</label>
+              <select class="form-select" id="legacySheet" onchange="previewLegacySheet()">
+                <option value="USP">USP</option><option value="EMG">EMG</option><option value="LAIN2">LAIN2</option><option value="KASBON">KASBON</option><option value="KONS-TENOR">KONS-TENOR</option>
+              </select>
+            </div>
+            <div class="col-lg-3 d-flex align-items-end gap-2">
+              <button class="btn btn-outline-primary w-100" onclick="downloadTemplatePinjamanLama()"><i class="bi bi-download"></i> Template</button>
+            </div>
+          </div>
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            <button class="btn btn-primary-c" onclick="prosesImportPinjamanLama()"><i class="bi bi-database-add"></i> Simpan hasil upload ke database</button>
+            <button class="btn btn-outline-secondary" onclick="resetLegacyPreview()">Reset Preview</button>
+            <span id="legacySummary" class="small text-muted align-self-center">Belum ada file dipilih.</span>
+          </div>
+          <div class="table-responsive mt-3">
+            <table class="table table-sm table-hover"><thead><tr>
+              <th>No</th><th>Kode / e-KTP</th><th>Nama</th><th>Jenis</th><th class="text-end">Pokok awal</th><th class="text-end">Tenor</th><th class="text-end">Sisa tenor</th><th class="text-end">Cicilan/bln</th><th class="text-end">Sisa pokok</th><th class="text-end">Sisa jasa</th><th class="text-end">Total sisa hutang</th><th>Validasi</th>
+            </tr></thead><tbody id="legacyPreviewBody"><tr><td colspan="12" class="text-center text-muted">Upload file untuk melihat preview.</td></tr></tbody></table>
+          </div>
+          <hr>
+          <h6 class="fw-bold"><i class="bi bi-sliders me-1"></i> Koreksi Masal Pinjaman Lama</h6>
+          <p class="small text-muted mb-2">Pilih pinjaman yang perlu dikoreksi. Nilai saldo pokok, jasa, sisa tenor dan cicilan dapat diubah per baris sebelum disimpan. Koreksi tidak menghapus riwayat angsuran.</p>
+          <div class="row g-2 mb-2">
+            <div class="col-md-4"><input class="form-control form-control-sm" id="legacyCorrectionSearch" placeholder="Cari kode / nama anggota..." oninput="renderLegacyCorrections()"></div>
+            <div class="col-md-3"><select class="form-select form-select-sm" id="legacyCorrectionType" onchange="renderLegacyCorrections()"><option value="">Semua jenis</option><option>Pinjaman USP</option><option>Pinjaman EMG</option><option>Pinjaman Lain2</option><option>Pinjaman Kasbon</option><option>Pinjaman Barang</option></select></div>
+            <div class="col-md-5 text-md-end"><button class="btn btn-sm btn-outline-success" onclick="exportLegacyCorrectionTemplate()"><i class="bi bi-file-excel"></i> Export daftar koreksi</button> <button class="btn btn-sm btn-warning" onclick="applyLegacyCorrections()"><i class="bi bi-check2-square"></i> Simpan koreksi terpilih</button></div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered align-middle"><thead><tr>
+              <th><input type="checkbox" id="legacyCheckAll" onchange="toggleLegacyCorrections(this.checked)"></th><th>Anggota / No. Pinjaman</th><th>Jenis</th>
+              <th class="text-end">Pinjaman awal (Rp)</th><th class="text-end">Tenor awal</th><th class="text-end">Sisa tenor</th><th class="text-end">Cicilan/bln (Rp)</th>
+              <th class="text-end">Sisa pokok (Rp)</th><th class="text-end">Sisa jasa (Rp)</th><th class="text-end">Total sisa hutang (Rp)</th><th>Status</th><th>Tanggal pencairan</th>
+            </tr></thead><tbody id="legacyCorrectionBody"><tr><td colspan="12" class="text-center text-muted">Belum ada pinjaman INDEX.</td></tr></tbody></table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1119,6 +1193,12 @@ html.lenis,html.lenis body{height:auto}
             <div class="col-md-6"><label class="form-label">Nama Perusahaan</label><input class="form-control" id="setPt" value="PT. INSANSANDANG INTERNUSA"></div>
             <div class="col-md-6"><label class="form-label">Simpanan Pokok (Rp)</label><input type="number" class="form-control" id="setPokok" value="50000"></div>
             <div class="col-md-6"><label class="form-label">Simpanan Wajib (Rp)</label><input type="number" class="form-control" id="setWajib" value="25000"></div>
+            <div class="col-12"><div class="p-3 rounded" style="background:#eef6ff;border:1px solid #bfdbfe">
+              <h6 class="fw-bold mb-2" style="font-size:13px"><i class="bi bi-toggles me-1"></i> Konsep Pinjaman yang Berlaku untuk Pengajuan Baru</h6>
+              <select class="form-select" id="setKonsepPinjaman"><option value="bunga">Konsep 1 — Suku Bunga/Jasa (% per bulan)</option><option value="index">Konsep 2 — INDEX PAW (faktor berdasarkan tenor)</option></select>
+              <div class="emp-meta mt-2">Pilihan ini otomatis digunakan pada formulir pengajuan anggota dan pengajuan baru oleh admin. Pinjaman lama tetap memakai metode yang tersimpan pada masing-masing pinjaman.</div>
+              <div class="mt-2" style="font-size:12px">INDEX PAW tersedia untuk tenor 1–18 bulan. Contoh tenor 18 bulan: faktor 0,06760; pinjaman Rp10.000.000 menghasilkan angsuran tetap Rp676.000/bulan.</div>
+            </div></div>
             <div class="col-12"><div class="p-3 rounded" style="background:#f8fafc;border:1px solid #e2e8f0">
               <h6 class="fw-bold mb-2" style="font-size:13px"><i class="bi bi-percent me-1"></i> Suku Bunga / Jasa Pinjaman (%/bulan)</h6>
               <div class="row g-3">
@@ -1230,6 +1310,16 @@ html.lenis,html.lenis body{height:auto}
         <div id="mpBatasInfo" class="mt-3"></div>
         <div class="alert alert-info py-2 mt-3 mb-3" style="font-size:12px"><i class="bi bi-info-circle me-1"></i> Pengajuan akan diperiksa dan disetujui oleh pengurus. Jumlah, tenor, serta cicilan (pokok &amp; jasa) final ditentukan saat persetujuan.</div>
         <button class="btn-member" type="button" onclick="ajukanPinjamanAnggota()"><i class="bi bi-send me-1"></i> Kirim Pengajuan</button>
+      </div></div>
+      <div class="panel" id="memberRehabPanel"><div class="panel-head"><h6><i class="bi bi-arrow-repeat me-1"></i> Rehab Pinjaman</h6></div><div class="panel-body">
+        <div class="alert alert-info py-2" style="font-size:12px">Rehab digunakan jika anggota mengajukan pinjaman baru untuk melunasi sisa kewajiban pinjaman lama. Sistem menghitung sisa tagihan yang harus dilunasi dan dana bersih yang akan diterima.</div>
+        <div class="row g-3">
+          <div class="col-12"><label class="form-label">Pilih pinjaman aktif yang akan direhab</label><select class="form-select" id="mrPinjaman" onchange="hitungRehabAnggota()"><option value="">-- Pilih pinjaman aktif --</option></select></div>
+          <div class="col-md-6"><label class="form-label">Jumlah pinjaman baru (Rp)</label><input type="number" class="form-control" id="mrJumlah" min="10000" value="10000000" oninput="hitungRehabAnggota()"></div>
+          <div class="col-md-6"><label class="form-label">Tenor pinjaman baru (bulan)</label><input type="number" class="form-control" id="mrTenor" min="1" max="60" value="18" oninput="hitungRehabAnggota()"></div>
+        </div>
+        <div class="mt-3 p-3 rounded" style="background:#f8fafc;border:1px solid #e2e8f0" id="mrPreview">Pilih pinjaman aktif untuk melihat perhitungan rehab.</div>
+        <button class="btn-member mt-3" type="button" onclick="ajukanRehabAnggota()"><i class="bi bi-arrow-repeat me-1"></i> Ajukan Rehab Pinjaman</button>
       </div></div>
       <div class="panel"><div class="panel-head"><h6><i class="bi bi-cash-coin me-1"></i> Pinjaman &amp; Status Pengajuan Saya</h6></div><div class="panel-body"><div id="mListPinjaman"></div></div></div>
     </div>
@@ -1483,7 +1573,7 @@ html.lenis,html.lenis body{height:auto}
       <div class="row g-3">
         <div class="col-6"><label class="form-label">Jumlah Disetujui (Rp) *</label><input type="number" class="form-control" id="stJumlah" oninput="hitungSetuju()"></div>
         <div class="col-6"><label class="form-label">Tenor Disetujui (bulan) *</label><input type="number" class="form-control" id="stTenor" min="1" max="120" oninput="hitungSetuju()"></div>
-        <div class="col-6"><label class="form-label">Jasa (%/bulan) *</label><input type="number" step="0.1" class="form-control" id="stBunga" oninput="hitungSetuju()"></div>
+        <div class="col-6" id="stBungaWrap"><label class="form-label">Jasa (%/bulan) *</label><input type="number" step="0.1" class="form-control" id="stBunga" oninput="hitungSetuju()"></div>
         <div class="col-6"><label class="form-label">Tanggal Persetujuan</label><input type="date" class="form-control" id="stTanggal"></div>
         <div class="col-12"><label class="form-label">Catatan</label><input class="form-control" id="stCatatan"></div>
       </div>
@@ -1534,6 +1624,25 @@ html.lenis,html.lenis body{height:auto}
       <div class="alert alert-info py-2" id="infoAngsuran" style="font-size:12px">-</div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary-c" onclick="simpanAngsuran()">Bayar</button></div>
+  </div></div>
+</div>
+
+<!-- MODAL KOREKSI ANGSURAN -->
+<div class="modal fade" id="modalKoreksiAngsuran" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil-square me-1"></i> Koreksi Data Angsuran</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="kaId">
+      <div class="alert alert-warning py-2" style="font-size:12px">Koreksi nomor tenor dan tanggal tidak mengubah nominal. Jika transaksi memang salah dan harus diproses ulang, gunakan tombol Hapus Transaksi. Penghapusan membalik saldo pinjaman dan kas serta membuka kembali tagihan periode tersebut.</div>
+      <div class="row g-2">
+        <div class="col-12"><label class="form-label">No. Transaksi</label><input class="form-control" id="kaNo" readonly></div>
+        <div class="col-12"><label class="form-label">Pinjaman / Anggota</label><input class="form-control" id="kaInfo" readonly></div>
+        <div class="col-md-6"><label class="form-label">Angsuran Ke *</label><select class="form-select" id="kaKe"></select></div>
+        <div class="col-md-6"><label class="form-label">Tanggal Bayar *</label><input type="date" class="form-control" id="kaTanggal"></div>
+        <div class="col-12"><div class="small text-muted" id="kaNominal"></div></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline-danger me-auto" onclick="hapusTransaksiAngsuran()"><i class="bi bi-trash me-1"></i> Hapus Transaksi</button><button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary-c" onclick="simpanKoreksiAngsuran()"><i class="bi bi-save me-1"></i> Simpan Koreksi</button></div>
   </div></div>
 </div>
 
@@ -1842,6 +1951,10 @@ function bungaDefault(jenis){
   if (jenis === 'Pinjaman Barang') return +(st.bungaBarang ?? umum);
   return umum;
 }
+function konsepPinjamanAktif(){ const st=DB.get('pengaturan',{})||{}; return st.konsepPinjaman==='index'?'index':'bunga'; }
+function faktorIndex(tenor){ return (typeof LEGACY_INDEX!=='undefined' ? (+LEGACY_INDEX[+tenor]||0) : 0); }
+function hitungCicilanIndex(jumlah,tenor){ const f=faktorIndex(tenor); if(!f) return null; const total=Math.round((+jumlah||0)*f); const pokok=(+jumlah||0)/Math.max(1,+tenor||1); return {pokok,jasa:total-pokok,total,faktor:f}; }
+function metodePinjamanLabel(m){ return m==='index'?'INDEX PAW':'Suku Bunga/Jasa'; }
 // Username anggota = NIP (No. Karyawan); fallback nomor anggota bila NIP kosong
 function nipOf(a){ return String((a && a.noKaryawan) || '').trim(); }
 function usernameOf(a){ return nipOf(a) || (a && a.nomor) || ''; }
@@ -1929,6 +2042,31 @@ function dueDateEOM(base, i){
   return lastWorkday(dt.getFullYear(), dt.getMonth());
 }
 function generateJadwalFromPinjaman(p){
+  // Jadwal pinjaman lama metode INDEX tidak boleh dihitung ulang dengan bunga persentase.
+  if (p && p.metodeBunga === 'index') {
+    if (Array.isArray(p.jadwal) && p.jadwal.length) return p.jadwal;
+    const n0=Math.max(0,+p.legacySisaTenor||0), cic0=Math.max(0,+p.legacyCicilan||0);
+    if(n0&&cic0){
+      let rp0=Math.max(0,+p.sisaPokok||0), rj0=Math.max(0,+p.legacySisaJasa||0); const out0=[];
+      for(let k=0;k<n0;k++){
+        const pp=k===n0-1?rp0:Math.min(Math.round((+p.sisaPokok||0)/n0*100)/100,rp0);
+        const jj=k===n0-1?rj0:Math.min(Math.max(0,cic0-pp),rj0);
+        rp0=Math.max(0,rp0-pp);rj0=Math.max(0,rj0-jj);
+        out0.push({ke:k+1,tanggal:dueDateEOM(p.tanggalCair||p.tanggal||todayStr(),k+mulaiOffset()),pokok:pp,jasa:jj,total:pp+jj,sisaPokok:rp0,sisaJasa:rj0,status:'belum'});
+      }
+      p.jadwal=out0; return out0;
+    }
+    // Pinjaman INDEX baru: cicilan tetap berdasarkan faktor tenor PAW.
+    const ix=hitungCicilanIndex(p.jumlah,p.tenor); if(!ix) return [];
+    p.indexFactor=ix.faktor; p.indexCicilan=ix.total;
+    let sisaPok=Math.max(0,+p.jumlah||0), sisaJasa=0; const out=[];
+    for(let k=0;k<Math.max(1,+p.tenor||1);k++){
+      const pp=k===Math.max(1,+p.tenor||1)-1?sisaPok:Math.min(Math.round((+p.jumlah||0)/Math.max(1,+p.tenor||1)*100)/100,sisaPok);
+      const jj=Math.max(0,ix.total-pp); sisaPok=Math.max(0,sisaPok-pp); sisaJasa=Math.max(0,sisaJasa+jj);
+      out.push({ke:k+1,tanggal:dueDateEOM(p.tanggalCair||p.tanggalSetuju||p.tanggal||todayStr(),k+mulaiOffset()),pokok:pp,jasa:jj,total:ix.total,sisaPokok:sisaPok,sisaJasa:Math.max(0,sisaJasa-jj),status:'belum'});
+    }
+    p.jadwal=out; return out;
+  }
   const jadwal = [];
   const n = Math.max(1, +p.tenor || 1);
   const jumlah = +p.jumlah || 0;
@@ -1947,6 +2085,31 @@ function generateJadwalFromPinjaman(p){
     });
   }
   return jadwal;
+}
+
+function repairLegacyIndexSchedule(p){
+  // INDEX PAW: nominal angsuran bulanan tetap mengacu pada pinjaman awal,
+  // bukan total sisa hutang dibagi sisa tenor.
+  if(!p || p.metodeBunga!=='index' || !p.legacyImport || !Array.isArray(p.jadwal)) return false;
+  const cic=Math.round(+p.legacyCicilan||0), tenor=Math.max(1,Math.floor(+p.tenor||1)), pinjamanAwal=Math.max(0,+p.jumlah||0);
+  if(!cic || !pinjamanAwal) return false;
+  const unpaid=p.jadwal.filter(j=>j.status!=='lunas');
+  if(!unpaid.length) { if(p.legacyScheduleVersion!==3){p.legacyScheduleVersion=3;return true;} return false; }
+  const paid=p.jadwal.filter(j=>j.status==='lunas');
+  const basePokok=Math.round(pinjamanAwal/tenor*100)/100;
+  let sisaPokok=Math.max(0,+p.sisaPokok||0), changed=p.legacyScheduleVersion!==3;
+  const rebuilt=unpaid.map((j,i)=>{
+    // Pokok per bulan tetap memakai pembagian pinjaman awal / tenor awal.
+    // Jika saldo pokok tinggal lebih kecil dari porsi normal, gunakan sisanya.
+    const pokok=i===unpaid.length-1 ? sisaPokok : Math.min(basePokok,sisaPokok);
+    const jasa=Math.max(0,cic-pokok);
+    sisaPokok=Math.max(0,sisaPokok-pokok);
+    const total=pokok+jasa;
+    if(Math.abs((+j.total||0)-total)>1 || Math.abs((+j.pokok||0)-pokok)>1 || Math.abs((+j.jasa||0)-jasa)>1) changed=true;
+    return Object.assign({},j,{pokok,jasa,total,sisaPokok,sisaJasa:Math.max(0,(+p.legacySisaJasa||0)-(i+1)*jasa)});
+  });
+  if(changed){p.jadwal=paid.concat(rebuilt).sort((a,b)=>(+a.ke||0)-(+b.ke||0));p.legacyScheduleVersion=3;}
+  return changed;
 }
 
 function migrateData(){
@@ -1992,9 +2155,10 @@ function migrateData(){
   const pinjaman = DB.load('pinjaman');
   let pinjamanChanged = false;
   pinjaman.forEach(p => {
+    if (repairLegacyIndexSchedule(p)) pinjamanChanged = true;
     if (p.status === 'ditolak' && ((p.totalBayar || 0) > 0 || p.jadwal)){ p.totalBayar = 0; delete p.jadwal; p.sisaPokok = p.jumlahPengajuan !== undefined ? p.jumlahPengajuan : p.jumlah; pinjamanChanged = true; }
     if (p.status === 'cair' && !p.jadwal){ p.jadwal = generateJadwalFromPinjaman(p); pinjamanChanged = true; }
-    if (['disetujui','cair'].includes(p.status) && p.jadwal && p.jadwal.length){   // jadwal selalu sesuai pinjaman yang disetujui
+    if (p.metodeBunga !== 'index' && ['disetujui','cair'].includes(p.status) && p.jadwal && p.jadwal.length){   // pinjaman INDEX mempertahankan jadwal PAW apa adanya
       const paidN = p.jadwal.filter(j => j.status === 'lunas').length, exp = generateJadwalFromPinjaman(p);
       if (p.jadwal.length !== p.tenor || (paidN === 0 && exp[0] && (exp[0].total !== p.jadwal[0].total || exp[0].pokok !== p.jadwal[0].pokok || String(exp[0].tanggal).slice(0, 7) !== String(p.jadwal[0].tanggal).slice(0, 7)))){
         p.jadwal = exp; for (let i = 0; i < Math.min(paidN, exp.length); i++) p.jadwal[i].status = 'lunas'; pinjamanChanged = true;
@@ -2119,7 +2283,7 @@ function showApp(){
   renderMutasiKeluar();
 }
 
-const pageTitles = {dashboard:'Dashboard',anggota:'Data Anggota & Karyawan',users:'Pengguna',bank:'Bank & Rekening',simpanan:'Simpanan',sukarela:'Simpanan Sukarela',tabungan:'Buku Tabungan',pinjaman:'Pinjaman',pencairan:'Pencairan Masal',angsuran:'Angsuran',jadwal:'Jadwal Angsuran',keluar:'Mutasi Keluar',persetujuan:'Persetujuan Pengajuan Pinjaman',potongwajib:'Potong Simpanan Wajib Bulanan',payroll:'Potongan Angsuran (Payroll)',laporan:'Laporan',pengaturan:'Pengaturan'};
+const pageTitles = {dashboard:'Dashboard',anggota:'Data Anggota & Karyawan',users:'Pengguna',bank:'Bank & Rekening',simpanan:'Simpanan',sukarela:'Simpanan Sukarela',tabungan:'Buku Tabungan',pinjaman:'Pinjaman',pinjamanlama:'Upload Pinjaman Lama / Koreksi INDEX',pencairan:'Pencairan Masal',angsuran:'Angsuran',jadwal:'Jadwal Angsuran',keluar:'Mutasi Keluar',persetujuan:'Persetujuan Pengajuan Pinjaman',potongwajib:'Potong Simpanan Wajib Bulanan',payroll:'Potongan Angsuran (Payroll)',laporan:'Laporan',pengaturan:'Pengaturan'};
 
 let navHistory = ['dashboard'];
 function goPage(page, noPush){
@@ -2139,6 +2303,7 @@ function goPage(page, noPush){
   if (page === 'simpanan') renderSimpanan();
   if (page === 'sukarela') renderSukarela();
   if (page === 'pinjaman') renderPinjaman();
+  if (page === 'pinjamanlama') renderLegacyInitial();
   if (page === 'persetujuan') renderPersetujuan();
   if (page === 'pencairan') renderPencairan();
   if (page === 'jadwal') renderJadwalSelect();
@@ -2182,6 +2347,7 @@ function fillJenisSelects(){
   if (_pj) _pj.onchange = () => { document.getElementById('pinBunga').value = bungaDefault(_pj.value); previewAngsuran(); };
   if (_ej) _ej.onchange = () => { document.getElementById('epBunga').value = bungaDefault(_ej.value); if (typeof hitungEdit === 'function') hitungEdit(); };
   if (_mj) _mj.onchange = updateMpBungaInfo;
+  ['mpJumlah','mpTenor'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',updateMpBungaInfo);});
   ['filterPinJenis','prJenis'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<option value="">Semua Jenis</option>' + opts; });
   const bar = document.getElementById('barLaporanJenis');
   if (bar) bar.innerHTML = '<div class="emp-meta mb-1 fw-bold">Laporan Pinjaman Terpisah per Jenis:</div><div class="d-flex flex-wrap gap-2">'
@@ -2961,6 +3127,15 @@ function renderTabungan(){
 function statusBadgeClass(s){ return ({pengajuan:'pending', disetujui:'info', cair:'active', lunas:'active', ditolak:'inactive'})[s] || 'pending'; }
 const isApproved = s => ['disetujui','cair','lunas'].includes(s);
 function cicilanOf(p){
+  if (p && p.metodeBunga === 'index'){
+    const jad = Array.isArray(p.jadwal) ? p.jadwal : [];
+    const j = jad.find(x => x.status === 'belum') || jad[jad.length-1];
+    if (j) return {pokok:+j.pokok||0, jasa:+j.jasa||0, total:+j.total||((+j.pokok||0)+(+j.jasa||0))};
+    const cic = Math.max(0,+p.legacyCicilan||+p.indexCicilan||0), pok = Math.max(0,+p.sisaPokok||0), jasa = Math.max(0,+p.legacySisaJasa||0);
+    if (cic) return {pokok:p.legacySisaTenor ? pok/Math.max(1,+p.legacySisaTenor) : (p.tenor ? (+p.jumlah||0)/Math.max(1,+p.tenor) : 0),jasa:p.legacySisaTenor ? jasa/Math.max(1,+p.legacySisaTenor) : Math.max(0,cic-(+p.jumlah||0)/Math.max(1,+p.tenor||1)),total:cic};
+    const ix=hitungCicilanIndex(p.jumlah,p.tenor); if(ix) return ix;
+    return {pokok:0,jasa:0,total:0};
+  }
   const n = Math.max(1, +p.tenor || 1);
   const pokok = Math.round((+p.jumlah || 0) / n);
   const jasa = Math.round((+p.jumlah || 0) * ((+p.bunga || 0) / 100));
@@ -2971,6 +3146,174 @@ function updateBadgePengajuan(){
   const el = document.getElementById('badgePengajuan');
   if (el){ el.textContent = n; el.style.display = n ? 'inline-block' : 'none'; }
 }
+
+
+// ============ MIGRASI PINJAMAN LAMA / INDEX ============
+let legacyWorkbook = null, legacyRows = [], legacyCorrections = {};
+const LEGACY_SHEET_TYPES = {'USP':'Pinjaman USP','EMG':'Pinjaman EMG','LAIN2':'Pinjaman Lain2','KASBON':'Pinjaman Kasbon','KONS-TENOR':'Pinjaman Barang'};
+const LEGACY_INDEX = {1:1.025,2:0.51883,3:0.35014,4:0.26582,5:0.21525,6:0.1815,7:0.1564,8:0.1381,9:0.1239,10:0.1125,11:0.1035,12:0.09596,13:0.08955,14:0.08406,15:0.07939,16:0.07474,17:0.07095,18:0.06760};
+function calcLegacyIndex(){
+  const amount=+document.getElementById('legacyCalcAmount').value||0, tenor=+document.getElementById('legacyCalcTenor').value||18, factor=LEGACY_INDEX[tenor]||0;
+  const cic=Math.round(amount*factor), pokok=tenor?amount/tenor:0, jasa=cic-pokok;
+  const out=document.getElementById('legacyCalcResult');
+  if(out)out.innerHTML='Faktor: <b>'+factor.toFixed(5)+'</b> • Cicilan/bulan: <b>'+rupiah(cic)+'</b><br>Pokok: '+rupiah(pokok)+' • Jasa: '+rupiah(jasa)+' • Total pembayaran: '+rupiah(cic*tenor);
+}
+function legacyNum(v){ if (typeof v==='number') return Number.isFinite(v)?v:0; if(v==null||v==='')return 0; let s=String(v).replace(/[Rp\s]/gi,'').replace(/\./g,'').replace(',','.'); const n=Number(s); return Number.isFinite(n)?n:0; }
+function legacyNorm(s){return String(s||'').toLowerCase().replace(/[\s_\-./()]/g,'').replace(/[^a-z0-9]/g,'');}
+function legacyHeaderMap(row){const m={}; row.forEach((v,i)=>{const k=legacyNorm(v); if(k)m[k]=i;}); return m;}
+function legacyCol(map, aliases){for(const a of aliases){const k=legacyNorm(a);if(map[k]!==undefined)return map[k];}return -1;}
+function legacyGet(row,map,aliases){const i=legacyCol(map,aliases);return i<0?'':row[i];}
+function legacyFindHeader(rows){for(let i=0;i<Math.min(rows.length,12);i++){const m=legacyHeaderMap(rows[i]);if(legacyCol(m,['KODE','NIP','NO KARYAWAN'])>=0 && legacyCol(m,['NAMA'])>=0 && legacyCol(m,['POKOK PINJAMAN','PINJAMAN'])>=0)return i;}return -1;}
+function previewLegacyFile(ev){
+  const file=ev.target.files&&ev.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      if(file.name.toLowerCase().endsWith('.csv')){
+        const txt=new TextDecoder('utf-8').decode(e.target.result);
+        const rows=txt.split(/\r?\n/).filter(Boolean).map(x=>x.split(/[;,]/));
+        legacyWorkbook={SheetNames:['CSV'],Sheets:{CSV:XLSX.utils.aoa_to_sheet(rows)}};
+      }else legacyWorkbook=XLSX.read(e.target.result,{type:'array',cellDates:true});
+      const wanted=$g('legacySheet');
+      if(legacyWorkbook.SheetNames.includes(wanted)){} else if(legacyWorkbook.SheetNames.includes('USP'))document.getElementById('legacySheet').value='USP';
+      else document.getElementById('legacySheet').value=legacyWorkbook.SheetNames[0];
+      previewLegacySheet();
+    }catch(err){alert('File tidak dapat dibaca: '+err.message);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+function previewLegacySheet(){
+  if(!legacyWorkbook)return;
+  const sh=$g('legacySheet'), name=legacyWorkbook.SheetNames.includes(sh)?sh:legacyWorkbook.SheetNames[0];
+  const rows=XLSX.utils.sheet_to_json(legacyWorkbook.Sheets[name],{header:1,defval:'',raw:true});
+  const hi=legacyFindHeader(rows);
+  if(hi<0){legacyRows=[];document.getElementById('legacyPreviewBody').innerHTML='<tr><td colspan="12" class="text-danger text-center">Header kolom tidak ditemukan. Gunakan sheet dengan kolom KODE, NAMA, POKOK PINJAMAN, TNR, SISA TNR, POKOK, SHU, SISA POKOK, SISA SHU.</td></tr>';return;}
+  const map=legacyHeaderMap(rows[hi]), type=LEGACY_SHEET_TYPES[name]||'Pinjaman USP';
+  legacyRows=rows.slice(hi+1).filter(r=>r.some(v=>v!==''&&v!=null)).map((r,i)=>{
+    const kode=String(legacyGet(r,map,['KODE','NIP','NO KARYAWAN'])||'').trim();
+    const nik=String(legacyGet(r,map,['e_KTP','NIK','KTP'])||'').trim();
+    const nama=String(legacyGet(r,map,['NAMA'])||'').trim();
+    const jumlah=legacyNum(legacyGet(r,map,['POKOK PINJAMAN','PINJAMAN']));
+    const tenor=legacyNum(legacyGet(r,map,['TNR','TENOR']));
+    const sisaTenor=legacyNum(legacyGet(r,map,['SISA TNR','SISA TENOR','SISA CCLN']));
+    const cicilan=legacyNum(legacyGet(r,map,['CICILAN USP','CICILAN EMG','CICILAN EMERGENCY','CICILAN LAIN2','CICILAN KASBON','CICILAN KONS-TENOR','CICILAN','ANGSURAN','LAIN2','EMERGENCY','KONS-TENOR','KASBON']));
+    const pokok=legacyNum(legacyGet(r,map,['POKOK']));
+    const jasa=legacyNum(legacyGet(r,map,['SHU','JASA']));
+    const sisaHutang=legacyNum(legacyGet(r,map,['SISA PIUTANG USP','SISA PIUTANG EMG','SISA PIUTANG LAIN2','SISA PIUTANG KASBON','SISA PIUTANG KONS-TENOR','SISA PIUTANG','SISA HUTANG','TOTAL SISA HUTANG']));
+    const sisaPokok=legacyNum(legacyGet(r,map,['SISA POKOK','SISA PK']));
+    const sisaJasa=legacyNum(legacyGet(r,map,['SISA SHU','SISA JASA']));
+    const anggota=legacyMatchMember(kode,nik,nama);
+    const valid=jumlah>0&&tenor>0&&sisaTenor>=0&&sisaTenor<=tenor&&cicilan>0&&anggota&&sisaPokok>=0&&sisaJasa>=0;
+    return {row:i+hi+2,kode,nik,nama,anggotaId:anggota&&anggota.id,type,jumlah,tenor,sisaTenor,cicilan,pokok,jasa,sisaHutang,sisaPokok,sisaJasa,valid,issue:!anggota?'Anggota tidak cocok':!(jumlah>0&&tenor>0)?'Pokok/tenor kosong':!(cicilan>0)?'Cicilan kosong':(sisaTenor>tenor?'Sisa tenor melebihi tenor':'')};
+  }).filter(x=>x.jumlah>0 || x.sisaHutang>0);
+  renderLegacyPreview();
+}
+function legacyMatchMember(kode,nik,nama){
+  const a=DB.load('anggota'); const keys=[kode,nik].filter(Boolean).map(x=>String(x).replace(/\D/g,''));
+  let found=a.find(x=>[x.noKaryawan,x.nomor,x.nip,x.kode,x.nik,x.eKtp,x.ktp].some(v=>v!=null&&keys.includes(String(v).replace(/\D/g,''))));
+  if(!found&&nama)found=a.find(x=>String(x.nama||'').trim().toLowerCase()===nama.trim().toLowerCase());
+  return found||null;
+}
+function renderLegacyPreview(){
+  const body=document.getElementById('legacyPreviewBody'); if(!legacyRows.length){body.innerHTML='<tr><td colspan="12" class="text-center text-muted">Tidak ada baris pinjaman aktif.</td></tr>';return;}
+  body.innerHTML=legacyRows.map((x,i)=>'<tr class="'+(x.valid?'':'table-warning')+'"><td>'+(i+1)+'</td><td><b>'+esc(x.kode||x.nik)+'</b><div class="small text-muted">'+esc(x.nik)+'</div></td><td>'+esc(x.nama)+'</td><td>'+esc(x.type)+'</td><td class="text-end">'+rupiah(x.jumlah)+'</td><td class="text-end">'+x.tenor+'</td><td class="text-end">'+x.sisaTenor+'</td><td class="text-end">'+rupiah(x.cicilan)+'</td><td class="text-end">'+rupiah(x.sisaPokok)+'</td><td class="text-end">'+rupiah(x.sisaJasa)+'</td><td class="text-end fw-bold">'+rupiah(x.sisaHutang||x.sisaPokok+x.sisaJasa)+'</td><td>'+(x.valid?'<span class="badge bg-success">Siap</span>':'<span class="badge bg-danger">'+esc(x.issue||'Periksa nilai')+'</span>')+'</td></tr>').join('');
+  const good=legacyRows.filter(x=>x.valid).length; document.getElementById('legacySummary').textContent=legacyRows.length+' baris • '+good+' valid • '+(legacyRows.length-good)+' perlu koreksi';
+}
+function resetLegacyPreview(){legacyWorkbook=null;legacyRows=[];document.getElementById('legacyFile').value='';document.getElementById('legacySummary').textContent='Belum ada file dipilih.';document.getElementById('legacyPreviewBody').innerHTML='<tr><td colspan="12" class="text-center text-muted">Upload file untuk melihat preview.</td></tr>';}
+function downloadTemplatePinjamanLama(){
+  const head=['KODE','e_KTP','NAMA','JENIS','POKOK PINJAMAN','TNR','SISA TNR','CICILAN','POKOK','SHU','SISA PIUTANG','SISA POKOK','SISA SHU','TANGGAL CAIR'];
+  const ws=XLSX.utils.aoa_to_sheet([head,['2342','','CONTOH ANGGOTA','Pinjaman USP',10000000,18,11,676000,555555.56,120444.44,7436000,6111111.11,1324888.89,'01/02/2026']]);
+  ws['!cols']=head.map(h=>({wch:Math.max(14,h.length+2)}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Pinjaman Lama');writeXLS(wb,'template-upload-pinjaman-lama.xlsx');
+}
+function prosesImportPinjamanLama(){
+  const valid=legacyRows.filter(x=>x.valid); if(!valid.length){alert('Tidak ada baris valid untuk diimpor. Periksa kecocokan anggota dan nilai saldo.');return;}
+  const pins=DB.load('pinjaman'), anggota=DB.load('anggota');
+  const dup=valid.filter(x=>pins.some(p=>p.legacyImport&&p.legacyKode===x.kode&&p.anggotaId===x.anggotaId&&jenisOf(p)===x.type));
+  if(dup.length&&!confirm(dup.length+' data terdeteksi sudah pernah diimpor. Lanjutkan hanya data yang belum ada?'))return;
+  const batch=valid.filter(x=>!dup.includes(x));
+  if(!batch.length){alert('Semua baris valid sudah pernah diimpor.');return;}
+  if(!confirm('Simpan '+batch.length+' pinjaman lama ke database? Data akan diberi metode INDEX dan jadwal sisa.'))return;
+  batch.forEach((x,i)=>{
+    const sisaP=x.sisaPokok||0, sisaJ=x.sisaJasa||0, sisaN=Math.max(0,Math.floor(x.sisaTenor));
+    const jadwal=[]; let rp=sisaP, rj=sisaJ;
+    // Nominal cicilan dari file PAW menjadi patokan tetap setiap bulan.
+    const baseP=sisaN?Math.min(x.pokok>0?x.pokok:sisaP/sisaN,sisaP):0;
+    for(let k=0;k<sisaN;k++){
+      let pp=k===sisaN-1?rp:Math.min(baseP,rp);
+      let jj=k===sisaN-1?rj:Math.min(Math.max(0,x.cicilan-pp),rj);
+      if(k<sisaN-1 && Math.abs((pp+jj)-x.cicilan)>1) jj=Math.max(0,x.cicilan-pp);
+      rp=Math.max(0,rp-pp);rj=Math.max(0,rj-jj);
+      jadwal.push({ke:Math.max(1,x.tenor-sisaN+1+k),tanggal:dueDateEOM(todayStr(),k+mulaiOffset()),pokok:pp,jasa:jj,total:pp+jj,sisaPokok:rp,sisaJasa:rj,status:'belum'});
+    }
+    const a=anggota.find(z=>z.id===x.anggotaId);
+    const totalAwal=x.cicilan*x.tenor;
+    pins.push({id:uid(),no:noTrx('PIN-L'),anggotaId:x.anggotaId,jenis:x.type,jumlah:x.jumlah,tenor:x.tenor,bunga:0,metodeBunga:'index',indexFactor:LEGACY_INDEX[x.tenor]||null,totalHutangAwal:totalAwal,totalJasaAwal:Math.max(0,totalAwal-x.jumlah),status:sisaN?'cair':'lunas',tanggal:todayStr(),tanggalCair:todayStr(),sisaPokok:sisaP,totalBayar:Math.max(0,totalAwal-(x.sisaHutang||sisaP+sisaJ)),legacyTotalBayarAwal:Math.max(0,totalAwal-(x.sisaHutang||sisaP+sisaJ)),legacyScheduleVersion:3,jadwal,legacyImport:true,legacyKode:x.kode,legacyNik:x.nik,legacyNama:x.nama,legacySisaHutang:x.sisaHutang||sisaP+sisaJ,legacyCicilan:x.cicilan,legacySisaJasa:sisaJ,legacySisaTenor:sisaN,catatan:'Migrasi pinjaman lama dari file PAW. Anggota sumber: '+x.nama});
+  });
+  DB.save('pinjaman',pins);
+  try{const logs=DB.load('logs');logs.push({id:uid(),tanggal:todayStr(),user:currentUser.username,aksi:'IMPORT PINJAMAN LAMA',detail:batch.length+' data metode INDEX'});DB.save('logs',logs);}catch(e){}
+  renderPinjaman();renderLegacyCorrections();renderJadwalSelect();renderPayroll();loadDashboard();
+  alert('Berhasil mengimpor '+batch.length+' pinjaman lama. Saldo dan jadwal sisa tersimpan dengan metode INDEX.');
+}
+function renderLegacyCorrections(){
+  const q=String($g('legacyCorrectionSearch')||'').toLowerCase(), typ=$g('legacyCorrectionType');
+  const data=DB.load('pinjaman').filter(p=>p.metodeBunga==='index'&&(!typ||jenisOf(p)===typ)).filter(p=>{const a=ANGF(p.anggotaId)||{};return !q||[a.nama,p.legacyKode,p.no].some(v=>String(v||'').toLowerCase().includes(q));});
+  const body=document.getElementById('legacyCorrectionBody');
+  body.innerHTML=data.length?data.map(p=>{
+    const a=ANGF(p.anggotaId)||{}, s=(p.jadwal||[]).filter(j=>j.status!=='lunas');
+    const pok=s.reduce((t,j)=>t+(+j.pokok||0),0), jasa=s.reduce((t,j)=>t+(+j.jasa||0),0), id=String(p.id);
+    const c=legacyCorrections[id]||{awal:+p.jumlah||0,tenor:+p.tenor||0,n:s.length||(+p.legacySisaTenor||0),c:+p.legacyCicilan||((s[0]||{}).total)||0,pok:Math.round(pok||p.sisaPokok||0),jasa:Math.round(jasa||p.legacySisaJasa||0),status:p.status||'cair',tgl:p.tanggalCair||p.tanggal||''};
+    const total=(+c.pok||0)+(+c.jasa||0);
+    return '<tr><td><input type="checkbox" class="legacy-corr-check" value="'+esc(id)+'"></td>'+
+      '<td><b>'+esc(a.nama||p.legacyNama||'-')+'</b><div class="small text-muted">'+esc(p.no)+' • '+esc(p.legacyKode||'')+'</div></td>'+
+      '<td>'+esc(jenisOf(p))+'</td>'+
+      '<td><input type="number" min="0" class="form-control form-control-sm" style="width:125px" id="lc-awal-'+id+'" value="'+Math.round(c.awal)+'"></td>'+
+      '<td><input type="number" min="1" class="form-control form-control-sm" style="width:76px" id="lc-tenor-'+id+'" value="'+c.tenor+'"></td>'+
+      '<td><input type="number" min="0" class="form-control form-control-sm" style="width:76px" id="lc-n-'+id+'" value="'+c.n+'"></td>'+
+      '<td><input type="number" min="0" class="form-control form-control-sm" style="width:120px" id="lc-c-'+id+'" value="'+Math.round(c.c)+'"></td>'+
+      '<td><input type="number" min="0" class="form-control form-control-sm" style="width:120px" id="lc-p-'+id+'" value="'+Math.round(c.pok)+'"></td>'+
+      '<td><input type="number" min="0" class="form-control form-control-sm" style="width:120px" id="lc-j-'+id+'" value="'+Math.round(c.jasa)+'"></td>'+
+      '<td class="text-end fw-bold" id="lc-total-'+id+'">'+rupiah(total)+'</td>'+
+      '<td><select class="form-select form-select-sm" style="width:105px" id="lc-status-'+id+'"><option value="cair" '+(c.status==='cair'?'selected':'')+'>Cair</option><option value="lunas" '+(c.status==='lunas'?'selected':'')+'>Lunas</option></select></td>'+
+      '<td><input type="date" class="form-control form-control-sm" style="width:145px" id="lc-tgl-'+id+'" value="'+esc(c.tgl||'')+'"></td></tr>';
+  }).join(''):'<tr><td colspan="12" class="text-center text-muted">Belum ada pinjaman INDEX.</td></tr>';
+}
+function toggleLegacyCorrections(v){document.querySelectorAll('.legacy-corr-check').forEach(x=>x.checked=v);}
+function applyLegacyCorrections(){
+  const ids=[...document.querySelectorAll('.legacy-corr-check:checked')].map(x=>x.value);if(!ids.length){alert('Pilih minimal satu pinjaman.');return;}
+  const pins=DB.load('pinjaman');let count=0;
+  for(const id of ids){
+    const p=pins.find(x=>String(x.id)===id);if(!p)continue;
+    const awal=Math.max(0,+document.getElementById('lc-awal-'+id).value||0), tenor=Math.max(1,Math.floor(+document.getElementById('lc-tenor-'+id).value||0));
+    const n=Math.max(0,Math.floor(+document.getElementById('lc-n-'+id).value||0)), cic=Math.max(0,+document.getElementById('lc-c-'+id).value||0), pok=Math.max(0,+document.getElementById('lc-p-'+id).value||0), jasa=Math.max(0,+document.getElementById('lc-j-'+id).value||0);
+    const status=document.getElementById('lc-status-'+id).value, tgl=document.getElementById('lc-tgl-'+id).value;
+    if(!awal||!tenor){alert('Pinjaman awal dan tenor awal harus lebih dari 0 untuk '+p.no);return;}
+    if(n===0&&(pok+jasa)>0){alert('Sisa tenor 0 tetapi saldo masih ada untuk '+p.no);return;}
+    if(n>0&&cic<=0){alert('Cicilan harus lebih dari 0 untuk '+p.no);return;}
+    if(n>0&&!tgl){alert('Tanggal pencairan wajib diisi untuk '+p.no);return;}
+    if(status==='lunas'&&n>0&&!confirm('Status '+p.no+' diubah menjadi LUNAS tetapi sisa tenor masih '+n+'. Tetap lanjut?'))return;
+    if(Math.abs((pok+jasa)-n*cic)>Math.max(1,n)){if(!confirm('Total sisa saldo '+rupiah(pok+jasa)+' berbeda dengan sisa tenor × cicilan '+rupiah(n*cic)+' pada '+p.no+'. Tetap simpan?'))return;}
+    const old=p.jadwal||[], paid=old.filter(j=>j.status==='lunas'), start=paid.length?Math.max(...paid.map(j=>j.ke||0))+1:Math.max(1,tenor-n+1);
+    const jad=paid.slice();let rp=pok,rj=jasa;const pokokNormal=awal/tenor;
+    for(let k=0;k<n;k++){
+      const last=k===n-1;
+      const pp=last?rp:Math.min(pokokNormal,rp);
+      const jj=last?rj:Math.min(Math.max(0,cic-pp),rj);
+      rp=Math.max(0,rp-pp);rj=Math.max(0,rj-jj);
+      jad.push({ke:start+k,tanggal:dueDateEOM(tgl,k+mulaiOffset()),pokok:pp,jasa:jj,total:pp+jj,sisaPokok:rp,sisaJasa:rj,status:'belum'});
+    }
+    p.jumlah=awal;p.tenor=tenor;p.totalHutangAwal=cic*tenor;p.totalJasaAwal=Math.max(0,p.totalHutangAwal-awal);
+    p.jadwal=jad;p.sisaPokok=pok;p.legacySisaJasa=jasa;p.legacySisaTenor=n;p.legacyCicilan=cic;p.legacySisaHutang=pok+jasa;p.legacyScheduleVersion=3;
+    p.status=n===0?'lunas':status;p.tanggalCair=tgl||p.tanggalCair||p.tanggal;p.koreksiLegacyAt=new Date().toISOString();p.koreksiLegacyBy=currentUser.username;count++;
+  }
+  DB.save('pinjaman',pins);legacyCorrections={};renderLegacyCorrections();renderPinjaman();renderJadwalSelect();renderPayroll();loadDashboard();alert('Koreksi berhasil disimpan untuk '+count+' pinjaman. Komponen pinjaman awal, tenor, cicilan, saldo, status, dan tanggal pencairan telah diperbarui.');
+}
+function exportLegacyCorrectionTemplate(){
+  const rows=[['ID PINJAMAN','KODE','NAMA','JENIS','SISA TENOR','CICILAN','SISA POKOK','SISA JASA','TOTAL SISA']];
+  DB.load('pinjaman').filter(p=>p.metodeBunga==='index').forEach(p=>{const a=ANGF(p.anggotaId)||{},j=(p.jadwal||[]).filter(x=>x.status==='belum'),pk=j.reduce((s,x)=>s+(+x.pokok||0),0),js=j.reduce((s,x)=>s+(+x.jasa||0),0);rows.push([p.id,p.legacyKode||'',a.nama||p.legacyNama||'',jenisOf(p),j.length,p.legacyCicilan||0,pk,js,pk+js]);});
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Koreksi');writeXLS(wb,'daftar-koreksi-pinjaman-index.xlsx');
+}
+function renderLegacyInitial(){renderLegacyCorrections();calcLegacyIndex();}
 
 function renderPinjaman(){
   const fj = document.getElementById('filterPinJenis') ? document.getElementById('filterPinJenis').value : '';
@@ -3003,6 +3346,7 @@ function openPinjamanModal(){
   document.getElementById('pinJumlah').value = '';
   document.getElementById('pinTenor').value = 12;
   document.getElementById('pinBunga').value = bungaDefault(document.getElementById('pinJenis').value);
+  const bw=document.getElementById('pinBunga').closest('.mb-3'); if(bw) bw.style.display=konsepPinjamanAktif()==='index'?'none':'';
   document.getElementById('pinTanggal').value = todayStr();
   document.getElementById('previewAngsuran').innerHTML = 'Angsuran per bulan: -';
   ['pinJumlah','pinTenor','pinBunga'].forEach(id => { document.getElementById(id).oninput = previewAngsuran; });
@@ -3013,8 +3357,8 @@ function previewAngsuran(){
   const jumlah = +document.getElementById('pinJumlah').value || 0;
   const tenor = +document.getElementById('pinTenor').value || 1;
   const bunga = +document.getElementById('pinBunga').value || 0;
-  const c = cicilanOf({jumlah, tenor, bunga});
-  document.getElementById('previewAngsuran').innerHTML = '<b>Estimasi angsuran/bulan: '+rupiah(c.total)+'</b><br>Pokok: '+rupiah(c.pokok)+' • Jasa: '+rupiah(c.jasa)+'<br><span class="text-muted">Jumlah, tenor &amp; jasa final ditetapkan saat persetujuan.</span>' + batasNote(+document.getElementById('pinAnggota').value, document.getElementById('pinJenis').value, jumlah);
+  const metode=konsepPinjamanAktif(), c = metode==='index' ? hitungCicilanIndex(jumlah,tenor) : cicilanOf({jumlah, tenor, bunga});
+  document.getElementById('previewAngsuran').innerHTML = (metode==='index'&&!c ? '<span class="text-danger">INDEX PAW hanya tersedia untuk tenor 1–18 bulan.</span>' : '<b>Estimasi angsuran/bulan ('+metodePinjamanLabel(metode)+'): '+rupiah(c ? c.total : 0)+'</b><br>Pokok: '+rupiah(c.pokok)+' • Jasa: '+rupiah(c.jasa)+'<br><span class="text-muted">Jumlah, tenor &amp; jasa final ditetapkan saat persetujuan.</span>' + batasNote(+document.getElementById('pinAnggota').value, document.getElementById('pinJenis').value, jumlah));
 }
 
 function simpanPinjaman(){
@@ -3029,7 +3373,8 @@ function simpanPinjaman(){
   if (!tenor || tenor < 1){ alert('Tenor minimal 1 bulan'); return; }
   { const bt = cekBatas(anggotaId, jenis, jumlah); if (bt.over && !confirm(bt.msg + '\n\nTetap catat pengajuan ini (di luar batas)?')) return; }
   const data = DB.load('pinjaman');
-  const p = { id: uid(), no: noTrx('PJM'), anggotaId, jenis, jumlah, tenor, bunga, status: 'pengajuan', tanggal, jumlahPengajuan: jumlah, tenorPengajuan: tenor, tanggalPengajuan: tanggal, sisaPokok: jumlah, totalBayar: 0, user: currentUser.username, sumber: 'admin' };
+  const metodeBunga=konsepPinjamanAktif(); if(metodeBunga==='index'&&!faktorIndex(tenor)){alert('Metode INDEX PAW hanya mendukung tenor 1–18 bulan.');return;}
+  const p = { id: uid(), no: noTrx('PJM'), anggotaId, jenis, jumlah, tenor, bunga:metodeBunga==='index'?0:bunga, metodeBunga, status: 'pengajuan', tanggal, jumlahPengajuan: jumlah, tenorPengajuan: tenor, tanggalPengajuan: tanggal, sisaPokok: jumlah, totalBayar: 0, user: currentUser.username, sumber: 'admin' };
   data.push(p);
   DB.save('pinjaman', data);
   bootstrap.Modal.getInstance(document.getElementById('modalPinjaman')).hide();
@@ -3068,10 +3413,12 @@ function openSetuju(id){
   const diaj = p.jumlahPengajuan !== undefined ? p.jumlahPengajuan : p.jumlah;
   const tn = p.tenorPengajuan !== undefined ? p.tenorPengajuan : p.tenor;
   document.getElementById('stId').value = id;
-  document.getElementById('stInfo').innerHTML = '<div><b>'+esc(a.nama || '-')+'</b> <span class="emp-meta">('+esc(noAng(a) || '')+')</span></div><div class="emp-meta">'+esc(jenisOf(p))+' • No. '+esc(p.no)+'</div><div class="mt-2" style="font-size:13px">Diajukan: <b>'+rupiah(diaj)+'</b> • Tenor <b>'+tn+' bln</b> • Tgl '+tgl(p.tanggal)+'</div>';
+  document.getElementById('stInfo').innerHTML = (p.rehab ? '<div class="alert alert-warning py-2 mb-2">REHAB dari '+esc(p.rehabDariNo||'-')+' • Pelunasan '+rupiah(p.rehabPelunasan||0)+' • Dana bersih '+rupiah(p.rehabDanaBersih||0)+'</div>' : '')+'<div><b>'+esc(a.nama || '-')+'</b> <span class="emp-meta">('+esc(noAng(a) || '')+')</span></div><div class="emp-meta">'+esc(jenisOf(p))+' • No. '+esc(p.no)+'</div><div class="mt-2" style="font-size:13px">Diajukan: <b>'+rupiah(diaj)+'</b> • Tenor <b>'+tn+' bln</b> • Tgl '+tgl(p.tanggal)+'</div>';
   document.getElementById('stJumlah').value = diaj;
   document.getElementById('stTenor').value = tn;
+  if(!p.metodeBunga) p.metodeBunga=konsepPinjamanAktif();
   document.getElementById('stBunga').value = (p.bunga || p.bunga === 0) ? p.bunga : bungaDefault(jenisOf(p));
+  document.getElementById('stBungaWrap').style.display = p.metodeBunga==='index'?'none':'';
   document.getElementById('stTanggal').value = todayStr();
   document.getElementById('stCatatan').value = p.catatan || '';
   hitungSetuju();
@@ -3079,18 +3426,22 @@ function openSetuju(id){
 }
 function hitungSetuju(){
   const j = +document.getElementById('stJumlah').value || 0, t = Math.max(1, +document.getElementById('stTenor').value || 1), b = +document.getElementById('stBunga').value || 0;
-  const c = cicilanOf({jumlah:j, tenor:t, bunga:b});
-  document.getElementById('stPreview').innerHTML = '<b>Cicilan per bulan: '+rupiah(c.total)+'</b><br>Pokok: '+rupiah(c.pokok)+' • Jasa: '+rupiah(c.jasa)+'<br>Total jasa: '+rupiah(c.jasa * t)+' • Total yang dibayar: '+rupiah(j + c.jasa * t) + (function(){ const pp = DB.load('pinjaman').find(x => x.id === +document.getElementById('stId').value); return pp ? batasNote(pp.anggotaId, jenisOf(pp), j, pp.id) : ''; })() + (function(){ const d1 = dueDateEOM($g('stTanggal') || todayStr(), mulaiOffset()); return '<div class="mt-2">📅 Angsuran pertama jatuh tempo <b>' + tgl(d1) + '</b> → masuk tagihan payroll <b>' + periodeLabel(d1.slice(0, 7)) + '</b></div>'; })();
+  const pp=DB.load('pinjaman').find(x=>x.id===+$g('stId')), metode=pp&&pp.metodeBunga||konsepPinjamanAktif(), c = metode==='index' ? hitungCicilanIndex(j,t) : cicilanOf({jumlah:j, tenor:t, bunga:b});
+  document.getElementById('stPreview').innerHTML = (!c ? '<span class="text-danger"><b>INDEX PAW hanya tersedia untuk tenor 1–18 bulan.</b></span>' : '<b>Cicilan per bulan ('+metodePinjamanLabel(metode)+'): '+rupiah(c.total)+'</b><br>Pokok: '+rupiah(c.pokok)+' • Jasa: '+rupiah(c.jasa)+'<br>Total jasa: '+rupiah(c.jasa * t)+' • Total yang dibayar: '+rupiah(j + c.jasa * t)) + (function(){ const pp = DB.load('pinjaman').find(x => x.id === +document.getElementById('stId').value); return pp ? batasNote(pp.anggotaId, jenisOf(pp), j, pp.id) : ''; })() + (function(){ const d1 = dueDateEOM($g('stTanggal') || todayStr(), mulaiOffset()); return '<div class="mt-2">📅 Angsuran pertama jatuh tempo <b>' + tgl(d1) + '</b> → masuk tagihan payroll <b>' + periodeLabel(d1.slice(0, 7)) + '</b></div>'; })();
 }
 function simpanSetuju(){
   const id = +document.getElementById('stId').value;
   const jumlah = +document.getElementById('stJumlah').value, tenor = +document.getElementById('stTenor').value, bunga = +document.getElementById('stBunga').value;
   if (!(jumlah > 0) || !(tenor >= 1)){ alert('Jumlah dan tenor yang disetujui wajib diisi.'); return; }
-  if (isNaN(bunga) || bunga < 0){ alert('Jasa (%/bulan) tidak valid.'); return; }
   const data = DB.load('pinjaman'), p = data.find(x => x.id === id);
   if (!p) return;
+  const metode=(p.metodeBunga||konsepPinjamanAktif());
+  if(metode==='index'&&!faktorIndex(tenor)){alert('Metode INDEX PAW hanya mendukung tenor 1–18 bulan.');return;}
+  if(metode!=='index'&&(isNaN(bunga)||bunga<0)){alert('Jasa (%/bulan) tidak valid.');return;}
   { const bt = cekBatas(p.anggotaId, jenisOf(p), jumlah, id); if (bt.over && !confirm(bt.msg + '\n\nTetap setujui di luar batas?')) return; }
-  p.jumlah = jumlah; p.tenor = tenor; p.bunga = bunga;
+  if(p.rehab && jumlah < (+p.rehabPelunasan||0)){alert('Jumlah pinjaman baru tidak cukup untuk melunasi pinjaman lama.');return;}
+  if(p.rehab) p.rehabDanaBersih=jumlah-(+p.rehabPelunasan||0);
+  p.jumlah = jumlah; p.tenor = tenor; p.metodeBunga=metode; if(metode==='index'){const ix=hitungCicilanIndex(jumlah,tenor);p.indexFactor=ix.faktor;p.indexCicilan=ix.total;p.bunga=0;}else p.bunga = bunga;
   p.status = 'disetujui';
   p.tanggalSetuju = document.getElementById('stTanggal').value || todayStr();
   p.catatan = document.getElementById('stCatatan').value.trim();
@@ -3109,6 +3460,7 @@ function tolakPengajuan(){
   const data = DB.load('pinjaman'), p = data.find(x => x.id === id);
   if (!p) return;
   p.status = 'ditolak'; p.tanggalSetuju = document.getElementById('stTanggal').value || todayStr();
+  if(p.rehab){const old=data.find(x=>String(x.id)===String(p.rehabDariPinjamanId));if(old&&String(old.rehabPendingId)===String(p.id))delete old.rehabPendingId;}
   p.totalBayar = 0; delete p.jadwal; p.sisaPokok = p.jumlahPengajuan !== undefined ? p.jumlahPengajuan : p.jumlah;
   p.catatan = document.getElementById('stCatatan').value.trim();
   DB.save('pinjaman', data);
@@ -3188,7 +3540,18 @@ function simpanEditPinjaman(){
 }
 
 // ---------- Pencairan ----------
-function doCairkan(p){
+function nominalPencairanBersih(p){ return p && p.rehab ? Math.max(0,(+p.jumlah||0)-(+p.rehabPelunasan||0)) : (+p.jumlah||0); }
+function doCairkan(p, allPinjaman, allAngsuran){
+  if(p && p.rehab){
+    const old=(allPinjaman||[]).find(x=>String(x.id)===String(p.rehabDariPinjamanId));
+    if(!old||old.status!=='cair'){throw new Error('Pinjaman lama untuk rehab tidak lagi aktif. Batalkan atau koreksi pengajuan rehab ini.');}
+    const due=sisaInfo(old).tagihan, payoff=Math.max(0,+p.rehabPelunasan||0);
+    if(Math.round(due)!==Math.round(payoff)){throw new Error('Sisa tagihan pinjaman lama berubah. Hitung ulang dan ajukan kembali rehab.');}
+    const belum=(old.jadwal||[]).filter(j=>j.status==='belum'), pokokLunas=belum.reduce((a,j)=>a+(+j.pokok||0),0), jasaLunas=belum.reduce((a,j)=>a+(+j.jasa||0),0);
+    (old.jadwal||[]).forEach(j=>{if(j.status==='belum')j.status='lunas';}); old.totalBayar=(old.totalBayar||0)+payoff;old.status='lunas';old.sisaPokok=0;old.tanggalLunas=todayStr();old.pelunasan='rehab';old.rehabKePinjamanId=p.id;delete old.rehabPendingId;
+    (allAngsuran||[]).push({id:uid(),no:noTrx('RHB'),pinjamanId:old.id,tanggal:todayStr(),pokok:pokokLunas,bunga:jasaLunas,total:payoff,user:currentUser.username,sumber:'pelunasan-rehab',keterangan:'Pelunasan otomatis saat pencairan rehab '+p.no});
+    p.rehabDiproses=true;
+  }
   p.status = 'cair'; p.tanggalCair = todayStr();
   if (!(p.jadwal || []).some(j => j.status === 'lunas')) p.jadwal = generateJadwalFromPinjaman(p);
 }
@@ -3197,11 +3560,11 @@ function cairkanPinjaman(id){
   const data = DB.load('pinjaman');
   const p = data.find(x => x.id === id);
   if (!p || p.status !== 'disetujui'){ alert('Pinjaman harus berstatus "disetujui" terlebih dahulu.'); return; }
-  doCairkan(p);
-  DB.save('pinjaman', data);
-  const kas = DB.get('kas', {saldo:0}); kas.saldo -= p.jumlah; DB.set('kas', kas);
-  renderPinjaman(); renderPencairan(); loadDashboard();
-  alert('✅ Pinjaman dicairkan. Kas berkurang ' + rupiah(p.jumlah));
+  const angs=DB.load('angsuran'); try{doCairkan(p,data,angs);}catch(e){alert(e.message);return;}
+  DB.save('pinjaman', data); DB.save('angsuran',angs);
+  const cair=nominalPencairanBersih(p), kas = DB.get('kas', {saldo:0}); kas.saldo -= cair; DB.set('kas', kas);
+  renderPinjaman(); renderPencairan(); renderAngsuran(); loadDashboard();
+  alert('✅ Pinjaman dicairkan. Dana bersih keluar ' + rupiah(cair)+(p.rehab?' setelah pelunasan pinjaman lama '+rupiah(p.rehabPelunasan):''));
 }
 function renderPencairan(){
   const pinjaman = DB.load('pinjaman').filter(p => p.status === 'disetujui');
@@ -3219,16 +3582,16 @@ function prosesCairMasal(){
   const ids = Array.from(document.querySelectorAll('.check-pencairan:checked')).map(cb => +cb.value);
   if (!ids.length){ alert('Pilih minimal 1 pinjaman!'); return; }
   if (!confirm('Cairkan '+ids.length+' pinjaman sekaligus?')) return;
-  const data = DB.load('pinjaman');
-  let total = 0, n = 0;
+  const data = DB.load('pinjaman'), angs=DB.load('angsuran');
+  let total = 0, n = 0, gagal=[];
   ids.forEach(id => {
     const p = data.find(x => x.id === id);
-    if (p && p.status === 'disetujui'){ doCairkan(p); total += p.jumlah; n++; }
+    if (p && p.status === 'disetujui'){ try{doCairkan(p,data,angs);total += nominalPencairanBersih(p);n++;}catch(e){gagal.push((p.no||id)+': '+e.message);} }
   });
-  DB.save('pinjaman', data);
+  DB.save('pinjaman', data); DB.save('angsuran',angs);
   const kas = DB.get('kas', {saldo:0}); kas.saldo -= total; DB.set('kas', kas);
-  renderPencairan(); renderPinjaman(); loadDashboard();
-  alert('✅ '+n+' pinjaman dicairkan. Total kas keluar: '+rupiah(total));
+  renderPencairan(); renderPinjaman(); renderAngsuran(); loadDashboard();
+  alert('✅ '+n+' pinjaman dicairkan. Total kas keluar bersih: '+rupiah(total)+(gagal.length?'\n\nTidak diproses:\n'+gagal.join('\n'):''));
 }
 
 // ============ POTONG WAJIB BULANAN ============
@@ -3294,6 +3657,13 @@ function batalPotongWajib(periode){
   toast('Potongan '+periodeLabel(periode)+' dibatalkan.');
 }
 
+// Kunci anti dobel: satu pinjaman hanya boleh memiliki satu transaksi angsuran per periode.
+function periodeAngsuran(g){ return String((g && g.periode) || (g && g.tanggal ? String(g.tanggal).slice(0,7) : '')); }
+function pinjamanSudahDipotong(pinjamanId, periode, daftar){
+  const data = daftar || DB.load('angsuran');
+  return data.some(g => String(g.pinjamanId) === String(pinjamanId) && periodeAngsuran(g) === String(periode));
+}
+
 // ============ POTONGAN PAYROLL ============
 function payrollDataBase(){
   const perEl = document.getElementById('prPeriode');
@@ -3318,7 +3688,7 @@ function payrollDataBase(){
     const items = [];
     pin.filter(p => p.anggotaId === a.id && (!jenisF || jenisOf(p) === jenisF)).forEach(p => {
       const j = p.jadwal.find(x => x.status === 'belum');
-      if (j && j.tanggal.slice(0,7) <= periode) items.push({p, j});
+      if (j && j.tanggal.slice(0,7) <= periode && !pinjamanSudahDipotong(p.id, periode)) items.push({p, j});
     });
     if (!items.length && !inclW) return;
     if (q && ![a.nama, noAng(a), a.noKaryawan, a.dept].join(' ').toLowerCase().includes(q)) return;
@@ -3390,10 +3760,10 @@ function catatPayroll(){
       if (x.p.pending) return;   // pengajuan belum disetujui tidak dicatat terbayar
       const pp = pinAll.find(p => p.id === x.p.id);
       const jj = pp && pp.jadwal.find(t => t.ke === x.j.ke && t.status === 'belum');
-      if (!jj) return;
+      if (!jj || pinjamanSudahDipotong(pp.id, d.periode, angs)) return;
       jj.status = 'lunas'; pp.sisaPokok = jj.sisaPokok; pp.totalBayar = (pp.totalBayar || 0) + jj.total;
       if (pp.jadwal.every(t => t.status === 'lunas')){ pp.status = 'lunas'; pp.sisaPokok = 0; }
-      angs.push({id: uid() + cA, no: noTrx('ANG'), pinjamanId: pp.id, tanggal: today, pokok: jj.pokok, bunga: jj.jasa, total: jj.total, user: currentUser.username, periode: d.periode, sumber: 'payroll'});
+      angs.push({id: uid() + cA, no: noTrx('ANG'), pinjamanId: pp.id, tanggal: today, angsuranKe: jj.ke, pokok: jj.pokok, bunga: jj.jasa, total: jj.total, user: currentUser.username, periode: d.periode, sumber: 'payroll'});
       masuk += jj.total; cA++;
     });
     if (r.pokokSim > 0 && !mutasi.some(m => m.jenis === 'pokok' && m.anggotaId === r.a.id)){ mutasi.push({id: uid() + 800000 + cW, no: noTrx('SMP'), anggotaId: r.a.id, jenis: 'pokok', trx: 'setor', jumlah: r.pokokSim, ket: 'Simpanan pokok anggota baru ' + periodeLabel(d.periode), tanggal: today, user: currentUser.username, periode: d.periode, sumber: 'potong'}); masuk += r.pokokSim; }
@@ -3435,12 +3805,13 @@ function openAngsuranModal(){
 function hitungAngsuran(){
   const pid = +document.getElementById('angPinjaman').value;
   if (!pid) return;
-  const p = DB.load('pinjaman').find(x => x.id === pid);
-  const totalBunga = p.jumlah * (p.bunga/100) * p.tenor;
-  const total = p.jumlah + totalBunga;
-  const perBulan = total / p.tenor;
-  document.getElementById('infoAngsuran').innerHTML = 'Total: '+rupiah(p.jumlah)+'<br>Pokok/bulan: '+rupiah(p.jumlah/p.tenor)+'<br>Bunga/bulan: '+rupiah(totalBunga/p.tenor)+'<br><b>Angsuran/bulan: '+rupiah(perBulan)+'</b><br>Sisa pokok: '+rupiah(p.sisaPokok);
-  if (!document.getElementById('angBayar').value) document.getElementById('angBayar').value = Math.round(perBulan);
+  const p = DB.load('pinjaman').find(x => x.id === pid); if(!p) return;
+  if (!Array.isArray(p.jadwal) || !p.jadwal.length) p.jadwal = generateJadwalFromPinjaman(p);
+  const j = (p.jadwal||[]).find(x=>x.status==='belum');
+  if (!j){document.getElementById('infoAngsuran').innerHTML='Tidak ada jadwal yang belum dibayar.';return;}
+  const pok=+j.pokok||0, jasa=+j.jasa||0, perBulan=+j.total||pok+jasa;
+  document.getElementById('infoAngsuran').innerHTML = 'Metode: <b>'+(p.metodeBunga==='index'?'INDEX':'Persentase')+'</b><br>Pokok angsuran: '+rupiah(pok)+'<br>Jasa: '+rupiah(jasa)+'<br><b>Tagihan angsuran berikutnya: '+rupiah(perBulan)+'</b><br>Sisa pokok: '+rupiah(p.sisaPokok);
+  document.getElementById('angBayar').value = Math.round(perBulan);
 }
 
 function simpanAngsuran(){
@@ -3450,27 +3821,33 @@ function simpanAngsuran(){
   if (!bayar || bayar <= 0){ alert('Jumlah bayar tidak valid'); return; }
   const pinjamanData = DB.load('pinjaman');
   const p = pinjamanData.find(x => x.id === pinjamanId);
-  const totalBunga = p.jumlah * (p.bunga/100) * p.tenor;
-  const pokokPer = p.jumlah / p.tenor;
-  const bungaPer = totalBunga / p.tenor;
-  const pokok = Math.min(pokokPer, bayar);
-  const bunga = Math.min(bungaPer, bayar - pokok);
+  if (!p){ alert('Pinjaman tidak ditemukan.'); return; }
+  if (!Array.isArray(p.jadwal) || !p.jadwal.length) p.jadwal = generateJadwalFromPinjaman(p);
+  const j = p.jadwal.find(x => x.status === 'belum');
+  if (!j){ alert('Tidak ada jadwal angsuran yang belum dibayar.'); return; }
+  const periodeBayar = String(tanggal || todayStr()).slice(0,7);
+  if (pinjamanSudahDipotong(p.id, periodeBayar)){ alert('⛔ Pinjaman ini sudah memiliki potongan pada periode '+periodeLabel(periodeBayar)+'. Tidak boleh diproses dua kali. Jika transaksi sebelumnya salah, hapus melalui menu Koreksi Angsuran terlebih dahulu.'); return; }
+  const sisaTagihanJadwal = (+j.pokok||0) + (+j.jasa||0);
+  if (bayar > sisaTagihanJadwal + 1){ alert('Pembayaran tidak boleh melebihi sisa angsuran berjalan ('+rupiah(sisaTagihanJadwal)+'). Gunakan menu pelunasan untuk pelunasan penuh.'); return; }
+  const pokok = Math.min(+j.pokok||0, bayar);
+  const bunga = Math.min(+j.jasa||0, Math.max(0, bayar-pokok));
+  const total = Math.round(pokok+bunga);
   const angsuran = DB.load('angsuran');
-  const a = { id: uid(), no: noTrx('ANG'), pinjamanId, tanggal, pokok: Math.round(pokok), bunga: Math.round(bunga), total: Math.round(pokok + bunga), user: currentUser.username };
-  angsuran.push(a);
-  DB.save('angsuran', angsuran);
-  p.sisaPokok = Math.max(0, p.sisaPokok - pokok);
-  p.totalBayar = (p.totalBayar || 0) + pokok + bunga;
-  if (p.sisaPokok <= 0) p.status = 'lunas';
-  if (p.jadwal){
-    const idx = p.jadwal.findIndex(j => j.status === 'belum');
-    if (idx >= 0) p.jadwal[idx].status = 'lunas';
-  }
-  DB.save('pinjaman', pinjamanData);
-  const kas = DB.get('kas', {saldo:0}); kas.saldo += pokok + bunga; DB.set('kas', kas);
+  const a = {id:uid(),no:noTrx('ANG'),pinjamanId,tanggal,periode:periodeBayar,pokok:Math.round(pokok),bunga:Math.round(bunga),total,user:currentUser.username,sumber:'manual'};
+  angsuran.push(a); DB.save('angsuran',angsuran);
+  j.pokok = Math.max(0,(+j.pokok||0)-pokok);
+  j.jasa = Math.max(0,(+j.jasa||0)-bunga);
+  j.total = j.pokok+j.jasa;
+  if (j.total <= 1){ j.pokok=0; j.jasa=0; j.total=0; j.status='lunas'; }
+  p.sisaPokok = Math.max(0,(+p.sisaPokok||0)-pokok);
+  j.sisaPokok = p.sisaPokok;
+  p.totalBayar = (+p.totalBayar||0)+total;
+  if (p.jadwal.every(x=>x.status==='lunas')){ p.status='lunas'; p.sisaPokok=0; }
+  DB.save('pinjaman',pinjamanData);
+  const kas=DB.get('kas',{saldo:0}); kas.saldo+=total; DB.set('kas',kas);
   bootstrap.Modal.getInstance(document.getElementById('modalAngsuran')).hide();
   renderAngsuran(); renderPinjaman(); loadDashboard();
-  alert('✅ Angsuran diterima: ' + a.no);
+  alert('✅ Angsuran diterima: '+a.no);
 }
 
 // ============ JADWAL ============
@@ -3724,6 +4101,7 @@ function loadPengaturan(){
   if (document.getElementById('setPt')) document.getElementById('setPt').value = p.pt || 'PT. INSANSANDANG INTERNUSA';
   if (document.getElementById('setPokok')) document.getElementById('setPokok').value = p.pokok || 50000;
   if (document.getElementById('setWajib')) document.getElementById('setWajib').value = p.wajib || 25000;
+  if (document.getElementById('setKonsepPinjaman')) document.getElementById('setKonsepPinjaman').value = p.konsepPinjaman || 'bunga';
   const bU = (p.bungaUmum ?? p.bunga ?? 1.5);
   if (document.getElementById('setBungaUmum')) document.getElementById('setBungaUmum').value = bU;
   if (document.getElementById('setBungaKasbon')) document.getElementById('setBungaKasbon').value = (p.bungaKasbon ?? bU);
@@ -3735,6 +4113,7 @@ function loadPengaturan(){
 function simpanPengaturan(){
   DB.set('pengaturan', Object.assign({}, DB.get('pengaturan', {}), {
     nama: document.getElementById('setNama').value,
+    konsepPinjaman: (document.getElementById('setKonsepPinjaman') || {}).value || 'bunga',
     pt: document.getElementById('setPt').value,
     pokok: +document.getElementById('setPokok').value,
     wajib: +document.getElementById('setWajib').value,
@@ -3820,13 +4199,18 @@ function renderMemberSimpanan(a){
 }
 
 function updateMpBungaInfo(){
-  const j = document.getElementById('mpJenis'), el = document.getElementById('mpBungaInfo');
-  if (j && el && j.value) el.textContent = 'Jasa pinjaman: ' + bungaDefault(j.value) + '%/bulan (final ditetapkan saat persetujuan)';
+  const j = document.getElementById('mpJenis'), el = document.getElementById('mpBungaInfo'), metode=konsepPinjamanAktif();
+  if(!j||!el||!j.value)return;
+  const jumlah=+$g('mpJumlah')||0,tenor=+$g('mpTenor')||0;
+  let info=metode==='index' ? 'Konsep pinjaman aktif: INDEX PAW. Faktor ditentukan berdasarkan tenor (1–18 bulan).' : 'Konsep pinjaman aktif: Suku Bunga/Jasa '+bungaDefault(j.value)+'%/bulan.';
+  if(jumlah>0&&tenor>0){const c=metode==='index'?hitungCicilanIndex(jumlah,tenor):cicilanOf({jumlah,tenor,bunga:bungaDefault(j.value)});info+=c?' Estimasi cicilan: '+rupiah(c.total)+'/bulan.': ' Tenor INDEX yang tersedia hanya 1–18 bulan.';}
+  el.textContent=info;
 }
 function renderMemberPinjaman(a){
   updateMpBungaInfo();
   const tg = document.getElementById('mpTanggal'); if (tg && !tg.value) tg.value = todayStr();
   const el = document.getElementById('mListPinjaman');
+  renderMemberRehab(a);
   const pinjaman = DB.load('pinjaman').filter(p => p.anggotaId === a.id).slice().reverse();
   if (!pinjaman.length){ el.innerHTML = '<p class="text-muted mb-0">Belum ada pinjaman / pengajuan.</p>'; return; }
   el.innerHTML = pinjaman.map(p => {
@@ -3837,12 +4221,13 @@ function renderMemberPinjaman(a){
     const cls = p.status === 'lunas' ? 'lunas' : (p.status === 'ditolak' ? 'overdue' : '');
     let d = '<div class="detail">'+esc(jenisOf(p))+' • Diajukan '+tgl(p.tanggal)+': '+rupiah(diaj)+' / '+tn+' bln</div>';
     if (ok){
-      d += '<div class="detail">Disetujui '+tgl(p.tanggalSetuju)+': <b>'+rupiah(p.jumlah)+'</b> / <b>'+p.tenor+' bln</b> • Jasa '+p.bunga+'%/bln</div>'
+      d += '<div class="detail">Disetujui '+tgl(p.tanggalSetuju)+': <b>'+rupiah(p.jumlah)+'</b> / <b>'+p.tenor+' bln</b> • '+(p.metodeBunga==='index'?'Metode INDEX PAW':'Metode Suku Bunga/Jasa '+p.bunga+'%/bln')+'</div>'
         + '<div class="detail">Cicilan/bulan: <b>'+rupiah(c.total)+'</b> (Pokok '+rupiah(c.pokok)+' + Jasa '+rupiah(c.jasa)+')</div>'
         + '<div class="detail">Total tagihan: <b>'+rupiah(tagihanInfo(p).totalTagihan)+'</b> • Sisa tenor: <b>'+tagihanInfo(p).sisa+' bln</b></div>'
         + '<div class="detail">Sisa pokok: '+rupiah(p.sisaPokok || 0)+(next ? ' • Jatuh tempo berikutnya: '+tgl(next.tanggal) : '')+'</div>';
     } else if (p.status === 'pengajuan'){
       const ti = tagihanInfo(p);
+      if(p.rehab) d += '<div class="detail text-warning">Pengajuan REHAB dari '+esc(p.rehabDariNo||'-')+' • Pelunasan pinjaman lama: <b>'+rupiah(p.rehabPelunasan||0)+'</b> • Estimasi dana bersih: <b>'+rupiah(p.rehabDanaBersih||0)+'</b></div>';
       d += '<div class="detail">⏳ Menunggu persetujuan pengurus.</div>'
         + '<div class="detail">Tagihan per bulan (sesuai pengajuan): <b>'+rupiah(ti.c.total)+'</b> (Pokok '+rupiah(ti.c.pokok)+' + Jasa '+rupiah(ti.c.jasa)+')</div>'
         + '<div class="detail">Total tagihan: <b>'+rupiah(ti.totalTagihan)+'</b> • Tenor: <b>'+ti.tenor+' bln</b> • Masuk potongan payroll bulan berjalan</div>';
@@ -3851,6 +4236,37 @@ function renderMemberPinjaman(a){
     }
     return '<div class="loan-schedule-box '+cls+'"><div class="row-1"><span class="ke">'+esc(p.no)+'</span><span class="badge-soft '+statusBadgeClass(p.status)+'">'+esc(p.status)+'</span></div><div class="jumlah">'+rupiah(ok ? p.jumlah : diaj)+'</div>'+d+'</div>';
   }).join('');
+}
+
+function renderMemberRehab(a){
+  const sel=document.getElementById('mrPinjaman'); if(!sel)return;
+  const aktif=DB.load('pinjaman').filter(p=>p.anggotaId===a.id&&p.status==='cair'&&!p.rehabPendingId);
+  const keep=sel.value; sel.innerHTML='<option value="">-- Pilih pinjaman aktif --</option>'+aktif.map(p=>{const si=sisaInfo(p);return '<option value="'+p.id+'">'+esc(p.no)+' • '+esc(jenisOf(p))+' • sisa '+si.n+' bln • '+rupiah(si.tagihan)+'</option>';}).join('');
+  if(aktif.some(p=>String(p.id)===keep))sel.value=keep;
+  hitungRehabAnggota();
+}
+function dataRehabAnggota(){
+  const id=+$g('mrPinjaman'), p=DB.load('pinjaman').find(x=>x.id===id&&x.status==='cair'), jumlah=+$g('mrJumlah')||0, tenor=+$g('mrTenor')||0;
+  if(!p)return null; const si=sisaInfo(p), pelunasan=si.tagihan, bersih=jumlah-pelunasan;
+  const metode=konsepPinjamanAktif(), cic=metode==='index'?hitungCicilanIndex(jumlah,tenor):cicilanOf({jumlah,tenor,bunga:bungaDefault(jenisOf(p))});
+  return {p,si,jumlah,tenor,pelunasan,bersih,metode,cic};
+}
+function hitungRehabAnggota(){
+  const el=document.getElementById('mrPreview'); if(!el)return; const d=dataRehabAnggota();
+  if(!d){el.innerHTML='Pilih pinjaman aktif untuk melihat perhitungan rehab.';return;}
+  el.innerHTML='<div class="d-flex justify-content-between"><span>Sisa tenor pinjaman lama</span><b>'+d.si.n+' bulan</b></div><div class="d-flex justify-content-between"><span>Sisa tagihan yang dilunasi</span><b>'+rupiah(d.pelunasan)+'</b></div><hr class="my-2"><div class="d-flex justify-content-between"><span>Pinjaman baru diajukan</span><b>'+rupiah(d.jumlah)+'</b></div><div class="d-flex justify-content-between text-danger"><span>Potongan pelunasan pinjaman lama</span><b>− '+rupiah(d.pelunasan)+'</b></div><div class="d-flex justify-content-between mt-2" style="font-size:16px"><b>Dana bersih diterima</b><b class="text-success">'+rupiah(d.bersih)+'</b></div><div class="emp-meta mt-2">Konsep baru: '+metodePinjamanLabel(d.metode)+(d.cic?' • Estimasi cicilan baru '+rupiah(d.cic.total)+'/bulan':'')+'</div>'+(d.bersih<0?'<div class="text-danger mt-2">Nominal pinjaman baru tidak cukup untuk melunasi pinjaman lama.</div>':'');
+}
+function ajukanRehabAnggota(){
+  const a=DB.load('anggota').find(x=>x.id===currentUser.anggotaId), d=dataRehabAnggota(); if(!a){alert('Data anggota tidak ditemukan.');return;}
+  if(!d){alert('Pilih pinjaman aktif yang akan direhab.');return;}
+  if(d.jumlah<10000||d.tenor<1||d.tenor>60){alert('Jumlah minimal Rp10.000 dan tenor harus 1–60 bulan.');return;}
+  if(d.bersih<0){alert('Jumlah pinjaman baru harus lebih besar atau sama dengan sisa tagihan pinjaman lama.');return;}
+  if(d.metode==='index'&&!faktorIndex(d.tenor)){alert('Metode INDEX PAW hanya mendukung tenor 1–18 bulan.');return;}
+  if(!confirm('Ajukan rehab pinjaman?\nPinjaman lama: '+d.p.no+'\nSisa tagihan dilunasi: '+rupiah(d.pelunasan)+'\nPinjaman baru: '+rupiah(d.jumlah)+'\nDana bersih diterima: '+rupiah(d.bersih)))return;
+  const data=DB.load('pinjaman'), old=data.find(x=>String(x.id)===String(d.p.id));
+  if(!old||old.status!=='cair'||old.rehabPendingId){alert('Pinjaman ini sudah tidak tersedia untuk rehab atau sudah memiliki pengajuan rehab.');return;}
+  const np={id:uid(),no:noTrx('RHB'),anggotaId:a.id,jenis:jenisOf(d.p),jumlah:d.jumlah,tenor:d.tenor,bunga:d.metode==='index'?0:bungaDefault(jenisOf(d.p)),metodeBunga:d.metode,status:'pengajuan',tanggal:todayStr(),jumlahPengajuan:d.jumlah,tenorPengajuan:d.tenor,tanggalPengajuan:todayStr(),sisaPokok:d.jumlah,totalBayar:0,user:currentUser.username,sumber:'rehab-anggota',rehab:true,rehabDariPinjamanId:d.p.id,rehabDariNo:d.p.no,rehabPelunasan:d.pelunasan,rehabDanaBersih:d.bersih};
+  old.rehabPendingId=np.id; data.push(np);DB.save('pinjaman',data);renderMemberPinjaman(a);toast('Pengajuan rehab terkirim. Menunggu persetujuan pengurus.');
 }
 
 function ajukanPinjamanAnggota(){
@@ -3866,7 +4282,8 @@ function ajukanPinjamanAnggota(){
   { const bt = cekBatas(a.id, jenis, jumlah); if (bt.over){ alert(bt.msg); return; } }
   if (!confirm('Kirim pengajuan?\n'+jenis+'\nJumlah: '+rupiah(jumlah)+'\nTenor: '+tenor+' bulan')) return;
   const data = DB.load('pinjaman');
-  const p = { id: uid(), no: noTrx('PJM'), anggotaId: a.id, jenis, jumlah, tenor, bunga: bungaDefault(jenis), status: 'pengajuan', tanggal, jumlahPengajuan: jumlah, tenorPengajuan: tenor, tanggalPengajuan: tanggal, sisaPokok: jumlah, totalBayar: 0, user: currentUser.username, sumber: 'portal' };
+  const metodeBunga=konsepPinjamanAktif(); if(metodeBunga==='index'&&!faktorIndex(tenor)){alert('Metode INDEX PAW hanya mendukung tenor 1–18 bulan.');return;}
+  const p = { id: uid(), no: noTrx('PJM'), anggotaId: a.id, jenis, jumlah, tenor, bunga: metodeBunga==='index'?0:bungaDefault(jenis), metodeBunga, status: 'pengajuan', tanggal, jumlahPengajuan: jumlah, tenorPengajuan: tenor, tanggalPengajuan: tanggal, sisaPokok: jumlah, totalBayar: 0, user: currentUser.username, sumber: 'portal' };
   data.push(p);
   DB.save('pinjaman', data);
   document.getElementById('mpJumlah').value = '';
@@ -3932,9 +4349,11 @@ function perLabel(d, s){ return (d || s) ? 'Periode: ' + (d ? tglPanjang(d) : 'a
 function tagihanInfo(p){
   const ok = isApproved(p.status);
   const jm = ok ? p.jumlah : (p.jumlahPengajuan !== undefined ? p.jumlahPengajuan : p.jumlah), tn = ok ? p.tenor : (p.tenorPengajuan !== undefined ? p.tenorPengajuan : p.tenor);
-  const bg = (p.bunga || p.bunga === 0) ? p.bunga : bungaDefault(jenisOf(p)), c = cicilanOf({jumlah: jm, tenor: tn, bunga: bg});
+  const bg = (p.bunga || p.bunga === 0) ? p.bunga : bungaDefault(jenisOf(p));
+  const c = ok ? cicilanOf(p) : cicilanOf({jumlah: jm, tenor: tn, bunga: bg});
   const sisa = p.status === 'lunas' ? 0 : (ok ? ((p.jadwal || generateJadwalFromPinjaman(p)).filter(x => x.status === 'belum').length) : tn);
-  return {c, tenor: tn, sisa, totalTagihan: Math.round(jm + c.jasa * tn)};
+  const totalTagihan = p.metodeBunga === 'index' ? (+p.totalHutangAwal || ((p.jumlah||0) + (p.totalJasaAwal||0))) : Math.round(jm + c.jasa * tn);
+  return {c, tenor: tn, sisa, totalTagihan};
 }
 function sisaInfo(p){ const j = (p.jadwal || generateJadwalFromPinjaman(p)).filter(x => x.status === 'belum'); return {n: j.length, tagihan: j.reduce((s,x) => s + x.total, 0), pokok: p.sisaPokok || 0, next: j[0] ? j[0].tanggal : ''}; }
 
@@ -4168,23 +4587,138 @@ function tabunganPDF(){
 // ---------- Pencairan: kolom bank, no rek, jumlah pencairan ----------
 function renderPencairan(){
   const pj = DB.load('pinjaman').filter(p => p.status === 'disetujui');
-  document.getElementById('tblPencairan').innerHTML = pj.length ? pj.map(p => { const a = ANGF(p.anggotaId); return '<tr><td><input type="checkbox" class="check-pencairan" value="'+p.id+'"></td><td><code style="font-size:11px">'+esc(p.no)+'</code></td><td>'+esc(a.nama || '-')+'</td><td>'+esc(jenisOf(p))+'</td><td>'+esc(val(a.bank))+'</td><td>'+esc(val(a.rek))+'</td><td class="text-end fw-bold">'+rupiah(p.jumlah)+'</td><td>'+p.tenor+' bln</td><td class="text-end">'+rupiah(cicilanOf(p).total)+'</td></tr>'; }).join('') : '<tr><td colspan="9" class="text-center text-muted py-4">Tidak ada pinjaman disetujui yang menunggu pencairan</td></tr>';
+  document.getElementById('tblPencairan').innerHTML = pj.length ? pj.map(p => { const a = ANGF(p.anggotaId); return '<tr><td><input type="checkbox" class="check-pencairan" value="'+p.id+'"></td><td><code style="font-size:11px">'+esc(p.no)+'</code></td><td>'+esc(a.nama || '-')+'</td><td>'+esc(jenisOf(p))+(p.rehab?'<div class="emp-meta text-warning">Rehab '+esc(p.rehabDariNo||'')+'</div>':'')+'</td><td>'+esc(val(a.bank))+'</td><td>'+esc(val(a.rek))+'</td><td class="text-end fw-bold">'+rupiah(nominalPencairanBersih(p))+(p.rehab?'<div class="emp-meta text-danger">Pelunasan '+rupiah(p.rehabPelunasan)+'</div>':'')+'</td><td>'+p.tenor+' bln</td><td class="text-end">'+rupiah(cicilanOf(p).total)+'</td></tr>'; }).join('') : '<tr><td colspan="9" class="text-center text-muted py-4">Tidak ada pinjaman disetujui yang menunggu pencairan</td></tr>';
 }
 
 // ---------- Angsuran: sisa angsuran, potong otomatis, pelunasan/rehab ----------
 function renderAngsuran(){
   const pin = DB.load('pinjaman'), data = DB.load('angsuran').slice().reverse(), tb = document.getElementById('tblAngsuran');
-  tb.closest('table').querySelector('thead').innerHTML = '<tr><th>Tanggal</th><th>No. Transaksi</th><th>Pinjaman</th><th>Anggota</th><th class="text-end">Pokok</th><th class="text-end">Jasa</th><th class="text-end">Total</th><th class="text-end">Sisa Angsuran</th></tr>';
-  tb.innerHTML = data.length ? data.map(g => { const p = pin.find(x => x.id === g.pinjamanId) || {}, si = p.id ? sisaInfo(p) : null; return '<tr><td>'+tgl(g.tanggal)+'</td><td><code style="font-size:11px">'+esc(g.no)+'</code>'+(g.sumber ? '<div class="emp-meta">'+esc(g.sumber)+'</div>' : '')+'</td><td>'+esc(p.no || '-')+'</td><td>'+esc(ANGF(p.anggotaId).nama || '-')+'</td><td class="text-end">'+rupiah(g.pokok)+'</td><td class="text-end">'+rupiah(g.bunga)+'</td><td class="text-end fw-bold">'+rupiah(g.total)+'</td><td class="text-end">'+(si ? rupiah(si.tagihan)+'<div class="emp-meta">'+si.n+' bln lagi</div>' : '-')+'</td></tr>'; }).join('') : '<tr><td colspan="8" class="text-center text-muted py-4">Belum ada angsuran</td></tr>';
+  tb.closest('table').querySelector('thead').innerHTML = '<tr><th>Tanggal</th><th>No. Transaksi</th><th>Pinjaman</th><th>Anggota</th><th>Angsuran Ke</th><th class="text-end">Pokok</th><th class="text-end">Jasa</th><th class="text-end">Total</th><th class="text-end">Sisa Angsuran</th><th>Aksi</th></tr>';
+  const urutPerPinjaman = {};
+  pin.forEach(p => { urutPerPinjaman[p.id] = data.filter(x => x.pinjamanId === p.id).slice().sort((a,b) => String(a.tanggal||'').localeCompare(String(b.tanggal||''))); });
+  tb.innerHTML = data.length ? data.map(g => { const p = pin.find(x => x.id === g.pinjamanId) || {}, si = p.id ? sisaInfo(p) : null, ri = (urutPerPinjaman[g.pinjamanId] || []).findIndex(x => x.id === g.id), ke = g.angsuranKe || (ri >= 0 ? ri + 1 : '-'); return '<tr><td>'+tgl(g.tanggal)+'</td><td><code style="font-size:11px">'+esc(g.no)+'</code>'+(g.sumber ? '<div class="emp-meta">'+esc(g.sumber)+'</div>' : '')+'</td><td>'+esc(p.no || '-')+'</td><td>'+esc(ANGF(p.anggotaId).nama || '-')+'</td><td><span class="badge-soft '+(g.angsuranKe ? 'active' : 'pending')+'">Ke-'+ke+'</span></td><td class="text-end">'+rupiah(g.pokok)+'</td><td class="text-end">'+rupiah(g.bunga)+'</td><td class="text-end fw-bold">'+rupiah(g.total)+'</td><td class="text-end">'+(si ? rupiah(si.tagihan)+'<div class="emp-meta">'+si.n+' bln lagi</div>' : '-')+'</td><td class="text-nowrap"><button type="button" class="btn btn-sm btn-outline-primary me-1" data-angsuran-action="edit" data-angsuran-id="'+esc(String(g.id))+'"><i class="bi bi-pencil-square"></i> Koreksi</button><button type="button" class="btn btn-sm btn-outline-danger" data-angsuran-action="delete" data-angsuran-id="'+esc(String(g.id))+'"><i class="bi bi-trash"></i> Hapus</button></td></tr>'; }).join('') : '<tr><td colspan="10" class="text-center text-muted py-4">Belum ada angsuran</td></tr>';
   let box = document.getElementById('angSisaBox');
   if (!box){ tb.closest('.table-responsive').insertAdjacentHTML('beforebegin', '<div id="angSisaBox" class="mb-3"></div>'); box = document.getElementById('angSisaBox'); }
   const aktif = pin.filter(p => p.status === 'cair');
   box.innerHTML = '<h6 class="fw-bold mb-2" style="font-size:13px">Sisa Angsuran Pinjaman Aktif</h6><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Anggota</th><th>No. Pinjaman</th><th>Jenis</th><th>Sisa Tenor</th><th class="text-end">Sisa Pokok</th><th class="text-end">Sisa Angsuran</th><th>Jatuh Tempo Berikut</th></tr></thead><tbody>' + (aktif.length ? aktif.map(p => { const si = sisaInfo(p); return '<tr><td>'+esc(ANGF(p.anggotaId).nama || '-')+'</td><td>'+esc(p.no)+'</td><td>'+esc(jenisOf(p))+'</td><td>'+si.n+' / '+p.tenor+' bln</td><td class="text-end">'+rupiah(si.pokok)+'</td><td class="text-end fw-bold text-danger">'+rupiah(si.tagihan)+'</td><td>'+tgl(si.next)+'</td></tr>'; }).join('') : '<tr><td colspan="7" class="text-center text-muted">Tidak ada pinjaman aktif</td></tr>') + '</tbody></table></div><h6 class="fw-bold mb-2 mt-3" style="font-size:13px">Riwayat Pembayaran</h6>';
 }
+function openKoreksiAngsuran(id){
+  const angs = DB.load('angsuran'), g = angs.find(x => String(x.id) === String(id));
+  if (!g){ alert('Data angsuran tidak ditemukan.'); return; }
+  const p = DB.load('pinjaman').find(x => String(x.id) === String(g.pinjamanId));
+  if (!p){ alert('Data pinjaman tidak ditemukan.'); return; }
+  const tenor = Math.max(1, +p.tenor || (p.jadwal || []).length || 1);
+  document.getElementById('kaId').value = String(g.id);
+  document.getElementById('kaNo').value = g.no || '-';
+  document.getElementById('kaInfo').value = (p.no || '-') + ' - ' + (ANGF(p.anggotaId).nama || '-') + ' (' + jenisOf(p) + ')';
+  document.getElementById('kaKe').innerHTML = Array.from({length:tenor}, (_,i) => '<option value="'+(i+1)+'">Angsuran ke-'+(i+1)+' dari '+tenor+'</option>').join('');
+  const same = angs.filter(x => x.pinjamanId === g.pinjamanId).slice().sort((a,b) => String(a.tanggal||'').localeCompare(String(b.tanggal||'')));
+  const idx = same.findIndex(x => String(x.id) === String(g.id));
+  document.getElementById('kaKe').value = g.angsuranKe || Math.max(1,idx+1);
+  document.getElementById('kaTanggal').value = g.tanggal || todayStr();
+  document.getElementById('kaNominal').innerHTML = 'Pokok: <b>'+rupiah(g.pokok)+'</b> • Jasa: <b>'+rupiah(g.bunga)+'</b> • Total: <b>'+rupiah(g.total)+'</b>';
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKoreksiAngsuran')).show();
+}
+function simpanKoreksiAngsuran(){
+  const id = document.getElementById('kaId').value, ke = +document.getElementById('kaKe').value, tanggal = document.getElementById('kaTanggal').value;
+  const angs = DB.load('angsuran'), g = angs.find(x => String(x.id) === String(id));
+  if (!g){ alert('Data angsuran tidak ditemukan.'); return; }
+  if (!ke || !tanggal){ alert('Angsuran ke dan tanggal wajib diisi.'); return; }
+  const pin = DB.load('pinjaman'), p = pin.find(x => x.id === g.pinjamanId);
+  if (!p){ alert('Data pinjaman tidak ditemukan.'); return; }
+  const bentrok = angs.find(x => String(x.id) !== String(g.id) && x.pinjamanId === g.pinjamanId && +x.angsuranKe === ke);
+  if (bentrok && !confirm('Angsuran ke-'+ke+' sudah dipakai transaksi '+(bentrok.no||'lain')+'. Tetap gunakan nomor tenor ini? Ini dapat membuat dua transaksi berada pada tenor yang sama.')) return;
+  const sebelum = {tanggal:g.tanggal, angsuranKe:g.angsuranKe};
+  g.tanggal = tanggal; g.angsuranKe = ke; g.dikoreksiAt = new Date().toISOString(); g.dikoreksiOleh = currentUser.username;
+  DB.save('angsuran', angs);
+  const jadwal = Array.isArray(p.jadwal) && p.jadwal.length ? p.jadwal : generateJadwalFromPinjaman(p);
+  const transaksiPin = angs.filter(x => x.pinjamanId === p.id).slice().sort((a,b) => String(a.tanggal||'').localeCompare(String(b.tanggal||'')));
+  // Beri nomor tenor pada transaksi lama yang belum memiliki angsuranKe, tanpa mengubah nominal.
+  const terpakai = new Set(transaksiPin.filter(x => +x.angsuranKe > 0).map(x => +x.angsuranKe));
+  transaksiPin.forEach(x => {
+    if (+x.angsuranKe > 0) return;
+    let nomor = 1; while (terpakai.has(nomor) && nomor <= jadwal.length) nomor++;
+    if (nomor <= jadwal.length){ x.angsuranKe = nomor; terpakai.add(nomor); }
+  });
+  jadwal.forEach(j => { j.status = transaksiPin.some(x => +x.angsuranKe === +j.ke) ? 'lunas' : 'belum'; });
+  DB.save('angsuran', angs);
+  p.jadwal = jadwal;
+  DB.save('pinjaman', pin);
+  const lg = DB.load('koreksi_log'); lg.push({tgl:new Date().toISOString(),user:currentUser.username,jenis:'koreksi-angsuran',transaksi:g.no,pinjaman:p.no,angsuranSebelum:sebelum,angsuranSesudah:{tanggal,angsuranKe:ke}}); DB.save('koreksi_log',lg);
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKoreksiAngsuran')).hide();
+  renderAngsuran(); renderPinjaman(); renderJadwalSelect(); loadDashboard();
+  toast('✅ Koreksi angsuran tersimpan. Nominal dan saldo kas tidak berubah.');
+}
+
+function hapusTransaksiAngsuran(){
+  const id = (document.getElementById('kaId') || {}).value || '';
+  const angs = DB.load('angsuran'), g = angs.find(x => String(x.id) === String(id));
+  if (!g){ alert('Data angsuran tidak ditemukan.'); return; }
+  const pin = DB.load('pinjaman'), p = pin.find(x => String(x.id) === String(g.pinjamanId));
+  if (!p){ alert('Data pinjaman tidak ditemukan.'); return; }
+  const per = periodeAngsuran(g) || String(g.tanggal||'').slice(0,7);
+  if (!confirm('HAPUS transaksi '+(g.no||'angsuran')+'?\n\nNominal '+rupiah(g.total)+' akan dibalik dari kas dan saldo pinjaman. Tagihan periode '+periodeLabel(per)+' akan terbuka kembali sehingga dapat diproses ulang. Tindakan ini tidak dapat dibatalkan.')) return;
+  const jadwal = Array.isArray(p.jadwal) ? p.jadwal : [];
+  let j = jadwal.find(x => +x.ke === +(g.angsuranKe||0));
+  if (!j && jadwal.length){
+    const semuaPinjaman = angs.filter(x => String(x.pinjamanId)===String(g.pinjamanId)).slice().sort((a,b)=>String(a.tanggal||'').localeCompare(String(b.tanggal||'')));
+    const ix = semuaPinjaman.findIndex(x => String(x.id)===String(g.id));
+    j = (ix >= 0 ? jadwal[ix] : null) || jadwal.find(x => x.status === 'lunas');
+  }
+  if (j){
+    // Pembayaran manual mengurangi nilai sisa pada baris jadwal; payroll/masal hanya mengubah status.
+    if (!g.sumber || g.sumber === 'manual') {
+      j.pokok = (+j.pokok||0) + (+g.pokok||0);
+      j.jasa = (+j.jasa||0) + (+g.bunga||0);
+      j.total = j.pokok + j.jasa;
+    }
+    j.status = 'belum';
+  }
+  p.sisaPokok = Math.max(0, (+p.sisaPokok||0) + (+g.pokok||0));
+  p.totalBayar = Math.max(0, (+p.totalBayar||0) - (+g.total||0));
+  if (p.status === 'lunas') p.status = 'cair';
+  if (jadwal.length) { p.jadwal = jadwal; if (jadwal.some(x => x.status === 'belum')) p.status = 'cair'; }
+  DB.save('pinjaman', pin);
+  DB.save('angsuran', angs.filter(x => String(x.id) !== String(g.id)));
+  const kas = DB.get('kas',{saldo:0}); kas.saldo = (+kas.saldo||0) - (+g.total||0); DB.set('kas',kas);
+  const lg = DB.load('koreksi_log'); lg.push({tgl:new Date().toISOString(),user:currentUser.username,jenis:'hapus-angsuran',transaksi:g.no,pinjaman:p.no,periode:per,nominal:g.total,alasan:'Penghapusan transaksi untuk membuka kembali tagihan'}); DB.save('koreksi_log',lg);
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKoreksiAngsuran')).hide();
+  renderAngsuran(); renderPinjaman(); renderJadwalSelect(); renderPayroll(); loadDashboard();
+  toast('Transaksi dihapus. Tagihan periode '+periodeLabel(per)+' dapat diproses kembali.');
+}
+
+// Event delegation: tombol koreksi/hapus tetap aktif setiap kali tabel dirender ulang.
+(function initAksiRiwayatAngsuran(){
+  const bind = () => {
+    const tb = document.getElementById('tblAngsuran');
+    if (!tb || tb.dataset.aksiAngsuranBound === '1') return;
+    tb.dataset.aksiAngsuranBound = '1';
+    tb.addEventListener('click', function(ev){
+      const btn = ev.target.closest('[data-angsuran-action]');
+      if (!btn || !tb.contains(btn)) return;
+      ev.preventDefault(); ev.stopPropagation();
+      if (isReadOnly()) { toast('Akun hanya memiliki akses lihat.'); return; }
+      const id = btn.getAttribute('data-angsuran-id');
+      if (!id) { alert('ID transaksi angsuran tidak ditemukan.'); return; }
+      if (btn.getAttribute('data-angsuran-action') === 'edit') {
+        openKoreksiAngsuran(id);
+      } else if (btn.getAttribute('data-angsuran-action') === 'delete') {
+        const hidden = document.getElementById('kaId');
+        if (hidden) hidden.value = id;
+        hapusTransaksiAngsuran();
+      }
+    });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+  // Jika tabel dibuat setelah skrip, pastikan handler terpasang saat halaman angsuran dibuka.
+  const _renderAngsuranAksi = renderAngsuran;
+  renderAngsuran = function(){ bind(); return _renderAngsuranAksi.apply(this, arguments); };
+})();
+
 function openPotongAuto(){ document.getElementById('paPeriode').value = curPeriode(); previewPotongAuto(); new bootstrap.Modal(document.getElementById('modalPotongAuto')).show(); }
 function autoPotongData(per){
   const angs = DB.load('angsuran'), out = [];
-  DB.load('pinjaman').filter(p => p.status === 'cair' && p.jadwal && p.jadwal.length).forEach(p => { const j = p.jadwal.find(x => x.status === 'belum'); if (j && j.tanggal.slice(0,7) <= per && !angs.some(g => g.pinjamanId === p.id && g.periode === per)) out.push({p, j}); });
+  DB.load('pinjaman').filter(p => p.status === 'cair' && p.jadwal && p.jadwal.length).forEach(p => { const j = p.jadwal.find(x => x.status === 'belum'); if (j && j.tanggal.slice(0,7) <= per && !pinjamanSudahDipotong(p.id, per, angs)) out.push({p, j}); });
   return out;
 }
 function previewPotongAuto(){
@@ -4196,12 +4730,12 @@ function previewPotongAuto(){
 function prosesPotongAuto(){
   const per = $g('paPeriode'); if (!per) return;
   if (DB.load('potongAuto').some(x => x.periode === per)){ alert('Periode ini sudah pernah diproses.'); return; }
-  const list = autoPotongData(per); if (!list.length) return;
+  const list = autoPotongData(per).filter(x => !pinjamanSudahDipotong(x.p.id, per)); if (!list.length) { previewPotongAuto(); return; }
   if (!confirm('Proses pemotongan otomatis periode ' + periodeLabel(per) + '?\nProses hanya bisa dilakukan SATU KALI per periode.')) return;
   const pin = DB.load('pinjaman'), angs = DB.load('angsuran'), today = todayStr(); let tot = 0;
   list.forEach((x, i) => { const pp = pin.find(p => p.id === x.p.id), jj = pp.jadwal.find(t => t.ke === x.j.ke && t.status === 'belum'); if (!jj) return;
     jj.status = 'lunas'; pp.sisaPokok = jj.sisaPokok; pp.totalBayar = (pp.totalBayar || 0) + jj.total; if (pp.jadwal.every(t => t.status === 'lunas')){ pp.status = 'lunas'; pp.sisaPokok = 0; }
-    angs.push({id: uid() + i, no: noTrx('ANG'), pinjamanId: pp.id, tanggal: today, pokok: jj.pokok, bunga: jj.jasa, total: jj.total, user: currentUser.username, periode: per, sumber: 'potong-otomatis'}); tot += jj.total; });
+    angs.push({id: uid() + i, no: noTrx('ANG'), pinjamanId: pp.id, tanggal: today, angsuranKe: jj.ke, pokok: jj.pokok, bunga: jj.jasa, total: jj.total, user: currentUser.username, periode: per, sumber: 'potong-otomatis'}); tot += jj.total; });
   DB.save('pinjaman', pin); DB.save('angsuran', angs);
   const pa = DB.load('potongAuto'); pa.push({periode: per, tanggal: today, jumlah: list.length, total: tot, user: currentUser.username}); DB.save('potongAuto', pa);
   const kas = DB.get('kas', {saldo:0}); kas.saldo += tot; DB.set('kas', kas);
@@ -4570,7 +5104,7 @@ function templatePotongMasal(){
   const per = $g('pmPeriode') || curPeriode(), angs = DB.load('angsuran'), all = [];
   DB.load('pinjaman').filter(p => p.status === 'cair').forEach(p => {
     const jad = (p.jadwal && p.jadwal.length) ? p.jadwal : generateJadwalFromPinjaman(p), j = jad.find(x => x.status === 'belum');
-    if (!j || angs.some(g => g.pinjamanId === p.id && g.periode === per)) return;
+    if (!j || pinjamanSudahDipotong(p.id, per, angs)) return;
     const a = ANGF(p.anggotaId);
     all.push({due: j.tanggal.slice(0, 7) <= per, row: {NIP: noAng(a), Nama: a.nama || '', No_Pinjaman: p.no, Jenis: jenisOf(p), Periode: per, Angsuran_Ke: j.ke + '/' + p.tenor, Tanggal_Potong: tglID(todayStr()), Pokok: j.pokok, Jasa: j.jasa, Total: j.total}});
   });
@@ -4611,7 +5145,7 @@ function parsePotongMasal(rows, per0){
     if (isNaN(pokok)){ err.push(ln + 'Pokok tidak valid'); return; }
     if (pokok < 0 || jasa < 0 || pokok + jasa <= 0){ err.push(ln + p.no + ' nominal potongan tidak valid'); return; }
     if (pokok > (+p.sisaPokok || 0) + 0.5){ err.push(ln + p.no + ' pokok melebihi sisa pokok (' + rupiah(p.sisaPokok) + ')'); return; }
-    if (angs.some(g => g.pinjamanId === p.id && g.periode === periode)){ err.push(ln + p.no + ' sudah dipotong periode ' + periodeLabel(periode)); return; }
+    if (pinjamanSudahDipotong(p.id, periode, angs)){ err.push(ln + p.no + ' sudah dipotong periode ' + periodeLabel(periode)); return; }
     const key = p.id + '|' + periode; if (seen.has(key)){ err.push(ln + p.no + ' duplikat dalam file'); return; } seen.add(key);
     ok.push({pid: p.id, no: p.no, nama: ANGF(p.anggotaId).nama || '-', periode, pokok: Math.round(pokok), jasa: Math.round(jasa), tanggal: toISO(r.Tanggal_Potong) || todayStr()});
   });
@@ -4620,12 +5154,12 @@ function parsePotongMasal(rows, per0){
 function terapkanPotongMasal(ok, fname){
   const pin = DB.load('pinjaman'), angs = DB.load('angsuran'); let tot = 0;
   ok.forEach((x, i) => {
-    const pp = pin.find(q => q.id === x.pid); if (!pp) return;
+    const pp = pin.find(q => q.id === x.pid); if (!pp || pinjamanSudahDipotong(pp.id, x.periode, angs)) return;
     if (!pp.jadwal || !pp.jadwal.length) pp.jadwal = generateJadwalFromPinjaman(pp);
     const j = pp.jadwal.find(t => t.status === 'belum'); if (j) j.status = 'lunas';
     pp.sisaPokok = Math.max(0, (+pp.sisaPokok || 0) - x.pokok); pp.totalBayar = (pp.totalBayar || 0) + x.pokok + x.jasa;
     if (pp.sisaPokok <= 0 || pp.jadwal.every(t => t.status === 'lunas')){ pp.status = 'lunas'; pp.sisaPokok = 0; pp.jadwal.forEach(t => { t.status = 'lunas'; }); }
-    angs.push({id: uid() + i, no: noTrx('ANG'), pinjamanId: pp.id, tanggal: x.tanggal, pokok: x.pokok, bunga: x.jasa, total: x.pokok + x.jasa, user: currentUser.username, periode: x.periode, sumber: 'potong-masal'});
+    angs.push({id: uid() + i, no: noTrx('ANG'), pinjamanId: pp.id, tanggal: x.tanggal, angsuranKe: j ? j.ke : undefined, pokok: x.pokok, bunga: x.jasa, total: x.pokok + x.jasa, user: currentUser.username, periode: x.periode, sumber: 'potong-masal'});
     tot += x.pokok + x.jasa;
   });
   DB.save('pinjaman', pin); DB.save('angsuran', angs);
