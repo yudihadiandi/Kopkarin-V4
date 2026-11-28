@@ -16,8 +16,9 @@ const SUPABASE_KEY = 'sb_publishable_tRMH0ktU7RxbqHAq5Fp61g_GuyL6Rbl';
 // ===== LAPISAN SINKRONISASI =====
 // App tetap memakai localStorage (cepat & sinkron); setiap perubahan otomatis di-upsert ke tabel kv_store.
 // ===== VERSI APLIKASI (naikkan setiap ada perubahan) =====
-const APP_VERSION = '6.21', APP_BUILD = '2026-11-28';
+const APP_VERSION = '6.22', APP_BUILD = '2026-11-28';
 const APP_CHANGELOG = [
+  ['6.22', '2026-11-28', 'Perbaikan sinkronisasi Supabase: tunggu hidrasi cloud, antrean aman, retry otomatis, timeout, dan status koneksi lebih informatif'],
   ['6.21', '2026-11-28', 'Histori tagihan bulanan terpisah dari pembayaran; import per periode; rekonsiliasi pokok dan jasa dengan validasi; tidak membuat penerimaan kas otomatis'],
   ['6.13', '2026-11-28', 'Pembatasan satu pinjaman reguler per jenis untuk anggota; anggota dengan riwayat pinjaman hanya dapat mengajukan rehab jika masih ada pinjaman aktif'],
   ['6.11', '2026-11-28', 'Perbaikan tombol koreksi dan hapus langsung pada riwayat angsuran'],
@@ -48,85 +49,161 @@ addEventListener('DOMContentLoaded', () => {
 
 const SYNC = (function(){
   const P = 'kopkarin_';
-  const client = (!/GANTI/.test(SUPABASE_URL) && window.supabase) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
-  const pending = {};
-  let timer = null, state = client ? 'connecting' : 'local', stateMsg = '';
+  const SUPABASE_TIMEOUT_MS = 15000;
+  const RETRY_BASE_MS = 3000;
+  const RETRY_MAX_MS = 60000;
+  // Batasi waktu setiap request dan tetap hormati AbortSignal milik SDK.
+  const fetchWithTimeout = async (url, options={}) => {
+    const controller = new AbortController();
+    const externalSignal = options.signal;
+    let timedOut = false;
+    const abortFromExternal = () => controller.abort(externalSignal && externalSignal.reason);
+    if (externalSignal) {
+      if (externalSignal.aborted) abortFromExternal();
+      else externalSignal.addEventListener('abort', abortFromExternal, {once:true});
+    }
+    const timerId = setTimeout(() => { timedOut = true; controller.abort(); }, SUPABASE_TIMEOUT_MS);
+    try {
+      return await fetch(url, {...options, signal:controller.signal});
+    } catch (e) {
+      if (timedOut) throw new Error('Waktu koneksi Supabase habis (15 detik). Periksa internet atau status project.');
+      throw e;
+    } finally {
+      clearTimeout(timerId);
+      if (externalSignal) externalSignal.removeEventListener('abort', abortFromExternal);
+    }
+  };
+  let client = null, sdkError = '';
+  try {
+    if (!/GANTI/.test(SUPABASE_URL) && window.supabase && typeof window.supabase.createClient === 'function') {
+      client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {global:{fetch:fetchWithTimeout}});
+    } else sdkError = 'Library Supabase belum termuat. Periksa koneksi CDN/internet.';
+  } catch(e) { sdkError = e.message || String(e); }
+
+  const pending = Object.create(null);
+  let timer = null, state = client ? 'connecting' : 'local', stateMsg = sdkError;
+  let flushPromise = null, retryDelay = RETRY_BASE_MS, lastSuccess = null, lastError = null;
 
   function paint(){
     if (!document.body) return;
     let b = document.getElementById('syncBadge');
     if (!b){
-      b = document.createElement('div'); b.id = 'syncBadge'; b.onclick = showVersionInfo; b.title = 'Klik untuk melihat riwayat versi';
+      b = document.createElement('div'); b.id = 'syncBadge'; b.onclick = () => {
+        const queued = Object.keys(pending).length;
+        alert('Status Supabase: ' + (state==='ok'?'Tersinkron':state==='connecting'?'Menghubungkan':state==='local'?'Mode lokal':'Gagal sync') +
+          '\nPesan: ' + (stateMsg || '-') + '\nData menunggu sync: ' + queued +
+          '\nSync terakhir berhasil: ' + (lastSuccess ? new Date(lastSuccess).toLocaleString('id-ID') : 'Belum ada') +
+          '\nKegagalan terakhir: ' + (lastError || '-'));
+      };
       b.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99999;font:600 11px system-ui,sans-serif;padding:4px 10px;border-radius:20px;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer';
       document.body.appendChild(b);
     }
-    const map = {
-      ok:['#198754','☁ Tersinkron'], connecting:['#6c757d','☁ Menghubungkan…'],
-      local:['#6c757d','💾 Mode lokal'], error:['#dc3545','⚠ Gagal sync']
-    };
-    b.style.background = map[state][0]; b.textContent = map[state][1] + ' · v' + APP_VERSION; b.title = (stateMsg ? stateMsg + ' • ' : '') + 'Klik untuk riwayat versi';
+    const map = {ok:['#198754','☁ Tersinkron'],connecting:['#6c757d','☁ Menghubungkan…'],local:['#6c757d','💾 Mode lokal'],error:['#dc3545','⚠ Gagal sync']};
+    b.style.background = map[state][0];
+    b.textContent = map[state][1] + ' · v' + APP_VERSION + (Object.keys(pending).length ? ' ('+Object.keys(pending).length+')' : '');
+    b.title = (stateMsg ? stateMsg + ' • ' : '') + 'Klik untuk detail sinkronisasi';
   }
-  function setState(s, m){ state = s; stateMsg = m || ''; paint(); }
-
+  function setState(s, m){ state=s; stateMsg=m||''; paint(); }
+  function scheduleRetry(){
+    if (!client || timer) return;
+    const delay = retryDelay;
+    retryDelay = Math.min(RETRY_MAX_MS, Math.round(retryDelay*1.8));
+    timer = setTimeout(() => { timer=null; flush().catch(()=>{}); }, delay);
+  }
   async function flush(){
-    if (!client) return;
-    clearTimeout(timer); timer = null;
-    const keys = Object.keys(pending); if (!keys.length) return;
-    const now = new Date().toISOString();
-    const rows = keys.map(k => ({key:k, value:pending[k], updated_at:now}));
-    keys.forEach(k => delete pending[k]);
-    const { error } = await client.from('kv_store').upsert(rows, {onConflict:'key'});
-    if (error){
-      console.error('Sync gagal:', error.message);
-      rows.forEach(r => { if (!(r.key in pending)) pending[r.key] = r.value; });
-      setState('error', error.message);
-      timer = setTimeout(flush, 15000);
-    } else if (!Object.keys(pending).length) setState('ok');
+    if (!client) return false;
+    if (flushPromise) return flushPromise;
+    clearTimeout(timer); timer=null;
+    const keys=Object.keys(pending);
+    if (!keys.length) { if(state!=='error') setState('ok'); return true; }
+    flushPromise=(async()=>{
+      setState('connecting','Mengirim '+keys.length+' kelompok data ke Supabase…');
+      try {
+        // Kirim bertahap agar payload besar tidak membebani satu request.
+        for (let i=0;i<keys.length;i+=50) {
+          const batchKeys=keys.slice(i,i+50);
+          const snapshot=batchKeys.map(k=>({key:k,value:pending[k],updated_at:new Date().toISOString()}));
+          const {error}=await client.from('kv_store').upsert(snapshot,{onConflict:'key'});
+          if(error) throw error;
+          // Hapus antrean hanya jika nilainya belum berubah selama request berjalan.
+          snapshot.forEach(row=>{ if(pending[row.key]===row.value) delete pending[row.key]; });
+        }
+        lastSuccess=Date.now(); lastError=null; retryDelay=RETRY_BASE_MS;
+        if(Object.keys(pending).length){ setState('connecting','Ada perubahan baru yang menunggu dikirim.'); scheduleRetry(); }
+        else setState('ok','Sinkronisasi berhasil.');
+        return true;
+      } catch(e) {
+        lastError=e.message||String(e);
+        console.error('Sync gagal:',e);
+        setState('error',lastError);
+        scheduleRetry();
+        return false;
+      } finally { flushPromise=null; }
+    })();
+    return flushPromise;
   }
-  function push(k, v){
-    if (!client) return;
-    pending[k] = v; clearTimeout(timer); timer = setTimeout(flush, 400);
+  function push(k,v){
+    if(!client) return;
+    pending[k]=v;
+    if(state==='ok') setState('connecting','Perubahan lokal menunggu dikirim.'); else paint();
+    clearTimeout(timer); timer=setTimeout(()=>{timer=null;flush().catch(()=>{});},500);
   }
   async function hydrate(){
-    if (!client){ paint(); return; }
-    try{
-      const { data, error } = await client.from('kv_store').select('key,value');
-      if (error) throw error;
-      if (data.length){
-        data.forEach(r => localStorage.setItem(P + r.key, JSON.stringify(r.value)));
+    if(!client){ paint(); return false; }
+    setState('connecting','Mengambil data dari Supabase…');
+    try {
+      let all=[], offset=0, pageSize=1000;
+      while(true){
+        const {data,error}=await client.from('kv_store').select('key,value').range(offset,offset+pageSize-1);
+        if(error) throw error;
+        const page=data||[]; all=all.concat(page);
+        if(page.length<pageSize) break;
+        offset+=pageSize;
+      }
+      if(all.length){
+        all.forEach(r=>{ if(r && typeof r.key==='string') localStorage.setItem(P+r.key,JSON.stringify(r.value)); });
       } else {
-        // pertama kali: unggah data lokal yang sudah ada di browser
-        const rows = [];
-        for (let i = 0; i < localStorage.length; i++){
-          const lk = localStorage.key(i);
-          if (lk && lk.startsWith(P)){ try{ rows.push({key:lk.slice(P.length), value:JSON.parse(localStorage.getItem(lk))}); }catch(e){} }
+        // Hanya saat tabel cloud benar-benar kosong, migrasikan cache lokal ke cloud.
+        const rows=[];
+        for(let i=0;i<localStorage.length;i++){
+          const lk=localStorage.key(i);
+          if(lk && lk.startsWith(P)){
+            try{ rows.push({key:lk.slice(P.length),value:JSON.parse(localStorage.getItem(lk))}); }catch(e){ console.warn('Data lokal tidak valid:',lk,e); }
+          }
         }
-        if (rows.length){
-          const { error: e2 } = await client.from('kv_store').upsert(rows, {onConflict:'key'});
-          if (e2) throw e2;
+        for(let i=0;i<rows.length;i+=50){
+          const {error}=await client.from('kv_store').upsert(rows.slice(i,i+50),{onConflict:'key'});
+          if(error) throw error;
         }
       }
-      setState('ok');
+      setState('ok','Data cloud berhasil dimuat.');
+      if(Object.keys(pending).length) { clearTimeout(timer); timer=setTimeout(()=>{timer=null;flush().catch(()=>{});},300); }
+      return true;
     } catch(e){
-      console.warn('Supabase tidak terjangkau, memakai data lokal:', e.message || e);
-      setState('error', e.message || String(e));
+      lastError=e.message||String(e);
+      console.warn('Supabase gagal dimuat; aplikasi memakai cache lokal:',lastError);
+      setState('error',lastError);
+      return false;
     }
   }
   async function wipe(){
-    if (!client) return;
-    const { error } = await client.from('kv_store').delete().neq('key', '');
-    if (error) alert('Gagal menghapus data di server: ' + error.message);
+    if(!client) return;
+    const {error}=await client.from('kv_store').delete().neq('key','');
+    if(error) throw error;
   }
   async function pull(k){
-    if (!client) return;
+    if(!client) return false;
     try{
-      const { data, error } = await client.from('kv_store').select('value').eq('key', k).maybeSingle();
-      if (!error && data && data.value !== undefined) localStorage.setItem(P + k, JSON.stringify(data.value));
-    }catch(e){ console.warn('pull gagal', k, e); }
+      const {data,error}=await client.from('kv_store').select('value').eq('key',k).maybeSingle();
+      if(error) throw error;
+      if(data && data.value!==undefined){localStorage.setItem(P+k,JSON.stringify(data.value));return true;}
+      return false;
+    }catch(e){lastError=e.message||String(e);console.warn('pull gagal',k,e);return false;}
   }
-  addEventListener('pagehide', flush);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
-  return { push, flush, hydrate, wipe, pull, paint, enabled: !!client };
+  addEventListener('pagehide',()=>{ if(client && Object.keys(pending).length) flush().catch(()=>{}); });
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden' && Object.keys(pending).length) flush().catch(()=>{});});
+  addEventListener('online',()=>{if(client){retryDelay=RETRY_BASE_MS;flush().catch(()=>{});}});
+  return {push,flush,hydrate,wipe,pull,paint,enabled:!!client,getStatus:()=>({state,stateMsg,pending:Object.keys(pending).length,lastSuccess,lastError})};
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -904,7 +981,7 @@ html.lenis,html.lenis body{height:auto}
           <div class="row g-2 mb-2">
             <div class="col-md-4"><input class="form-control form-control-sm" id="legacyCorrectionSearch" placeholder="Cari kode / nama anggota..." oninput="renderLegacyCorrections()"></div>
             <div class="col-md-3"><select class="form-select form-select-sm" id="legacyCorrectionType" onchange="renderLegacyCorrections()"><option value="">Semua jenis</option><option>Pinjaman USP</option><option>Pinjaman EMG</option><option>Pinjaman Lain2</option><option>Pinjaman Kasbon</option><option>Pinjaman Barang</option></select></div>
-            <div class="col-md-5 text-md-end"><button class="btn btn-sm btn-outline-success" onclick="exportLegacyCorrectionTemplate()"><i class="bi bi-file-excel"></i> Export daftar koreksi</button> <button class="btn btn-sm btn-warning" onclick="applyLegacyCorrections()"><i class="bi bi-check2-square"></i> Simpan koreksi terpilih</button></div>
+            <div class="col-md-5 text-md-end"><button class="btn btn-sm btn-outline-success" onclick="exportLegacyCorrectionTemplate()"><i class="bi bi-file-excel"></i> Export daftar koreksi</button> <button class="btn btn-sm btn-warning" onclick="applyLegacyCorrections()"><i class="bi bi-check2-square"></i> Simpan koreksi terpilih</button> <button class="btn btn-sm btn-outline-danger" onclick="deleteSelectedLegacyLoans()"><i class="bi bi-trash"></i> Hapus data terpilih</button></div>
           </div>
           <div class="table-responsive">
             <table class="table table-sm table-bordered align-middle"><thead><tr>
@@ -3438,7 +3515,7 @@ function editLegacyCorrection(id){
 function deleteLegacyLoan(id){
   const pins=DB.load('pinjaman'), p=pins.find(x=>String(x.id)===String(id));
   if(!p){alert('Data pinjaman tidak ditemukan.');return;}
-  if(!p.legacyImport){alert('Penghapusan dari menu ini hanya diizinkan untuk pinjaman hasil import pinjaman lama.');return;}
+  if(p.metodeBunga!=='index'){alert('Penghapusan dari menu ini hanya berlaku untuk data pinjaman metode INDEX yang tampil pada koreksi masal.');return;}
   const angs=DB.load('angsuran'), related=angs.filter(x=>String(x.pinjamanId)===String(p.id));
   if(related.length){alert('Pinjaman tidak dapat dihapus karena sudah memiliki '+related.length+' transaksi angsuran/pelunasan. Koreksi data pembayaran terlebih dahulu agar riwayat akuntansi tidak terputus.');return;}
   const rehabRef=pins.filter(x=>String(x.id)!==String(p.id)&&(String(x.rehabDariNo||'')===String(p.no||'')||String(x.rehabPinjamanLamaId||'')===String(p.id)));
@@ -3450,6 +3527,26 @@ function deleteLegacyLoan(id){
   delete legacyCorrections[String(id)];
   renderLegacyCorrections();renderPinjaman();renderJadwalSelect();renderPayroll();loadDashboard();
   alert('Data pinjaman lama berhasil dihapus.');
+}
+function deleteSelectedLegacyLoans(){
+  const ids=[...document.querySelectorAll('.legacy-corr-check:checked')].map(x=>String(x.value));
+  if(!ids.length){alert('Pilih minimal satu data pinjaman yang akan dihapus.');return;}
+  const pins=DB.load('pinjaman');
+  const selected=ids.map(id=>pins.find(p=>String(p.id)===id)).filter(p=>p&&p.metodeBunga==='index');
+  if(!selected.length){alert('Tidak ada data pinjaman INDEX terpilih.');return;}
+  const angs=DB.load('angsuran');
+  const blocked=selected.filter(p=>angs.some(x=>String(x.pinjamanId)===String(p.id)) || pins.some(x=>String(x.id)!==String(p.id)&&(String(x.rehabDariNo||'')===String(p.no||'')||String(x.rehabPinjamanLamaId||'')===String(p.id))));
+  const allowed=selected.filter(p=>!blocked.includes(p));
+  if(blocked.length)alert(blocked.length+' data tidak dapat dihapus karena memiliki transaksi angsuran/pelunasan atau menjadi referensi pinjaman rehab. Data tersebut dipertahankan agar riwayat keuangan tidak rusak.');
+  if(!allowed.length){alert('Tidak ada data terpilih yang aman untuk dihapus.');return;}
+  const names=allowed.slice(0,8).map(p=>p.no||p.id).join('\n');
+  if(!confirm('Hapus '+allowed.length+' data pinjaman INDEX yang dipilih?\n'+names+(allowed.length>8?'\n...':'')+'\n\nData yang memiliki transaksi atau relasi rehab tidak akan dihapus.'))return;
+  const delIds=new Set(allowed.map(p=>String(p.id)));
+  DB.save('pinjaman',pins.filter(p=>!delIds.has(String(p.id))));
+  try{const logs=DB.load('logs');logs.push({id:uid(),tanggal:todayStr(),user:currentUser.username,aksi:'HAPUS MASAL PINJAMAN INDEX',detail:'Menghapus '+allowed.length+' data: '+allowed.map(p=>p.no||p.id).join(', ')});DB.save('logs',logs);}catch(e){}
+  ids.forEach(id=>delete legacyCorrections[id]);
+  renderLegacyCorrections();renderPinjaman();renderJadwalSelect();renderPayroll();loadDashboard();
+  alert('Berhasil menghapus '+allowed.length+' data pinjaman INDEX.');
 }
 function toggleLegacyCorrections(v){document.querySelectorAll('.legacy-corr-check').forEach(x=>x.checked=v);}
 function applyLegacyCorrections(){
@@ -6323,14 +6420,13 @@ fillLapDept();
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;z-index:99998;background:#0a1e3f;color:#fff;display:flex;align-items:center;justify-content:center;font:600 14px system-ui,sans-serif';
   ov.textContent = 'Memuat data…'; document.body.appendChild(ov);
-  const cloudHydration = SYNC.hydrate();
-  try { await Promise.race([cloudHydration, new Promise(r => setTimeout(r, 1500))]); } catch(e){}
+  // Tunggu proses hidrasi selesai (berhasil atau timeout/error) sebelum kode aplikasi berjalan.
+  // Request Supabase dibatasi 15 detik oleh fetchWithTimeout agar layar tidak menggantung selamanya.
+  try { await SYNC.hydrate(); } catch(e) { console.warn('Hidrasi cloud gagal, lanjut memakai cache lokal:', e); }
   const sc = document.createElement('script');
   sc.text = document.getElementById('appMain').textContent;
   document.body.appendChild(sc);
   ov.remove(); SYNC.paint();
-  // Jika data cloud selesai setelah batas tunggu, segarkan cache dan layar secara otomatis.
-  cloudHydration.then(() => { if (typeof window.kopkarinRefreshAfterHydrate === 'function') window.kopkarinRefreshAfterHydrate(); });
 })();
 
 // ============ IMPORT HISTORI PINJAMAN BERDASARKAN NO REKENING ============
