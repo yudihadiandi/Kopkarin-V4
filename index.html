@@ -16,7 +16,7 @@ const SUPABASE_KEY = 'sb_publishable_tRMH0ktU7RxbqHAq5Fp61g_GuyL6Rbl';
 // ===== LAPISAN SINKRONISASI =====
 // App tetap memakai localStorage (cepat & sinkron); setiap perubahan otomatis di-upsert ke tabel kv_store.
 // ===== VERSI APLIKASI (naikkan setiap ada perubahan) =====
-const APP_VERSION = '6.15', APP_BUILD = '2026-11-28';
+const APP_VERSION = '6.16', APP_BUILD = '2026-11-28';
 const APP_CHANGELOG = [
   ['6.13', '2026-11-28', 'Pembatasan satu pinjaman reguler per jenis untuk anggota; anggota dengan riwayat pinjaman hanya dapat mengajukan rehab jika masih ada pinjaman aktif'],
   ['6.11', '2026-11-28', 'Perbaikan tombol koreksi dan hapus langsung pada riwayat angsuran'],
@@ -31,6 +31,7 @@ const APP_CHANGELOG = [
   ['6.5', '2026-11-26', 'Alamat E-mail anggota; format tanggal Indonesia dd/mm/yyyy (impor/ekspor, CSV titik koma); PDF buku tabungan ringkas; kirim buku tabungan ke e-mail (satuan & masal)'],
   ['6.4', '2026-11-26', 'Dashboard admin: kartu Dana Cadangan/Sosial/PDK/Pendidikan/Donasi & Kekayaan Koperasi dipindah ke bawah Total Kas & Bank'],
   ['6.3', '2026-11-26', 'Akun BadanPengawas (hanya lihat); penanda versi di lencana, login, sidebar, judul tab'],
+  ['6.16', '2026-11-28', 'Dashboard kas & bank bersih setelah pokok hutang; jasa pinjaman tahunan; pengumuman anggota di atas; optimasi pemuatan halaman'],
   ['6.2', '-', 'Versi sebelumnya (riwayat sebelum 6.3 tidak tercatat di aplikasi)'],
 ];
 function showVersionInfo(){ alert('KOPKARIN v' + APP_VERSION + '\nBuild: ' + APP_BUILD + '\n\nRiwayat versi:\n' + APP_CHANGELOG.map(c => 'v' + c[0] + ' (' + c[1] + ') - ' + c[2]).join('\n')); }
@@ -641,7 +642,8 @@ html.lenis,html.lenis body{height:auto}
         <div class="col-6 col-md-3"><div class="stat-card teal"><div class="ico-chip"><i class="bi bi-bank"></i></div><div class="stat-body"><div class="lbl">Saldo di Bank</div><div class="val" id="stBank">Rp 0</div><div class="sub">Semua rekening</div></div></div></div>
         <div class="col-6 col-md-3"><div class="stat-card orange"><div class="ico-chip"><i class="bi bi-cash-stack"></i></div><div class="stat-body"><div class="lbl">Saldo Kas Tunai</div><div class="val" id="stKasTunai">Rp 0</div><div class="sub">Uang cash</div></div></div></div>
         <div class="col-12"><div class="stat-card gold wide"><div class="ico-chip"><i class="bi bi-piggy-bank-fill"></i></div><div class="stat-body"><div class="lbl">Total Simpanan</div><div class="val" id="stSimpanan">Rp 0</div><div class="sub">Pokok + Wajib + Sukarela</div></div></div></div>
-        <div class="col-12"><div class="stat-card green wide"><div class="ico-chip"><i class="bi bi-bank2"></i></div><div class="stat-body"><div class="lbl">Total Kas &amp; Bank</div><div class="val" id="stKas">Rp 0</div><div class="sub" id="stKasSub">Kekayaan + Kas Tunai + Bank + Simpanan</div></div></div></div>
+        <div class="col-12 col-md-6"><div class="stat-card green wide"><div class="ico-chip"><i class="bi bi-bank2"></i></div><div class="stat-body"><div class="lbl">Kas &amp; Bank Bersih</div><div class="val" id="stKas">Rp 0</div><div class="sub" id="stKasSub">Saldo kas + bank dikurangi sisa pokok pinjaman aktif</div></div></div></div>
+        <div class="col-12 col-md-6"><div class="stat-card gold wide"><div class="ico-chip"><i class="bi bi-graph-up-arrow"></i></div><div class="stat-body"><div class="lbl">Jasa Pinjaman Tahun <span id="stJasaYear">2026</span></div><div class="val" id="stJasaTahun">Rp 0</div><div class="sub" id="stJasaSub">Realisasi jasa + proyeksi jadwal sampai akhir tahun</div></div></div></div>
       </div>
       <div class="row g-3 mb-3" id="dashDana"></div>
       <div class="row g-3">
@@ -1301,6 +1303,9 @@ html.lenis,html.lenis body{height:auto}
   </div>
   <div style="padding:0 14px 24px">
     <div class="msection active" id="msec-home">
+      <div class="panel"><div class="panel-head"><h6><i class="bi bi-info-circle me-1"></i> Pengumuman</h6></div><div class="panel-body">
+        <div id="mPengumuman"></div>
+      </div></div>
       <div class="row g-3 mb-3">
         <div class="col-6"><div class="member-card navy"><div class="ic"><i class="bi bi-safe"></i></div><div class="lbl">Simpanan Pokok</div><div class="val" id="mSimpananPokok">Rp 0</div><div class="sub">Saldo</div></div></div>
         <div class="col-6"><div class="member-card navy"><div class="ic"><i class="bi bi-wallet2"></i></div><div class="lbl">Simpanan Wajib</div><div class="val" id="mSimpananWajib">Rp 0</div><div class="sub">Wajib + wajib awal</div></div></div>
@@ -1312,9 +1317,6 @@ html.lenis,html.lenis body{height:auto}
           <div class="tri"><div><div class="k">Pokok Hutang</div><div class="v" id="mHutPokok">Rp 0</div></div><div><div class="k">Jasa Hutang</div><div class="v" id="mHutJasa">Rp 0</div></div><div class="t"><div class="k">Total Hutang</div><div class="v" id="mSisaHutang">Rp 0</div></div></div></div></div>
       </div>
       <div class="member-info-strip mb-3" id="mInfoKaryawan"></div>
-      <div class="panel"><div class="panel-head"><h6><i class="bi bi-info-circle me-1"></i> Pengumuman</h6></div><div class="panel-body">
-        <div id="mPengumuman"></div>
-      </div></div>
       <div class="panel"><div class="panel-head"><h6><i class="bi bi-clock-history me-1"></i> Transaksi Terakhir</h6></div><div class="panel-body p-0"><div class="table-responsive"><table class="table mb-0"><thead><tr><th>Tanggal</th><th>Keterangan</th><th class="text-end">Jumlah</th></tr></thead><tbody id="mTblTrx"></tbody></table></div></div></div>
     </div>
     <div class="msection" id="msec-simpanan" style="display:none">
@@ -1961,11 +1963,13 @@ function hitungMasaKerja(tglMasuk){
   return t + ' th' + (m ? ' ' + m + ' bln' : '');
 }
 
+// Cache memori: hindari JSON.parse berulang pada data besar setiap render.
+const _kopDBCache = new Map();
 const DB = {
-  load(k){ try { return JSON.parse(localStorage.getItem('kopkarin_'+k) || '[]'); } catch(e){ return []; } },
-  save(k,v){ if (roBlock(k)) return; try { notifDiff(k, v); } catch(e){} try { localStorage.setItem('kopkarin_'+k, JSON.stringify(v)); } catch(e){ SYNC.push(k,v); throw e; } SYNC.push(k,v); },
-  get(k,d){ const v = localStorage.getItem('kopkarin_'+k); return v ? JSON.parse(v) : d; },
-  set(k,v){ if (roBlock(k)) return; try { notifDiff(k, v); } catch(e){} localStorage.setItem('kopkarin_'+k, JSON.stringify(v)); SYNC.push(k,v); }
+  load(k){ if (_kopDBCache.has(k)) return _kopDBCache.get(k); try { const v=JSON.parse(localStorage.getItem('kopkarin_'+k) || '[]'); _kopDBCache.set(k,v); return v; } catch(e){ _kopDBCache.set(k,[]); return _kopDBCache.get(k); } },
+  save(k,v){ if (roBlock(k)) return; try { notifDiff(k, v); } catch(e){} try { localStorage.setItem('kopkarin_'+k, JSON.stringify(v)); _kopDBCache.set(k,v); } catch(e){ SYNC.push(k,v); throw e; } SYNC.push(k,v); },
+  get(k,d){ if (_kopDBCache.has(k)) return _kopDBCache.get(k); const raw=localStorage.getItem('kopkarin_'+k); let v=d; if(raw){try{v=JSON.parse(raw);}catch(e){v=d;}} _kopDBCache.set(k,v); return v; },
+  set(k,v){ if (roBlock(k)) return; try { notifDiff(k, v); } catch(e){} localStorage.setItem('kopkarin_'+k, JSON.stringify(v)); _kopDBCache.set(k,v); SYNC.push(k,v); }
 };
 
 // kolom tabel potongan payroll (dipakai layar, PDF, Excel, print, CSV)
@@ -2307,12 +2311,10 @@ function showApp(){
   document.getElementById('userName').textContent = currentUser.nama;
   document.getElementById('userRole').textContent = currentUser.role;
   document.getElementById('userAv').textContent = currentUser.nama.charAt(0).toUpperCase();
-  loadDashboard(); renderAnggota(); renderSimpanan(); renderSukarela(); renderPinjaman();
-  renderPencairan(); renderAngsuran(); renderJadwalSelect(); renderUsers(); renderBank(); renderPersetujuan(); renderPotongWajib(); renderPayroll();
-  fillAnggotaDropdowns();
+  // Render hanya dashboard saat login. Tabel/menu lain dibuat saat pertama dibuka.
+  loadDashboard();
   const keluarSel = document.getElementById('keluarAnggota');
   if (keluarSel) keluarSel.onchange = onPilihKeluarAnggota;
-  renderMutasiKeluar();
 }
 
 const pageTitles = {dashboard:'Dashboard',anggota:'Data Anggota & Karyawan',users:'Pengguna',bank:'Bank & Rekening',simpanan:'Simpanan',sukarela:'Simpanan Sukarela',tabungan:'Buku Tabungan',pinjaman:'Pinjaman',pinjamanlama:'Upload Pinjaman Lama / Koreksi INDEX',pencairan:'Pencairan Masal',angsuran:'Angsuran',jadwal:'Jadwal Angsuran',keluar:'Mutasi Keluar',persetujuan:'Persetujuan Pengajuan Pinjaman',potongwajib:'Potong Simpanan Wajib Bulanan',payroll:'Potongan Angsuran (Payroll)',laporan:'Laporan',pengaturan:'Pengaturan'};
@@ -2330,7 +2332,8 @@ function goPage(page, noPush){
   if (window.innerWidth < 992 && document.getElementById('sidebar').classList.contains('show')) toggleSidebar();
   if (page === 'dashboard') loadDashboard();
   if (page === 'anggota') renderAnggota();
-  if (page === 'tabungan') fillAnggotaDropdowns();
+  if (page === 'users') renderUsers();
+  if (['simpanan','sukarela','pinjaman','tabungan','pencairan','angsuran','keluar','payroll'].includes(page)) fillAnggotaDropdowns();
   if (page === 'pengaturan') loadPengaturan();
   if (page === 'simpanan') renderSimpanan();
   if (page === 'sukarela') renderSukarela();
@@ -2428,6 +2431,22 @@ function toggleSidebar(){
   document.getElementById('overlay').classList.toggle('show');
 }
 
+// Jasa tahun berjalan = jasa yang sudah tercatat pada transaksi angsuran
+// ditambah proyeksi jadwal yang belum dibayar pada tahun yang sama.
+function ringkasanJasaTahunan(tahun){
+  const th=String(tahun||new Date().getFullYear()), pinjaman=DB.load('pinjaman'), angsuran=DB.load('angsuran');
+  const valid=new Set(pinjaman.filter(p=>p.status!=='ditolak').map(p=>String(p.id)));
+  const actualByLoanMonth=new Set(); let realisasi=0;
+  angsuran.forEach(a=>{const d=String(a.tanggal||''); if(d.slice(0,4)!==th||!valid.has(String(a.pinjamanId)))return; realisasi+=(+a.bunga||+a.jasa||0); actualByLoanMonth.add(String(a.pinjamanId)+'|'+d.slice(0,7));});
+  let proyeksi=0;
+  pinjaman.forEach(p=>{
+    if(p.status==='ditolak')return;
+    const jadwal=Array.isArray(p.jadwal)&&p.jadwal.length?p.jadwal:generateJadwalFromPinjaman(p);
+    jadwal.forEach(j=>{const d=String(j.tanggal||''); if(d.slice(0,4)!==th||j.status!=='belum')return; if(actualByLoanMonth.has(String(p.id)+'|'+d.slice(0,7)))return; proyeksi+=(+j.jasa||0);});
+  });
+  return {tahun:+th,realisasi,proyeksi,total:realisasi+proyeksi};
+}
+
 // ============ DASHBOARD ============
 function loadDashboard(){
   const anggota = DB.load('anggota');
@@ -2436,8 +2455,14 @@ function loadDashboard(){
   const kas = DB.get('kas', {saldo:0});
   document.getElementById('stAktif').textContent = anggota.filter(a => a.status === 'aktif').length;
   document.getElementById('stSimpanan').textContent = rupiah(mutasi.reduce((s,m) => m.trx === 'setor' ? s + m.jumlah : s - m.jumlah, 0));
-  document.getElementById('stPiutang').textContent = rupiah(pinjaman.filter(p => p.status === 'cair').reduce((s,p) => s + (p.sisaPokok || 0), 0));
-  document.getElementById('stKas').textContent = rupiah(kas.saldo);
+  const pokokHutangAktif = pinjaman.filter(p => p.status === 'cair').reduce((s,p) => s + (+p.sisaPokok || 0), 0);
+  document.getElementById('stPiutang').textContent = rupiah(pokokHutangAktif);
+  const saldoKasBank = kasTunai() + totalBank();
+  document.getElementById('stKas').textContent = rupiah(saldoKasBank - pokokHutangAktif);
+  const jasaTh = ringkasanJasaTahunan(new Date().getFullYear());
+  const elJasa=document.getElementById('stJasaTahun'); if(elJasa)elJasa.textContent=rupiah(jasaTh.total);
+  const elJasaYear=document.getElementById('stJasaYear'); if(elJasaYear)elJasaYear.textContent=jasaTh.tahun;
+  const elJasaSub=document.getElementById('stJasaSub'); if(elJasaSub)elJasaSub.textContent='Realisasi '+rupiah(jasaTh.realisasi)+' + sisa jadwal '+rupiah(jasaTh.proyeksi)+' dalam tahun ini';
   const recent = mutasi.slice(-5).reverse();
   document.getElementById('tblAktivitas').innerHTML = recent.length ? recent.map(m => {
     const a = anggota.find(x => x.id === m.anggotaId);
@@ -4187,10 +4212,6 @@ function showMemberPortal(){
   const a = DB.load('anggota').find(x => x.id === currentUser.anggotaId);
   if (!a){ alert('Data anggota tidak ditemukan'); logout(); return; }
   renderMemberHome(a);
-  renderMemberProfil(a);
-  renderMemberSimpanan(a);
-  renderMemberPinjaman(a);
-  renderMemberAngsuran(a);
 }
 
 function switchMemberTab(tab){
@@ -4200,6 +4221,12 @@ function switchMemberTab(tab){
   document.getElementById('msec-'+tab).classList.add('active');
   document.querySelectorAll('.msection').forEach(s => s.style.display = 'none');
   document.getElementById('msec-'+tab).style.display = 'block';
+  const a=DB.load('anggota').find(x=>x.id===currentUser.anggotaId); if(!a)return;
+  if(tab==='profil')renderMemberProfil(a);
+  else if(tab==='simpanan')renderMemberSimpanan(a);
+  else if(tab==='pinjaman')renderMemberPinjaman(a);
+  else if(tab==='angsuran')renderMemberAngsuran(a);
+  else if(tab==='home')renderMemberHome(a);
 }
 
 function renderMemberHome(a){
@@ -4983,6 +5010,9 @@ loadDashboard = function(){ _ld(); renderDashDana(); };
   // 4. Default tab
   switchLoginTab('admin');
 })();
+window.kopkarinRefreshAfterHydrate = function(){
+  try { _kopDBCache.clear(); if (currentUser && currentUser.type === 'admin') showApp(); else if (currentUser && currentUser.type === 'anggota') showMemberPortal(); else { seedData(); migrateData(); _kopDBCache.clear(); applyLogo(); } } catch(e){ console.warn('Refresh data cloud:',e); }
+};
 // ====== PENCARIAN NAMA / NIP (tabel & dropdown anggota) ======
 function initTableSearch(){
   ['simpanan','sukarela','pinjaman','persetujuan','angsuran','bank','users','keluar'].forEach(id => {
@@ -5818,7 +5848,7 @@ function renderDashDana(){
   const tDana = DANA.reduce((z, x) => z + s[x], 0), dn = saldoDonasi(), kekayaan = tDana + dn;
   const bk = totalBank(), kt = kasTunai(), simp = DB.load('mutasi').reduce((z, m) => m.trx === 'setor' ? z + m.jumlah : z - m.jumlah, 0), kb = kekayaan + kt + bk + simp;
   const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-  set('stBank', rupiah(bk)); set('stKasTunai', rupiah(kt)); set('stKas', rupiah(kb));
+  set('stBank', rupiah(bk)); set('stKasTunai', rupiah(kt));
   el.innerHTML = '<div class="col-12 dash-title"><i class="bi bi-layers"></i> Pos Dana &amp; Donasi</div>'
     + ORD.map(x => dCard(cl[x], ic[x], x, rupiah(s[x] || 0), '', {col: 'col-6 col-md-4 col-xl'})).join('')
     + dCard('sky', 'bi-gift', 'DANA DONASI', rupiah(dn), donasiPenerima().length + ' penerima', {col: 'col-6 col-md-4 col-xl'})
@@ -6121,11 +6151,14 @@ fillLapDept();
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;z-index:99998;background:#0a1e3f;color:#fff;display:flex;align-items:center;justify-content:center;font:600 14px system-ui,sans-serif';
   ov.textContent = 'Memuat data…'; document.body.appendChild(ov);
-  try { await Promise.race([SYNC.hydrate(), new Promise(r => setTimeout(r, 8000))]); } catch(e){}
+  const cloudHydration = SYNC.hydrate();
+  try { await Promise.race([cloudHydration, new Promise(r => setTimeout(r, 1500))]); } catch(e){}
   const sc = document.createElement('script');
   sc.text = document.getElementById('appMain').textContent;
   document.body.appendChild(sc);
   ov.remove(); SYNC.paint();
+  // Jika data cloud selesai setelah batas tunggu, segarkan cache dan layar secara otomatis.
+  cloudHydration.then(() => { if (typeof window.kopkarinRefreshAfterHydrate === 'function') window.kopkarinRefreshAfterHydrate(); });
 })();
 
 // ============ IMPORT HISTORI PINJAMAN BERDASARKAN NO REKENING ============
