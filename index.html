@@ -16,12 +16,14 @@ const SUPABASE_KEY = 'sb_publishable_tRMH0ktU7RxbqHAq5Fp61g_GuyL6Rbl';
 // ===== LAPISAN SINKRONISASI =====
 // App tetap memakai localStorage (cepat & sinkron); setiap perubahan otomatis di-upsert ke tabel kv_store.
 // ===== VERSI APLIKASI (naikkan setiap ada perubahan) =====
-const APP_VERSION = '6.13', APP_BUILD = '2026-11-28';
+const APP_VERSION = '6.15', APP_BUILD = '2026-11-28';
 const APP_CHANGELOG = [
   ['6.13', '2026-11-28', 'Pembatasan satu pinjaman reguler per jenis untuk anggota; anggota dengan riwayat pinjaman hanya dapat mengajukan rehab jika masih ada pinjaman aktif'],
   ['6.11', '2026-11-28', 'Perbaikan tombol koreksi dan hapus langsung pada riwayat angsuran'],
   ['6.10', '2026-11-27', 'Pencegahan dobel potongan per pinjaman per periode; transaksi dapat dihapus melalui koreksi untuk membuka tagihan kembali'],
   ['6.12', '2026-11-28', 'Dua konsep pinjaman yang dapat dipilih admin (bunga atau INDEX PAW), serta pengajuan rehab pinjaman anggota dengan perhitungan pelunasan dan dana bersih diterima'],
+  ['6.14', '2026-11-28', 'Menu import histori pinjaman dan rehab berdasarkan pencocokan NO REK BSI; anti duplikasi dan relasi histori pinjaman lama-baru'],
+  ['6.15', '2026-11-28', 'Import histori dipindah ke dalam menu Pinjaman; pinjaman yang masih berjalan diaktifkan untuk tagihan payroll 12/2026; rekening tidak ditemukan diabaikan; relasi rehab diperkuat'],
   ['6.9', '2026-11-27', 'Koreksi masal pinjaman lama dilengkapi seluruh komponen termasuk pokok awal, tenor awal, status, dan tanggal pencairan'],
   ['6.8', '2026-11-27', 'Perbaikan tagihan INDEX: tagihan dan pembayaran membaca jadwal PAW; cicilan tetap'],
   ['6.7', '2026-11-27', 'Migrasi pinjaman lama metode INDEX, upload Excel PAW, koreksi masal, dan pembayaran berbasis jadwal tersimpan'],
@@ -770,9 +772,37 @@ html.lenis,html.lenis body{height:auto}
         <div class="panel-body">
           <div class="row g-2 mb-3">
             <div class="col-6 col-md-3"><select class="form-select" id="filterPinJenis" onchange="renderPinjaman()"></select></div>
-            <div class="col-6 col-md-3"><select class="form-select" id="filterPinStatus" onchange="renderPinjaman()"><option value="">Semua Status</option><option value="pengajuan">Pengajuan</option><option value="disetujui">Disetujui</option><option value="cair">Cair</option><option value="lunas">Lunas</option><option value="ditolak">Ditolak</option></select></div>
+            <div class="col-6 col-md-3"><select class="form-select" id="filterPinStatus" onchange="renderPinjaman()"><option value="">Semua Status</option><option value="pengajuan">Pengajuan</option><option value="disetujui">Disetujui</option><option value="cair">Cair</option><option value="lunas">Lunas</option><option value="direhab">Direhab</option><option value="ditolak">Ditolak</option></select></div>
           </div>
-          <div class="table-responsive"><table class="table"><thead><tr><th>No. Pinjaman</th><th>Anggota</th><th>Jenis</th><th class="text-end">Diajukan</th><th class="text-end">Disetujui</th><th>Tenor</th><th>Sisa Tenor</th><th class="text-end">Tagihan/bln</th><th class="text-end">Total Tagihan</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody id="tblPinjaman"></tbody></table></div></div>
+          <div class="table-responsive"><table class="table"><thead><tr><th>No. Pinjaman</th><th>Anggota</th><th>Jenis</th><th class="text-end">Diajukan</th><th class="text-end">Disetujui</th><th>Tenor</th><th>Sisa Tenor</th><th class="text-end">Tagihan/bln</th><th class="text-end">Total Tagihan</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody id="tblPinjaman"></tbody></table></div>
+          <details class="mt-4 border rounded-3 p-3" id="pinjamanImportHistory">
+            <summary class="fw-bold text-primary" style="cursor:pointer"><i class="bi bi-file-earmark-arrow-up me-2"></i>Import Data Pinjaman, Histori &amp; Rehab (Rekap Periode 2026)</summary>
+            <div class="pt-3">
+          <div class="alert alert-info py-2 small">
+            Pencocokan anggota menggunakan <b>NO REK BSI</b> pada file dengan kolom <b>No_Rekening / rekening</b> di data anggota. NIK dan nama hanya ditampilkan sebagai informasi, tidak digunakan sebagai kunci pencocokan.
+            Data dicocokkan berdasarkan nomor rekening. Pinjaman yang masih memiliki tenor pada periode 12/2026 akan menjadi pinjaman berjalan dan masuk tagihan payroll 12/2026. Pinjaman yang sudah selesai tetap menjadi histori; pinjaman lama yang direhab ditutup dan dihubungkan ke pinjaman baru. Data tanpa rekening atau rekening yang tidak ditemukan di master anggota diabaikan (diasumsikan anggota sudah keluar). Import tidak membuat transaksi kas atau pembayaran angsuran palsu.
+          </div>
+          <div class="row g-3 align-items-end">
+            <div class="col-lg-7"><label class="form-label fw-semibold">File rekap pinjaman (.xlsx / .xls / .csv)</label><input class="form-control" type="file" id="histLoanFile" accept=".xlsx,.xls,.csv" onchange="previewHistLoanFile(event)"><div class="form-text">Format yang didukung: NO, JENIS PIJAMAN, PERIODE, NIK, NO REK BSI, NAMA, BAGIAN, JUMLAH PINJAMAN, TENOR, CICILAN, JUMLAH HUTANG, CICILAN PELUNASAN, SISA TNR, JUMLAH PELUNASAN, DITERIMA.</div></div>
+            <div class="col-lg-5 d-flex gap-2"><button class="btn btn-outline-secondary" onclick="resetHistLoanImport()">Reset</button><button class="btn btn-primary-c" onclick="commitHistLoanImport()" id="btnCommitHistLoan" disabled><i class="bi bi-database-add"></i> Import transaksi valid</button></div>
+          </div>
+          <div class="row g-2 mt-3" id="histLoanStats">
+            <div class="col-6 col-lg-3"><div class="stat-card blue"><div class="lbl">Baris terbaca</div><div class="val" id="histCount">0</div></div></div>
+            <div class="col-6 col-lg-3"><div class="stat-card green"><div class="lbl">Cocok rekening</div><div class="val" id="histMatched">0</div></div></div>
+            <div class="col-6 col-lg-3"><div class="stat-card orange"><div class="lbl">Kandidat rehab</div><div class="val" id="histRehab">0</div></div></div>
+            <div class="col-6 col-lg-3"><div class="stat-card red"><div class="lbl">Perlu pemeriksaan</div><div class="val" id="histIssues">0</div></div></div>
+            <div class="col-6 col-lg-3"><div class="stat-card green"><div class="lbl">Aktif untuk 12/2026</div><div class="val" id="histActive">0</div></div></div>
+            <div class="col-6 col-lg-3"><div class="stat-card orange"><div class="lbl">Diabaikan (rekening)</div><div class="val" id="histSkipped">0</div></div></div>
+          </div>
+          <div class="alert alert-warning small mt-3 mb-2" id="histLoanNotice" style="display:none"></div>
+          <div class="table-responsive mt-2"><table class="table table-sm table-hover table-bordered align-middle">
+            <thead><tr><th>No</th><th>Periode</th><th>Rekening BSI</th><th>Nama sumber</th><th>Anggota cocok di aplikasi</th><th>Jenis</th><th class="text-end">Pokok</th><th class="text-end">Tenor</th><th class="text-end">Cicilan</th><th class="text-end">Pelunasan</th><th class="text-end">Bersih diterima</th><th>Status 12/2026</th><th>Status validasi</th></tr></thead>
+            <tbody id="histLoanPreview"><tr><td colspan="13" class="text-center text-muted">Pilih file Excel untuk melihat preview.</td></tr></tbody>
+          </table></div>
+          <div class="small text-muted mt-2">Periode operasional yang dibentuk adalah 12/2026. Untuk pinjaman yang sudah berjalan sebelum Desember, jadwal yang dibuat hanya sisa tagihan mulai Desember 2026; angsuran bulan sebelumnya tidak dibuat sebagai transaksi pembayaran. Data tanpa nomor rekening atau rekening yang tidak terdaftar di master anggota otomatis diabaikan. Pencegahan impor ganda memakai rekening + jenis + periode + pokok + tenor + cicilan + pelunasan. Angka sumber dipertahankan.</div>
+        
+            </div>
+          </details></div>
       </div>
     </div>
 
@@ -842,6 +872,7 @@ html.lenis,html.lenis body{height:auto}
         </div>
       </div>
     </div>
+
 
     <!-- PENCAIRAN MASAL -->
     <div class="section" id="sec-pencairan">
@@ -2305,6 +2336,7 @@ function goPage(page, noPush){
   if (page === 'sukarela') renderSukarela();
   if (page === 'pinjaman') renderPinjaman();
   if (page === 'pinjamanlama') renderLegacyInitial();
+  if (page === 'pinjaman') renderHistLoanSummary();
   if (page === 'persetujuan') renderPersetujuan();
   if (page === 'pencairan') renderPencairan();
   if (page === 'jadwal') renderJadwalSelect();
@@ -3125,7 +3157,7 @@ function renderTabungan(){
   document.getElementById('hasilTabungan').innerHTML = '<div class="print-header" style="display:block"><h4>BUKU TABUNGAN</h4><p>'+anggota.nama+' - '+noAng(anggota)+'</p></div><div class="d-flex justify-content-between mb-2"><div><b>'+anggota.nama+'</b><br><small>'+noAng(anggota)+' • '+anggota.dept+'</small></div><div class="text-end"><small class="text-muted">Saldo Akhir</small><br><b>'+rupiah(saldo)+'</b></div></div><div class="table-responsive"><table class="table table-bordered table-sm"><thead><tr><th style="width:40px">No</th><th>Tanggal</th><th>Kode</th><th>Keterangan</th><th class="text-end">Debit</th><th class="text-end">Kredit</th><th class="text-end">Saldo</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 // ============ PINJAMAN (v4: 5 jenis, persetujuan admin, edit) ============
-function statusBadgeClass(s){ return ({pengajuan:'pending', disetujui:'info', cair:'active', lunas:'active', ditolak:'inactive'})[s] || 'pending'; }
+function statusBadgeClass(s){ return ({pengajuan:'pending', disetujui:'info', cair:'active', lunas:'active', direhab:'info', ditolak:'inactive'})[s] || 'pending'; }
 const isApproved = s => ['disetujui','cair','lunas'].includes(s);
 function cicilanOf(p){
   if (p && p.metodeBunga === 'index'){
@@ -4402,7 +4434,7 @@ const pad2 = n => String(n).padStart(2, '0');
 function perLabel(d, s){ return (d || s) ? 'Periode: ' + (d ? tglPanjang(d) : 'awal') + ' s/d ' + (s ? tglPanjang(s) : 'sekarang') : 'Semua periode'; }
 // Tagihan bulanan, total tagihan & sisa tenor: dari data disetujui, atau dari data pengajuan bila belum disetujui
 function tagihanInfo(p){
-  const ok = isApproved(p.status);
+  const ok = isApproved(p.status) || p.status === 'direhab';
   const jm = ok ? p.jumlah : (p.jumlahPengajuan !== undefined ? p.jumlahPengajuan : p.jumlah), tn = ok ? p.tenor : (p.tenorPengajuan !== undefined ? p.tenorPengajuan : p.tenor);
   const bg = (p.bunga || p.bunga === 0) ? p.bunga : bungaDefault(jenisOf(p));
   const c = ok ? cicilanOf(p) : cicilanOf({jumlah: jm, tenor: tn, bunga: bg});
@@ -4410,7 +4442,7 @@ function tagihanInfo(p){
   const totalTagihan = p.metodeBunga === 'index' ? (+p.totalHutangAwal || ((p.jumlah||0) + (p.totalJasaAwal||0))) : Math.round(jm + c.jasa * tn);
   return {c, tenor: tn, sisa, totalTagihan};
 }
-function sisaInfo(p){ const j = (p.jadwal || generateJadwalFromPinjaman(p)).filter(x => x.status === 'belum'); return {n: j.length, tagihan: j.reduce((s,x) => s + x.total, 0), pokok: p.sisaPokok || 0, next: j[0] ? j[0].tanggal : ''}; }
+function sisaInfo(p){ if(p&&p.historiOnly)return {n:0,tagihan:0,pokok:0,next:''}; const j = (p.jadwal || generateJadwalFromPinjaman(p)).filter(x => x.status === 'belum'); return {n: j.length, tagihan: j.reduce((s,x) => s + x.total, 0), pokok: p.sisaPokok || 0, next: j[0] ? j[0].tanggal : ''}; }
 
 // ---------- mesin laporan (Print / PDF / Excel) ----------
 function rptGet(k){
@@ -6095,6 +6127,159 @@ fillLapDept();
   document.body.appendChild(sc);
   ov.remove(); SYNC.paint();
 })();
+
+// ============ IMPORT HISTORI PINJAMAN BERDASARKAN NO REKENING ============
+let histLoanRows = [], histLoanWorkbook = null, histLoanSkipped = 0;
+function histDigits(v){
+  if(v===null||v===undefined||v==='')return '';
+  let s=String(v).trim();
+  if(/^\d+\.0+$/.test(s))s=s.replace(/\.0+$/,'');
+  return s.replace(/\D/g,'');
+}
+function histNum(v){
+  if(typeof v==='number')return Number.isFinite(v)?v:0;
+  if(v===null||v===undefined||v==='')return 0;
+  let s=String(v).trim().replace(/[Rp\s]/gi,'');
+  if(s.includes('.')&&s.includes(','))s=s.replace(/\./g,'').replace(',','.');
+  else if(/^\d{1,3}(\.\d{3})+$/.test(s))s=s.replace(/\./g,'');
+  else s=s.replace(',','.');
+  const n=Number(s);return Number.isFinite(n)?n:0;
+}
+function histNorm(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');}
+function histHeaderMap(row){const m={};row.forEach((v,i)=>{const k=histNorm(v);if(k)m[k]=i;});return m;}
+function histCol(m,names){for(const n of names){const k=histNorm(n);if(m[k]!==undefined)return m[k];}return -1;}
+function histVal(row,m,names){const i=histCol(m,names);return i<0?'':row[i];}
+function histPeriod(v){
+  const s=String(v||'').trim(),m=s.match(/^(\d{1,2})[\/\-](\d{4})$/);
+  if(!m)return null;const mm=+m[1],yy=+m[2];if(mm<1||mm>12||yy<2000||yy>2100)return null;
+  return {month:mm,year:yy,key:yy*12+mm-1,iso:yy+'-'+String(mm).padStart(2,'0')+'-01',label:String(mm).padStart(2,'0')+'/'+yy};
+}
+function histFindMember(rek){
+  const key=histDigits(rek);if(!key)return {member:null,ambiguous:false};
+  const hits=DB.load('anggota').filter(a=>histDigits(a.rek)===key);
+  return {member:hits.length===1?hits[0]:null,ambiguous:hits.length>1,count:hits.length};
+}
+function histLoanKey(x){return [histDigits(x.rek),x.jenis,x.periode,x.jumlah,x.tenor,x.cicilan,x.pelunasan].join('|');}
+function previewHistLoanFile(ev){
+  const f=ev.target.files&&ev.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=e=>{
+    try{
+      let rows;
+      if(/\.csv$/i.test(f.name)){const txt=new TextDecoder('utf-8').decode(e.target.result);rows=XLSX.utils.sheet_to_json(XLSX.read(txt,{type:'string'}).Sheets[XLSX.read(txt,{type:'string'}).SheetNames[0]],{header:1,defval:'',raw:true});}
+      else {histLoanWorkbook=XLSX.read(e.target.result,{type:'array',cellDates:false});const sh=histLoanWorkbook.SheetNames[0];rows=XLSX.utils.sheet_to_json(histLoanWorkbook.Sheets[sh],{header:1,defval:'',raw:true});}
+      let hi=-1,map=null;
+      for(let i=0;i<Math.min(rows.length,15);i++){const m=histHeaderMap(rows[i]);if(histCol(m,['NO REK BSI','NO REKENING BSI'])>=0&&histCol(m,['JUMLAH PINJAMAN'])>=0&&histCol(m,['PERIODE'])>=0){hi=i;map=m;break;}}
+      if(hi<0)throw new Error('Header tidak ditemukan. Pastikan file memiliki kolom NO REK BSI, PERIODE, dan JUMLAH PINJAMAN.');
+      const pins=DB.load('pinjaman');
+      histLoanSkipped=0;
+      histLoanRows=rows.slice(hi+1).map((r,i)=>{
+        const rek=histDigits(histVal(r,map,['NO REK BSI','NO REKENING BSI']));
+        const jenisRaw=String(histVal(r,map,['JENIS PIJAMAN','JENIS PINJAMAN','JENIS'])||'').trim().toUpperCase();
+        const jenis=jenisRaw==='USP'?'Pinjaman USP':jenisRaw==='EMG'?'Pinjaman EMG':'';
+        const period=histPeriod(histVal(r,map,['PERIODE']));
+        const jumlah=Math.round(histNum(histVal(r,map,['JUMLAH PINJAMAN','POKOK PINJAMAN'])));
+        const tenor=Math.floor(histNum(histVal(r,map,['TENOR','TNR'])));
+        const cicilan=Math.round(histNum(histVal(r,map,['CICILAN'])));
+        const totalHutang=Math.round(histNum(histVal(r,map,['JUMLAH HUTANG','TOTAL HUTANG'])));
+        const cicilanLama=Math.round(histNum(histVal(r,map,['CICILAN PELUNASAN'])));
+        const sisaTenorLama=Math.floor(histNum(histVal(r,map,['SISA TNR','SISA TENOR'])));
+        const pelunasan=Math.round(histNum(histVal(r,map,['JUMLAH PELUNASAN'])));
+        const diterima=Math.round(histNum(histVal(r,map,['DITERIMA','BERSIH DITERIMA'])));
+        const nik=String(histVal(r,map,['NIK'])||'').trim(),nama=String(histVal(r,map,['NAMA'])||'').trim(),bagian=String(histVal(r,map,['BAGIAN'])||'').trim();
+        if(!rek&&!jumlah&&!nama)return null;
+        const match=histFindMember(rek);
+        // Nomor rekening kosong / tidak terdaftar di master dianggap anggota keluar: abaikan tanpa impor.
+        if(!rek || (!match.member && !match.ambiguous)){histLoanSkipped++;return null;}
+        const key=histLoanKey({rek,jenis,periode:period?period.label:'',jumlah,tenor,cicilan,pelunasan});
+        const existing=pins.find(p=>p.histImportKey===key),upgrade=!!(existing&&existing.histImport&&existing.historiOnly&&['histori','direhab'].includes(existing.status)),duplicate=!!existing&&!upgrade;
+        const issues=[];
+        if(match.ambiguous)issues.push('No rekening dipakai lebih dari satu data anggota');
+        if(!jenis)issues.push('Jenis hanya USP/EMG yang didukung');
+        if(!period)issues.push('Periode tidak valid');
+        if(jumlah<=0||tenor<=0||cicilan<=0)issues.push('Pokok/tenor/cicilan tidak valid');
+        if(pelunasan>0&&(!cicilanLama||!sisaTenorLama))issues.push('Data pelunasan rehab tidak lengkap');
+        if(Math.abs((jumlah-pelunasan)-diterima)>1)issues.push('Selisih bersih diterima');
+        if(totalHutang&&Math.abs(cicilan*tenor-totalHutang)>1)issues.push('Total hutang berbeda dari cicilan × tenor');
+        if(duplicate)issues.push('Sudah pernah diimpor');
+        if(upgrade)issues.push('Akan diperbarui dari hasil impor versi sebelumnya');
+        const asOf=histPeriod('12/2026'),elapsed=period?Math.max(0,asOf.key-period.key):0,remaining=Math.max(0,tenor-elapsed);
+        return {row:hi+i+2,rek,jenis,periode:period?period.label:'',periodKey:period?period.key:0,tanggal:period?period.iso:'',jumlah,tenor,cicilan,totalHutang,cicilanLama,sisaTenorLama,pelunasan,diterima,nik,nama,bagian,anggotaId:match.member&&match.member.id,anggotaNama:match.member&&match.member.nama,elapsed,remaining,aktifDes2026:remaining>0,duplicate,upgrade,issues,valid:issues.every(z=>z==='Akan diperbarui dari hasil impor versi sebelumnya'||z==='Total hutang berbeda dari cicilan × tenor'),key};
+      }).filter(Boolean);
+      renderHistLoanSummary();
+    }catch(err){histLoanRows=[];renderHistLoanSummary();alert('File gagal dibaca: '+err.message);}
+  };
+  rd.readAsArrayBuffer(f);
+}
+function renderHistLoanSummary(){
+  const rows=histLoanRows,good=rows.filter(x=>x.valid&&!x.duplicate),matched=rows.filter(x=>x.anggotaId),rehab=rows.filter(x=>x.pelunasan>0),issues=rows.filter(x=>!x.valid||x.duplicate),active=good.filter(x=>x.aktifDes2026&&!x.duplicate);
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('histCount',rows.length);set('histMatched',matched.length);set('histRehab',rehab.length);set('histIssues',issues.length);set('histActive',active.length);set('histSkipped',histLoanSkipped);
+  const body=document.getElementById('histLoanPreview');
+  if(body)body.innerHTML=rows.length?rows.map((x,i)=>'<tr class="'+(!x.valid||x.duplicate?'table-warning':'')+'"><td>'+esc(x.row)+'</td><td>'+esc(x.periode||'-')+'</td><td><code>'+esc(x.rek||'-')+'</code></td><td>'+esc(x.nama||'-')+'<div class="small text-muted">NIK: '+esc(x.nik||'-')+'</div></td><td>'+(x.anggotaId?'<b>'+esc(x.anggotaNama)+'</b>':'<span class="text-danger">Tidak cocok</span>')+'</td><td>'+esc(x.jenis||'-')+'</td><td class="text-end">'+rupiah(x.jumlah)+'</td><td class="text-end">'+x.tenor+'</td><td class="text-end">'+rupiah(x.cicilan)+'</td><td class="text-end">'+rupiah(x.pelunasan)+'</td><td class="text-end">'+rupiah(x.diterima)+'</td><td>'+(x.aktifDes2026?'<span class="badge bg-success">Aktif • '+x.remaining+' bln</span>':'<span class="badge bg-secondary">Selesai</span>')+'</td><td>'+(x.duplicate?'<span class="badge bg-secondary">Duplikat</span>':x.upgrade?'<span class="badge bg-info text-dark">Perbarui histori lama</span>':x.valid?(x.issues.length?'<span class="badge bg-warning text-dark">Siap • cek total hutang</span>':'<span class="badge bg-success">Siap</span>'):'<span class="badge bg-danger">'+esc(x.issues.join('; '))+'</span>')+'</td></tr>').join(''):'<tr><td colspan="13" class="text-center text-muted">Pilih file Excel untuk melihat preview.</td></tr>';
+  const btn=document.getElementById('btnCommitHistLoan');if(btn)btn.disabled=!good.length;
+  const note=document.getElementById('histLoanNotice');
+  if(note){note.style.display=rows.length?'block':'none';note.innerHTML=rows.length?'<b>Siap diimpor: '+good.length+' transaksi (termasuk pembaruan histori lama).</b> '+active.length+' diperkirakan masih berjalan untuk tagihan 12/2026. '+histLoanSkipped+' baris diabaikan karena rekening kosong/tidak ditemukan di master anggota. '+issues.length+' baris perlu diperiksa atau dilewati. Tidak dibuat transaksi angsuran untuk bulan sebelum Desember.':'';
+  }
+}
+function histMakeSchedule(x){
+  // Jadwal operasional diproyeksikan per periode 12/2026. Angsuran sebelum Desember
+  // tidak dibuat sebagai transaksi pembayaran; hanya sisa tagihan Desember dan sesudahnya yang dibentuk.
+  const asOf=histPeriod('12/2026'), elapsed=Math.max(0,asOf.key-x.periodKey), remaining=Math.max(0,x.tenor-elapsed);
+  let sisaPok=Math.max(0,+x.jumlah||0); const basePok=Math.round((+x.jumlah||0)/Math.max(1,x.tenor)*100)/100;
+  // Saldo pokok awal Desember setelah jumlah periode yang telah berlalu (bukan bukti transaksi angsuran).
+  for(let i=0;i<Math.min(elapsed,x.tenor);i++) sisaPok=Math.max(0,sisaPok-(i===x.tenor-1?sisaPok:Math.min(basePok,sisaPok)));
+  const jad=[]; let rp=sisaPok;
+  for(let k=0;k<remaining;k++){
+    const ke=elapsed+k+1, pok=ke>=x.tenor?rp:Math.min(basePok,rp), jasa=Math.max(0,x.cicilan-pok);
+    rp=Math.max(0,rp-pok);
+    const dt=dueDateEOM(x.tanggal,elapsed+k);
+    jad.push({ke,tanggal:dt,pokok:pok,jasa,total:x.cicilan,sisaPokok:rp,sisaJasa:Math.max(0,(x.totalHutang||x.cicilan*x.tenor)-x.cicilan*ke),status:'belum',sumberImport:'rekap_periode_2026'});
+  }
+  return {jadwal:jad,elapsed,remaining,sisaPokok:sisaPok,sisaJasa:Math.max(0,(x.totalHutang||x.cicilan*x.tenor)-x.jumlah-elapsed*Math.max(0,x.cicilan-basePok))};
+}
+function commitHistLoanImport(){
+  const batch=histLoanRows.filter(x=>x.valid&&!x.duplicate).sort((a,b)=>a.periodKey-b.periodKey||a.row-b.row);
+  if(!batch.length){alert('Tidak ada transaksi valid untuk diimpor.');return;}
+  const pins=DB.load('pinjaman');
+  const aktif= batch.filter(x=>x.remaining>0).length;
+  if(!confirm('Import '+batch.length+' transaksi berdasarkan NO REK BSI?\n\nPerkiraan pinjaman berjalan untuk tagihan 12/2026: '+aktif+'.\nPinjaman yang tenor-nya sudah habis akan disimpan sebagai histori lunas. Rehab menutup pinjaman lama dan menghubungkannya dengan pinjaman baru. Data tanpa rekening / rekening tidak ditemukan telah diabaikan.\n\nTidak dibuat transaksi pembayaran angsuran masa lalu dan tidak ada mutasi kas.'))return;
+  // Bersihkan relasi lama dari import v6.14 agar dapat dibangun ulang dengan status operasional 12/2026.
+  pins.filter(p=>p.histImport).forEach(p=>{delete p.rehabToId;delete p.rehabAtPeriod;delete p.rehabPelunasan;delete p.rehabImport;delete p.rehabFromId;delete p.rehabUnlinked;delete p.histImportParentId;delete p.histImportLinkMode;});
+  const created=[];
+  for(const x of batch){
+    const same=pins.filter(p=>p.histImportRek===x.rek&&jenisOf(p)===x.jenis&&p.histImportKey&&p.histImport);
+    let parent=null,linkMode='';
+    if(x.pelunasan>0){
+      const candidates=same.filter(p=>{const pp=histPeriod(p.histImportPeriod);const diff=pp?x.periodKey-pp.key:999;const sisaDiharapkan=(+p.tenor||0)-diff-1;return pp&&diff>0&&diff<Math.max(1,+p.tenor||1)&&sisaDiharapkan>0&&Math.abs(sisaDiharapkan-(+x.sisaTenorLama||0))<=1&&!p.rehabToId&&Math.abs((+p.legacyCicilan||0)-x.cicilanLama)<=1;});
+      if(candidates.length){candidates.sort((a,b)=>{const pa=histPeriod(a.histImportPeriod),pb=histPeriod(b.histImportPeriod);return (pb?pb.key:0)-(pa?pa.key:0);});const top=candidates[0],topPeriod=histPeriod(top.histImportPeriod);const ties=candidates.filter(z=>histPeriod(z.histImportPeriod)?.key===topPeriod?.key);if(ties.length===1){parent=top;linkMode='rekening + jenis + periode + cicilan lama (pinjaman paling akhir)';}}
+    }
+    const old=pins.find(z=>z.histImportKey===x.key),id=old?old.id:uid(),oldNo=old&&old.no,sc=histMakeSchedule(x),remaining=sc.remaining;
+    const totalHutang=x.totalHutang||x.cicilan*x.tenor;
+    const p={id,no:noTrx('HIS'),anggotaId:x.anggotaId,jenis:x.jenis,jumlah:x.jumlah,tenor:x.tenor,bunga:0,metodeBunga:'index',indexFactor:null,indexCicilan:x.cicilan,legacyCicilan:x.cicilan,legacySisaTenor:remaining,legacySisaJasa:sc.sisaJasa,totalHutangAwal:totalHutang,totalJasaAwal:Math.max(0,totalHutang-x.jumlah),status:remaining>0?'cair':'lunas',historiOnly:remaining<=0,tanggal:x.tanggal,tanggalCair:x.tanggal,sisaPokok:remaining>0?sc.sisaPokok:0,totalBayar:0,jadwal:sc.jadwal,legacyScheduleVersion:3,histImport:true,histImportKey:x.key,histImportRek:x.rek,histImportPeriod:x.periode,histImportNik:x.nik,histImportNama:x.nama,histImportBagian:x.bagian,histImportCicilanLama:x.cicilanLama,histImportSisaTenorLama:x.sisaTenorLama,histImportPelunasan:x.pelunasan,histImportDiterima:x.diterima,histImportTotalHutangSumber:x.totalHutang,histImportElapsedToDec2026:sc.elapsed,histImportRemainingDec2026:remaining,histImportParentId:parent?parent.id:null,histImportLinkMode:linkMode,histImportAsOf:'12/2026',histImportAssumption:'Jadwal dibentuk mulai 12/2026; periode sebelumnya tidak dicatat sebagai transaksi angsuran.',catatan:'Import rekap pinjaman periode '+x.periode+'; rekening BSI '+x.rek+(x.pelunasan>0?'; transaksi rehab':'')};
+    if(parent){
+      parent.status='direhab';parent.historiOnly=true;parent.rehabToId=id;parent.rehabAtPeriod=x.periode;parent.rehabPelunasan=x.pelunasan;parent.rehabImport=true;
+      (parent.jadwal||[]).forEach(j=>{if(j.status==='belum'){j.status='lunas';j.via='pelunasan_rehab';j.pelunasanRehabId=id;}});
+      parent.sisaPokok=0;parent.legacySisaTenor=0;
+      p.rehab=true;p.rehabFromId=parent.id;p.rehabPelunasan=x.pelunasan;p.rehabBersihDiterima=x.diterima;
+    }else if(x.pelunasan>0){
+      p.rehab=true;p.rehabUnlinked=true;p.rehabPelunasan=x.pelunasan;p.rehabBersihDiterima=x.diterima;
+    }
+    if(old){Object.assign(old,p,{id:old.id,no:oldNo||p.no});created.push(old);}else{pins.push(p);created.push(p);}
+  }
+  DB.save('pinjaman',pins);
+  try{const logs=DB.load('logs');logs.push({id:uid(),tanggal:todayStr(),user:currentUser.username,aksi:'IMPORT DATA PINJAMAN & REHAB',detail:created.length+' transaksi; rekening BSI; periode operasional 12/2026; aktif '+created.filter(p=>p.status==='cair').length+'; rehab terhubung '+created.filter(p=>p.rehabFromId).length});DB.save('logs',logs);}catch(e){}
+  renderPinjaman();renderLegacyCorrections();renderJadwalSelect();const pr=document.getElementById('prPeriode');if(pr)pr.value='2026-12';renderPayroll();loadDashboard();
+  alert('Import selesai: '+created.length+' transaksi.\nPinjaman berjalan untuk 12/2026: '+created.filter(p=>p.status==='cair').length+'\nHistori lunas: '+created.filter(p=>p.status==='lunas').length+'\nRehab terhubung: '+created.filter(p=>p.rehabFromId).length+'\nRehab belum terhubung: '+created.filter(p=>p.rehabUnlinked).length+'\n\nData tanpa rekening / rekening tidak ditemukan diabaikan. Periksa rehab yang belum terhubung sebelum koreksi lanjutan.');
+  histLoanRows=histLoanRows.map(x=>({...x,duplicate:true,valid:false,issues:['Sudah diimpor']}));
+  renderHistLoanSummary();
+}
+function resetHistLoanImport(){
+  histLoanRows=[];histLoanWorkbook=null;histLoanSkipped=0;const f=document.getElementById('histLoanFile');if(f)f.value='';
+  const b=document.getElementById('histLoanPreview');if(b)b.innerHTML='<tr><td colspan="13" class="text-center text-muted">Pilih file Excel untuk melihat preview.</td></tr>';
+  renderHistLoanSummary();
+}
+
 </script>
 </body>
 </html>
