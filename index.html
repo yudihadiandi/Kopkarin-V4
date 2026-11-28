@@ -16,8 +16,9 @@ const SUPABASE_KEY = 'sb_publishable_tRMH0ktU7RxbqHAq5Fp61g_GuyL6Rbl';
 // ===== LAPISAN SINKRONISASI =====
 // App tetap memakai localStorage (cepat & sinkron); setiap perubahan otomatis di-upsert ke tabel kv_store.
 // ===== VERSI APLIKASI (naikkan setiap ada perubahan) =====
-const APP_VERSION = '6.12', APP_BUILD = '2026-11-28';
+const APP_VERSION = '6.13', APP_BUILD = '2026-11-28';
 const APP_CHANGELOG = [
+  ['6.13', '2026-11-28', 'Pembatasan satu pinjaman reguler per jenis untuk anggota; anggota dengan riwayat pinjaman hanya dapat mengajukan rehab jika masih ada pinjaman aktif'],
   ['6.11', '2026-11-28', 'Perbaikan tombol koreksi dan hapus langsung pada riwayat angsuran'],
   ['6.10', '2026-11-27', 'Pencegahan dobel potongan per pinjaman per periode; transaksi dapat dihapus melalui koreksi untuk membuka tagihan kembali'],
   ['6.12', '2026-11-28', 'Dua konsep pinjaman yang dapat dipilih admin (bunga atau INDEX PAW), serta pengajuan rehab pinjaman anggota dengan perhitungan pelunasan dan dana bersih diterima'],
@@ -1300,16 +1301,16 @@ html.lenis,html.lenis body{height:auto}
       </div>
     </div>
     <div class="msection" id="msec-pinjaman" style="display:none">
-      <div class="panel"><div class="panel-head"><h6><i class="bi bi-send me-1"></i> Form Pengajuan Pinjaman</h6></div><div class="panel-body">
+      <div class="panel" id="memberPinjamanRegPanel"><div class="panel-head"><h6><i class="bi bi-send me-1"></i> Form Pengajuan Pinjaman Reguler</h6></div><div class="panel-body">
         <div class="row g-3">
-          <div class="col-12"><label class="form-label">Jenis Pinjaman *</label><select class="form-select" id="mpJenis"></select><div class="emp-meta mt-1" id="mpBungaInfo"></div></div>
+          <div class="col-12"><label class="form-label">Jenis Pinjaman *</label><select class="form-select" id="mpJenis"></select><div class="emp-meta mt-1" id="mpBungaInfo"></div><div id="mpPolicyInfo" class="mt-2"></div></div>
           <div class="col-12 col-md-4"><label class="form-label">Tanggal Pengajuan *</label><input type="date" class="form-control" id="mpTanggal"></div>
           <div class="col-6 col-md-4"><label class="form-label">Jumlah Pengajuan (Rp) *</label><input type="number" class="form-control" id="mpJumlah" min="10000" inputmode="numeric"></div>
           <div class="col-6 col-md-4"><label class="form-label">Tenor Pengajuan (bulan) *</label><input type="number" class="form-control" id="mpTenor" value="12" min="1" max="60" inputmode="numeric"></div>
         </div>
         <div id="mpBatasInfo" class="mt-3"></div>
         <div class="alert alert-info py-2 mt-3 mb-3" style="font-size:12px"><i class="bi bi-info-circle me-1"></i> Pengajuan akan diperiksa dan disetujui oleh pengurus. Jumlah, tenor, serta cicilan (pokok &amp; jasa) final ditentukan saat persetujuan.</div>
-        <button class="btn-member" type="button" onclick="ajukanPinjamanAnggota()"><i class="bi bi-send me-1"></i> Kirim Pengajuan</button>
+        <button class="btn-member" id="mpSubmit" type="button" onclick="ajukanPinjamanAnggota()"><i class="bi bi-send me-1"></i> Kirim Pengajuan</button>
       </div></div>
       <div class="panel" id="memberRehabPanel"><div class="panel-head"><h6><i class="bi bi-arrow-repeat me-1"></i> Rehab Pinjaman</h6></div><div class="panel-body">
         <div class="alert alert-info py-2" style="font-size:12px">Rehab digunakan jika anggota mengajukan pinjaman baru untuk melunasi sisa kewajiban pinjaman lama. Sistem menghitung sisa tagihan yang harus dilunasi dan dana bersih yang akan diterima.</div>
@@ -2346,8 +2347,8 @@ function fillJenisSelects(){
   const _pj = document.getElementById('pinJenis'), _ej = document.getElementById('epJenis'), _mj = document.getElementById('mpJenis');
   if (_pj) _pj.onchange = () => { document.getElementById('pinBunga').value = bungaDefault(_pj.value); previewAngsuran(); };
   if (_ej) _ej.onchange = () => { document.getElementById('epBunga').value = bungaDefault(_ej.value); if (typeof hitungEdit === 'function') hitungEdit(); };
-  if (_mj) _mj.onchange = updateMpBungaInfo;
-  ['mpJumlah','mpTenor'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',updateMpBungaInfo);});
+  if (_mj) _mj.onchange = () => { updateMpBungaInfo(); updateMemberLoanPolicy(); updateMpBatas(); };
+  ['mpJumlah','mpTenor'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',()=>{updateMpBungaInfo();updateMpBatas();});});
   ['filterPinJenis','prJenis'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<option value="">Semua Jenis</option>' + opts; });
   const bar = document.getElementById('barLaporanJenis');
   if (bar) bar.innerHTML = '<div class="emp-meta mb-1 fw-bold">Laporan Pinjaman Terpisah per Jenis:</div><div class="d-flex flex-wrap gap-2">'
@@ -3435,6 +3436,13 @@ function simpanSetuju(){
   if (!(jumlah > 0) || !(tenor >= 1)){ alert('Jumlah dan tenor yang disetujui wajib diisi.'); return; }
   const data = DB.load('pinjaman'), p = data.find(x => x.id === id);
   if (!p) return;
+  if(!p.rehab){
+    const prior=data.filter(x=>String(x.id)!==String(p.id)&&String(x.anggotaId)===String(p.anggotaId)&&jenisOf(x)===jenisOf(p)&&x.status!=='ditolak');
+    if(prior.length){
+      alert('Persetujuan dibatalkan: anggota sudah memiliki riwayat '+jenisOf(p)+'. Pengajuan reguler kedua tidak diperbolehkan. Jika masih ada tagihan, proses melalui Rehab Pinjaman.');
+      return;
+    }
+  }
   const metode=(p.metodeBunga||konsepPinjamanAktif());
   if(metode==='index'&&!faktorIndex(tenor)){alert('Metode INDEX PAW hanya mendukung tenor 1–18 bulan.');return;}
   if(metode!=='index'&&(isNaN(bunga)||bunga<0)){alert('Jasa (%/bulan) tidak valid.');return;}
@@ -4206,11 +4214,51 @@ function updateMpBungaInfo(){
   if(jumlah>0&&tenor>0){const c=metode==='index'?hitungCicilanIndex(jumlah,tenor):cicilanOf({jumlah,tenor,bunga:bungaDefault(j.value)});info+=c?' Estimasi cicilan: '+rupiah(c.total)+'/bulan.': ' Tenor INDEX yang tersedia hanya 1–18 bulan.';}
   el.textContent=info;
 }
+
+// Kebijakan anggota: satu pengajuan pinjaman reguler per jenis sepanjang riwayatnya.
+// Jika pernah memiliki pinjaman jenis tersebut, pengajuan reguler dikunci.
+// Jika masih ada pinjaman cair dengan tagihan, anggota hanya dapat mengajukan REHAB.
+function statusKebijakanPinjamanAnggota(aid, jenis, all){
+  const rows=(all||DB.load('pinjaman')).filter(p=>String(p.anggotaId)===String(aid)&&jenisOf(p)===jenis&&p.status!=='ditolak');
+  const aktif=rows.filter(p=>p.status==='cair'&&sisaInfo(p).n>0&&!p.rehabPendingId);
+  const menunggu=rows.filter(p=>['pengajuan','disetujui'].includes(p.status));
+  return {pernah:rows.length>0,aktif,menunggu,terkunci:rows.length>0};
+}
+function updateMemberLoanPolicy(){
+  const aid=currentUser&&currentUser.type==='anggota'?currentUser.anggotaId:null;
+  const sel=document.getElementById('mpJenis'), box=document.getElementById('mpPolicyInfo'), btn=document.getElementById('mpSubmit');
+  if(!aid||!sel)return;
+  const all=DB.load('pinjaman'), available=[];
+  [...sel.options].forEach(o=>{
+    if(!o.value)o.value=o.textContent;
+    const st=statusKebijakanPinjamanAnggota(aid,o.value,all);
+    o.disabled=st.terkunci;
+    if(!st.terkunci)available.push(o.value);
+  });
+  const cur=statusKebijakanPinjamanAnggota(aid,sel.value,all), can=!cur.terkunci;
+  if(btn)btn.disabled=!can;
+  ['mpTanggal','mpJumlah','mpTenor'].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=!can;});
+  if(box){
+    if(cur.aktif.length){
+      box.innerHTML='<div class="alert alert-warning py-2 mb-0"><b>Pinjaman '+esc(sel.value)+' sudah berjalan.</b><br>Pengajuan reguler untuk jenis ini dikunci. Silakan gunakan menu <b>Rehab Pinjaman</b> untuk melunasi sisa pinjaman dan mengajukan pinjaman pengganti.</div>';
+    }else if(cur.menunggu.length){
+      box.innerHTML='<div class="alert alert-info py-2 mb-0">Pengajuan '+esc(sel.value)+' sedang menunggu persetujuan/pencairan. Anda tidak dapat mengirim pengajuan kedua untuk jenis ini.</div>';
+    }else if(cur.pernah){
+      box.innerHTML='<div class="alert alert-secondary py-2 mb-0">Jenis '+esc(sel.value)+' sudah pernah digunakan. Pengajuan reguler tidak dapat diajukan kembali. Jika masih ada tagihan, gunakan Rehab Pinjaman. Jika pinjaman sudah lunas, hubungi pengurus untuk pemeriksaan riwayat.</div>';
+    }else{
+      box.innerHTML='<div class="alert alert-success py-2 mb-0">Jenis pinjaman ini belum pernah digunakan. Anda dapat mengajukan satu pinjaman reguler untuk jenis ini.</div>';
+    }
+    if(!available.length){
+      box.innerHTML+='<div class="small text-muted mt-2">Semua jenis pinjaman reguler telah terkunci karena sudah pernah diajukan/digunakan. Gunakan Rehab jika masih memiliki pinjaman aktif.</div>';
+    }
+  }
+}
 function renderMemberPinjaman(a){
   updateMpBungaInfo();
   const tg = document.getElementById('mpTanggal'); if (tg && !tg.value) tg.value = todayStr();
   const el = document.getElementById('mListPinjaman');
   renderMemberRehab(a);
+  updateMemberLoanPolicy();
   const pinjaman = DB.load('pinjaman').filter(p => p.anggotaId === a.id).slice().reverse();
   if (!pinjaman.length){ el.innerHTML = '<p class="text-muted mb-0">Belum ada pinjaman / pengajuan.</p>'; return; }
   el.innerHTML = pinjaman.map(p => {
@@ -4273,6 +4321,13 @@ function ajukanPinjamanAnggota(){
   const a = DB.load('anggota').find(x => x.id === currentUser.anggotaId);
   if (!a){ alert('Data anggota tidak ditemukan.'); return; }
   const jenis = document.getElementById('mpJenis').value;
+  const policy = statusKebijakanPinjamanAnggota(a.id, jenis);
+  if(policy.terkunci){
+    alert(policy.aktif.length
+      ? 'Anda masih memiliki tagihan '+jenis+'. Pengajuan baru hanya dapat dilakukan melalui menu Rehab Pinjaman.'
+      : 'Anda sudah pernah mengajukan/menggunakan '+jenis+'. Pengajuan reguler kedua tidak diperbolehkan.');
+    updateMemberLoanPolicy(); return;
+  }
   const tanggal = document.getElementById('mpTanggal').value;
   const jumlah = +document.getElementById('mpJumlah').value;
   const tenor = +document.getElementById('mpTenor').value;
