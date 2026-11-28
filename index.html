@@ -16,7 +16,7 @@ const SUPABASE_KEY = 'sb_publishable_tRMH0ktU7RxbqHAq5Fp61g_GuyL6Rbl';
 // ===== LAPISAN SINKRONISASI =====
 // App tetap memakai localStorage (cepat & sinkron); setiap perubahan otomatis di-upsert ke tabel kv_store.
 // ===== VERSI APLIKASI (naikkan setiap ada perubahan) =====
-const APP_VERSION = '6.16', APP_BUILD = '2026-11-28';
+const APP_VERSION = '6.20', APP_BUILD = '2026-11-28';
 const APP_CHANGELOG = [
   ['6.13', '2026-11-28', 'Pembatasan satu pinjaman reguler per jenis untuk anggota; anggota dengan riwayat pinjaman hanya dapat mengajukan rehab jika masih ada pinjaman aktif'],
   ['6.11', '2026-11-28', 'Perbaikan tombol koreksi dan hapus langsung pada riwayat angsuran'],
@@ -32,6 +32,10 @@ const APP_CHANGELOG = [
   ['6.4', '2026-11-26', 'Dashboard admin: kartu Dana Cadangan/Sosial/PDK/Pendidikan/Donasi & Kekayaan Koperasi dipindah ke bawah Total Kas & Bank'],
   ['6.3', '2026-11-26', 'Akun BadanPengawas (hanya lihat); penanda versi di lencana, login, sidebar, judul tab'],
   ['6.16', '2026-11-28', 'Dashboard kas & bank bersih setelah pokok hutang; jasa pinjaman tahunan; pengumuman anggota di atas; optimasi pemuatan halaman'],
+  ['6.17', '2026-11-28', 'Perhitungan kas & bank bersih berdasarkan seluruh saldo simpanan dan pos dana dikurangi kas fisik serta sisa pokok pinjaman; jasa tahunan hanya menghitung jasa yang sudah ditagihkan'],
+  ['6.18', '2026-11-28', 'Dashboard memisahkan Total Dana Terkumpul, Estimasi Kas & Bank Bersih, dan Jasa Pinjaman Tahun Berjalan'],
+  ['6.20', '2026-11-28', 'Laporan Neraca internal dan PHU pendapatan jasa pinjaman; klasifikasi sementara dan keterbatasan data ditandai agar tidak mengklaim laporan final'],
+  ['6.19', '2026-11-28', 'Dashboard dirapikan berdasarkan kelompok akun: kas/bank, piutang, simpanan, pos dana, dan jasa pinjaman ditagihkan; menghapus penjumlahan yang berpotensi menyesatkan'],
   ['6.2', '-', 'Versi sebelumnya (riwayat sebelum 6.3 tidak tercatat di aplikasi)'],
 ];
 function showVersionInfo(){ alert('KOPKARIN v' + APP_VERSION + '\nBuild: ' + APP_BUILD + '\n\nRiwayat versi:\n' + APP_CHANGELOG.map(c => 'v' + c[0] + ' (' + c[1] + ') - ' + c[2]).join('\n')); }
@@ -636,14 +640,18 @@ html.lenis,html.lenis body{height:auto}
     <!-- DASHBOARD -->
     <div class="section active" id="sec-dashboard">
       <div class="row g-3 mb-3">
-<div class="col-12 dash-title"><i class="bi bi-graph-up-arrow"></i> Ringkasan Keuangan &amp; Anggota</div>
-        <div class="col-6 col-md-3"><div class="stat-card "><div class="ico-chip"><i class="bi bi-people-fill"></i></div><div class="stat-body"><div class="lbl">Anggota Aktif</div><div class="val" id="stAktif">0</div><div class="sub">Total terdaftar</div></div></div></div>
-        <div class="col-6 col-md-3"><div class="stat-card red"><div class="ico-chip"><i class="bi bi-cash-coin"></i></div><div class="stat-body"><div class="lbl">Piutang Pinjaman</div><div class="val" id="stPiutang">Rp 0</div><div class="sub">Sisa pokok</div></div></div></div>
-        <div class="col-6 col-md-3"><div class="stat-card teal"><div class="ico-chip"><i class="bi bi-bank"></i></div><div class="stat-body"><div class="lbl">Saldo di Bank</div><div class="val" id="stBank">Rp 0</div><div class="sub">Semua rekening</div></div></div></div>
-        <div class="col-6 col-md-3"><div class="stat-card orange"><div class="ico-chip"><i class="bi bi-cash-stack"></i></div><div class="stat-body"><div class="lbl">Saldo Kas Tunai</div><div class="val" id="stKasTunai">Rp 0</div><div class="sub">Uang cash</div></div></div></div>
-        <div class="col-12"><div class="stat-card gold wide"><div class="ico-chip"><i class="bi bi-piggy-bank-fill"></i></div><div class="stat-body"><div class="lbl">Total Simpanan</div><div class="val" id="stSimpanan">Rp 0</div><div class="sub">Pokok + Wajib + Sukarela</div></div></div></div>
-        <div class="col-12 col-md-6"><div class="stat-card green wide"><div class="ico-chip"><i class="bi bi-bank2"></i></div><div class="stat-body"><div class="lbl">Kas &amp; Bank Bersih</div><div class="val" id="stKas">Rp 0</div><div class="sub" id="stKasSub">Saldo kas + bank dikurangi sisa pokok pinjaman aktif</div></div></div></div>
-        <div class="col-12 col-md-6"><div class="stat-card gold wide"><div class="ico-chip"><i class="bi bi-graph-up-arrow"></i></div><div class="stat-body"><div class="lbl">Jasa Pinjaman Tahun <span id="stJasaYear">2026</span></div><div class="val" id="stJasaTahun">Rp 0</div><div class="sub" id="stJasaSub">Realisasi jasa + proyeksi jadwal sampai akhir tahun</div></div></div></div>
+        <div class="col-12 dash-title"><i class="bi bi-clipboard-data"></i> Ringkasan Posisi Keuangan Koperasi</div>
+        <div class="col-6 col-md-3"><div class="stat-card navy"><div class="ico-chip"><i class="bi bi-people-fill"></i></div><div class="stat-body"><div class="lbl">Anggota Aktif</div><div class="val" id="stAktif">0</div><div class="sub">Jumlah anggota berstatus aktif</div></div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card teal"><div class="ico-chip"><i class="bi bi-bank"></i></div><div class="stat-body"><div class="lbl">Saldo Bank</div><div class="val" id="stBank">Rp 0</div><div class="sub">Saldo seluruh rekening bank</div></div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card orange"><div class="ico-chip"><i class="bi bi-cash-stack"></i></div><div class="stat-body"><div class="lbl">Saldo Kas Utama</div><div class="val" id="stKasTunai">Rp 0</div><div class="sub">Saldo buku kas transaksi utama</div></div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card red"><div class="ico-chip"><i class="bi bi-receipt"></i></div><div class="stat-body"><div class="lbl">Piutang Pinjaman (Pokok)</div><div class="val" id="stPiutang">Rp 0</div><div class="sub">Sisa pokok pinjaman yang belum kembali</div></div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card gold"><div class="ico-chip"><i class="bi bi-people"></i></div><div class="stat-body"><div class="lbl">Saldo Simpanan Anggota</div><div class="val" id="stSimpanan">Rp 0</div><div class="sub">Saldo bersih simpanan tercatat</div></div></div></div>
+        <div class="col-12 col-md-4"><div class="stat-card green wide"><div class="ico-chip"><i class="bi bi-wallet2"></i></div><div class="stat-body"><div class="lbl">Kas &amp; Bank (Saldo Buku)</div><div class="val" id="stKas">Rp 0</div><div class="sub" id="stKasSub">Saldo kas utama + saldo bank</div></div></div></div>
+        <div class="col-12 col-md-4"><div class="stat-card sky wide"><div class="ico-chip"><i class="bi bi-layers"></i></div><div class="stat-body"><div class="lbl">Saldo Pos Dana &amp; Donasi</div><div class="val" id="stTotalDana">Rp 0</div><div class="sub" id="stTotalDanaSub">Saldo dana kelolaan, ditampilkan terpisah dari kas/bank</div></div></div></div>
+        <div class="col-12 col-md-4"><div class="stat-card gold wide"><div class="ico-chip"><i class="bi bi-graph-up-arrow"></i></div><div class="stat-body"><div class="lbl">Jasa Pinjaman Ditagihkan Tahun <span id="stJasaYear">2026</span></div><div class="val" id="stJasaTahun">Rp 0</div><div class="sub" id="stJasaSub">Jasa periode tahun berjalan yang sudah jatuh tempo/ditagihkan</div></div></div></div>
+      </div>
+      <div class="alert alert-info py-2 mb-3" id="dashAccountingNote" style="font-size:12px;border-radius:12px">
+        <b>Cara membaca dashboard:</b> Kas &amp; Bank adalah saldo aset likuid menurut buku kas utama dan buku bank. Piutang pokok adalah hak tagih koperasi, bukan pengurang kas/bank. Simpanan anggota dan pos dana ditampilkan terpisah karena klasifikasi akuntansinya perlu mengikuti AD/ART serta kebijakan akuntansi koperasi. Jasa pinjaman ditagihkan adalah pendapatan jasa periode berjalan, bukan laba bersih.
       </div>
       <div class="row g-3 mb-3" id="dashDana"></div>
       <div class="row g-3">
@@ -1203,7 +1211,13 @@ html.lenis,html.lenis body{height:auto}
             <div class="col-md-4"><div class="stat-card" style="cursor:pointer" onclick="laporanSimpanan()"><div class="ico-wrap mb-2"><i class="bi bi-piggy-bank"></i></div><div class="lbl">Laporan Simpanan</div><div class="sub">Rekap per anggota</div></div></div>
             <div class="col-md-4"><div class="stat-card" style="cursor:pointer" onclick="laporanPinjaman('')"><div class="ico-wrap mb-2"><i class="bi bi-cash-coin"></i></div><div class="lbl">Laporan Pinjaman Global</div><div class="sub">Semua jenis &amp; tunggakan</div></div></div>
             <div class="col-md-4"><div class="stat-card" style="cursor:pointer" onclick="laporanAnggota()"><div class="ico-wrap mb-2"><i class="bi bi-people"></i></div><div class="lbl">Laporan Anggota</div><div class="sub">Daftar &amp; rekap</div></div></div>
+            <div class="col-md-4"><div class="stat-card violet" style="cursor:pointer" onclick="laporanNeraca()"><div class="ico-wrap mb-2"><i class="bi bi-columns-gap"></i></div><div class="lbl">Laporan Neraca</div><div class="sub">Aset, simpanan, dana dan rekonsiliasi</div></div></div>
+            <div class="col-md-4"><div class="stat-card teal" style="cursor:pointer" onclick="laporanPHU()"><div class="ico-wrap mb-2"><i class="bi bi-graph-up-arrow"></i></div><div class="lbl">Laporan PHU</div><div class="sub">Pendapatan jasa pinjaman &amp; beban</div></div></div>
             <div class="col-md-4"><div class="stat-card green" style="cursor:pointer" onclick="openKirimMasal()"><div class="ico-wrap mb-2"><i class="bi bi-envelope-paper"></i></div><div class="lbl">Kirim Buku Tabungan Masal</div><div class="sub">PDF ke e-mail semua anggota</div></div></div>
+          </div>
+          <div class="d-flex flex-wrap align-items-end gap-2 mb-3 no-print" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px">
+            <div><label class="form-label mb-1" style="font-size:12px">Tahun buku PHU</label><select id="lapPHUTahun" class="form-select form-select-sm" style="min-width:130px" onchange="if(_lapLast&&_lapLast[0]==='phu')laporanPHU()"></select></div>
+            <div class="emp-meta">Neraca menampilkan posisi saldo terkini. PHU dapat dipilih per tahun.</div>
           </div>
           <div class="mb-3 no-print" id="barLaporanJenis"></div>
           <div class="export-bar mb-3 no-print">
@@ -2431,20 +2445,51 @@ function toggleSidebar(){
   document.getElementById('overlay').classList.toggle('show');
 }
 
-// Jasa tahun berjalan = jasa yang sudah tercatat pada transaksi angsuran
-// ditambah proyeksi jadwal yang belum dibayar pada tahun yang sama.
+// Jasa tahunan: hanya jasa yang sudah ditagihkan pada tahun terpilih.
+// Transaksi angsuran menjadi sumber realisasi; jadwal yang sudah jatuh tempo
+// dihitung sebagai tagihan jika belum ada transaksi angsuran pada bulan tersebut.
 function ringkasanJasaTahunan(tahun){
   const th=String(tahun||new Date().getFullYear()), pinjaman=DB.load('pinjaman'), angsuran=DB.load('angsuran');
   const valid=new Set(pinjaman.filter(p=>p.status!=='ditolak').map(p=>String(p.id)));
-  const actualByLoanMonth=new Set(); let realisasi=0;
-  angsuran.forEach(a=>{const d=String(a.tanggal||''); if(d.slice(0,4)!==th||!valid.has(String(a.pinjamanId)))return; realisasi+=(+a.bunga||+a.jasa||0); actualByLoanMonth.add(String(a.pinjamanId)+'|'+d.slice(0,7));});
-  let proyeksi=0;
-  pinjaman.forEach(p=>{
-    if(p.status==='ditolak')return;
-    const jadwal=Array.isArray(p.jadwal)&&p.jadwal.length?p.jadwal:generateJadwalFromPinjaman(p);
-    jadwal.forEach(j=>{const d=String(j.tanggal||''); if(d.slice(0,4)!==th||j.status!=='belum')return; if(actualByLoanMonth.has(String(p.id)+'|'+d.slice(0,7)))return; proyeksi+=(+j.jasa||0);});
+  const actual=new Map();
+  angsuran.forEach(a=>{
+    const d=String(a.tanggal||''), id=String(a.pinjamanId);
+    if(d.slice(0,4)!==th || !valid.has(id)) return;
+    const key=id+'|'+d.slice(0,7), v=+(a.jasa||a.bunga||0);
+    actual.set(key,(actual.get(key)||0)+v);
   });
-  return {tahun:+th,realisasi,proyeksi,total:realisasi+proyeksi};
+  const billed=new Map(actual); // jasa yang benar-benar tercatat dibayar
+  const today=todayStr();
+  pinjaman.forEach(p=>{
+    if(p.status==='ditolak') return;
+    const jadwal=Array.isArray(p.jadwal)&&p.jadwal.length?p.jadwal:generateJadwalFromPinjaman(p);
+    jadwal.forEach(j=>{
+      const d=String(j.tanggal||''), ym=d.slice(0,7), key=String(p.id)+'|'+ym;
+      if(d.slice(0,4)!==th || d>today || !ym) return;
+      const scheduled=Math.max(0,+(j.jasa||0));
+      // Gunakan nilai terbesar antara jasa pada jadwal dan realisasi bulan itu.
+      // Ini menghindari penghitungan ganda, termasuk bila pembayaran sebagian.
+      billed.set(key,Math.max(billed.get(key)||0,scheduled));
+    });
+  });
+  let realisasi=0, belumBayar=0;
+  actual.forEach(v=>{realisasi+=v;});
+  billed.forEach((v,k)=>{belumBayar+=Math.max(0,v-(actual.get(k)||0));});
+  return {tahun:+th,realisasi,proyeksi:belumBayar,total:realisasi+belumBayar};
+}
+
+// Rumus dashboard sesuai definisi pengurus: seluruh saldo bersih simpanan anggota
+// + saldo pos dana (cadangan/sosial/PDK/pendidikan) + saldo donasi, dikurangi
+// kas tunai fisik dan sisa pokok pinjaman yang belum tertagih.
+function hitungKasBankBersih(){
+  const mutasi=DB.load('mutasi');
+  const totalSimpanan=mutasi.reduce((z,m)=>z+(m.trx==='setor'?1:-1)*(+m.jumlah||0),0);
+  const posDana=DANA.reduce((z,k)=>z+(+danaSaldo()[k]||0),0);
+  const donasi=+saldoDonasi()||0;
+  const kasFisik=+kasTunai()||0;
+  const pokokBelumTertagih=DB.load('pinjaman').filter(p=>p.status==='cair').reduce((z,p)=>z+(+p.sisaPokok||0),0);
+  const totalPenerimaanTercatat=totalSimpanan+posDana+donasi;
+  return {totalSimpanan,posDana,donasi,totalPenerimaanTercatat,totalDanaTerkumpul:totalPenerimaanTercatat,kasFisik,pokokBelumTertagih,bersih:totalPenerimaanTercatat-kasFisik-pokokBelumTertagih};
 }
 
 // ============ DASHBOARD ============
@@ -2454,15 +2499,25 @@ function loadDashboard(){
   const pinjaman = DB.load('pinjaman');
   const kas = DB.get('kas', {saldo:0});
   document.getElementById('stAktif').textContent = anggota.filter(a => a.status === 'aktif').length;
-  document.getElementById('stSimpanan').textContent = rupiah(mutasi.reduce((s,m) => m.trx === 'setor' ? s + m.jumlah : s - m.jumlah, 0));
+  const totalSimpanan = mutasi.reduce((s,m) => s + (m.trx === 'setor' ? (+m.jumlah||0) : -(+m.jumlah||0)), 0);
+  document.getElementById('stSimpanan').textContent = rupiah(totalSimpanan);
   const pokokHutangAktif = pinjaman.filter(p => p.status === 'cair').reduce((s,p) => s + (+p.sisaPokok || 0), 0);
   document.getElementById('stPiutang').textContent = rupiah(pokokHutangAktif);
-  const saldoKasBank = kasTunai() + totalBank();
-  document.getElementById('stKas').textContent = rupiah(saldoKasBank - pokokHutangAktif);
+  const kasUtama = +((DB.get('kas', {saldo:0}) || {}).saldo) || 0;
+  const saldoBank = typeof totalBank === 'function' ? totalBank() : 0;
+  const kasBankBuku = kasUtama + saldoBank;
+  const elKas = document.getElementById('stKas'); if(elKas) elKas.textContent = rupiah(kasBankBuku);
+  const kasSub = document.getElementById('stKasSub'); if(kasSub) kasSub.textContent = 'Kas utama '+rupiah(kasUtama)+' + seluruh rekening bank '+rupiah(saldoBank)+'. Cocokkan dengan rekening koran dan kas fisik.';
+  const posDana = typeof danaSaldo === 'function' ? danaSaldo() : {};
+  const totalPosDana = Object.values(posDana).reduce((z,v)=>z+(+v||0),0);
+  const donasiSaldo = typeof saldoDonasi === 'function' ? (+saldoDonasi()||0) : 0;
+  const totalDanaKelolaan = totalPosDana + donasiSaldo;
+  const elTotalDana=document.getElementById('stTotalDana'); if(elTotalDana) elTotalDana.textContent=rupiah(totalDanaKelolaan);
+  const totalDanaSub=document.getElementById('stTotalDanaSub'); if(totalDanaSub) totalDanaSub.textContent='Pos dana '+rupiah(totalPosDana)+' + saldo donasi '+rupiah(donasiSaldo)+'. Bukan tambahan kas/bank.';
   const jasaTh = ringkasanJasaTahunan(new Date().getFullYear());
   const elJasa=document.getElementById('stJasaTahun'); if(elJasa)elJasa.textContent=rupiah(jasaTh.total);
   const elJasaYear=document.getElementById('stJasaYear'); if(elJasaYear)elJasaYear.textContent=jasaTh.tahun;
-  const elJasaSub=document.getElementById('stJasaSub'); if(elJasaSub)elJasaSub.textContent='Realisasi '+rupiah(jasaTh.realisasi)+' + sisa jadwal '+rupiah(jasaTh.proyeksi)+' dalam tahun ini';
+  const elJasaSub=document.getElementById('stJasaSub'); if(elJasaSub)elJasaSub.textContent='Sudah dibayar '+rupiah(jasaTh.realisasi)+' + sudah ditagihkan belum dibayar '+rupiah(jasaTh.proyeksi)+'. Bukan laba bersih.';
   const recent = mutasi.slice(-5).reverse();
   document.getElementById('tblAktivitas').innerHTML = recent.length ? recent.map(m => {
     const a = anggota.find(x => x.id === m.anggotaId);
@@ -4090,6 +4145,62 @@ function laporanAnggota(){
   html += '</tbody></table></div>';
   document.getElementById('hasilLaporan').innerHTML = html;
 }
+// ============================================================
+// LAPORAN KEUANGAN INTERNAL v6.20
+// Catatan: aplikasi belum memiliki jurnal umum/COA, saldo awal seluruh
+// akun, buku aset tetap, serta pencatatan beban operasional terstruktur.
+// Karena itu laporan berikut adalah laporan manajerial sementara,
+// bukan neraca/PHU final yang telah memenuhi seluruh unsur akuntansi.
+// ============================================================
+function laporanNeraca(){
+  _lapLast=['neraca'];
+  const today=todayStr(), kas=+kasTunai()||0, bank=+totalBank()||0;
+  const piutang=DB.load('pinjaman').filter(p=>p.status==='cair').reduce((z,p)=>z+(+p.sisaPokok||0),0);
+  const asetLikuid=kas+bank, totalAsetTeridentifikasi=asetLikuid+piutang;
+  const simpanan=DB.load('mutasi').reduce((z,m)=>z+(m.trx==='setor'?1:-1)*(+m.jumlah||0),0);
+  const dana=danaSaldo(), donasi=+saldoDonasi()||0;
+  const danaTotal=DANA.reduce((z,k)=>z+(+dana[k]||0),0);
+  const money=(v)=>'<td class="text-end">'+rupiah(v)+'</td>';
+  let h='<div class="print-header" style="display:block"><h4>LAPORAN POSISI KEUANGAN / NERACA INTERNAL</h4><p>KOPKARIN • Posisi per '+tglPanjang(today)+'</p></div>';
+  h+='<div class="alert alert-warning py-2" style="font-size:12px"><b>Status: DRAF INTERNAL / BELUM NERACA FINAL.</b> Data aplikasi belum mencakup jurnal umum, seluruh saldo awal akun, aset tetap, utang lain, dan klasifikasi resmi simpanan/dana. Angka berikut hanya saldo yang dapat ditelusuri dari modul yang tersedia.</div>';
+  h+='<h6 class="fw-bold mt-3">A. ASET YANG TERIDENTIFIKASI</h6><table class="table table-bordered table-sm" data-sheet="Neraca Aset"><thead><tr><th style="width:70%">Uraian</th><th class="text-end">Saldo</th></tr></thead><tbody>';
+  h+='<tr><td><b>Aset Lancar</b></td><td></td></tr><tr><td>&nbsp;&nbsp;Kas tunai menurut buku kas</td>'+money(kas)+'</tr><tr><td>&nbsp;&nbsp;Saldo seluruh rekening bank</td>'+money(bank)+'</tr><tr class="table-light fw-bold"><td>Total Kas dan Bank</td>'+money(asetLikuid)+'</tr><tr><td><b>Piutang Pinjaman Anggota</b> (sisa pokok pinjaman berstatus cair)</td>'+money(piutang)+'</tr><tr class="table-primary fw-bold"><td>Total Aset Teridentifikasi</td>'+money(totalAsetTeridentifikasi)+'</tr></tbody></table>';
+  h+='<h6 class="fw-bold mt-4">B. SALDO SIMPANAN DAN DANA YANG PERLU DIKLASIFIKASIKAN</h6><table class="table table-bordered table-sm" data-sheet="Simpanan dan Dana"><thead><tr><th>Uraian</th><th class="text-end">Saldo</th><th>Catatan klasifikasi</th></tr></thead><tbody>';
+  h+='<tr><td>Simpanan pokok, wajib, wajib awal &amp; sukarela</td>'+money(simpanan)+'<td>Perlu dipastikan berdasarkan AD/ART apakah seluruhnya kewajiban kepada anggota atau sebagian masuk ekuitas.</td></tr>';
+  h+='<tr><td>Dana cadangan</td>'+money(dana['DANA CADANGAN']||0)+'<td>Umumnya kelompok ekuitas/cadangan; konfirmasi kebijakan koperasi.</td></tr>';
+  h+='<tr><td>Dana sosial</td>'+money(dana['DANA SOSIAL']||0)+'<td>Dana peruntukan; perlu kebijakan klasifikasi dan bukti pembentukannya.</td></tr>';
+  h+='<tr><td>Dana PDK</td>'+money(dana['DANA PDK']||0)+'<td>Perlu definisi dan dasar pembentukan PDK.</td></tr>';
+  h+='<tr><td>Dana pendidikan</td>'+money(dana['DANA PENDIDIKAN']||0)+'<td>Dana peruntukan; perlu kebijakan klasifikasi.</td></tr>';
+  h+='<tr><td>Saldo donasi</td>'+money(donasi)+'<td>Perlu dilihat syarat pemberiannya: dana terikat atau pendapatan tidak terikat.</td></tr>';
+  h+='<tr class="table-light fw-bold"><td>Total saldo simpanan dan pos dana (informasi)</td>'+money(simpanan+danaTotal+donasi)+'<td>Tidak otomatis sama dengan kewajiban atau ekuitas.</td></tr></tbody></table>';
+  h+='<div class="alert alert-info py-2 mt-3" style="font-size:12px"><b>Mengapa belum ditampilkan total kewajiban, ekuitas, dan selisih neraca?</b><br>Karena klasifikasi simpanan/dana belum dikonfirmasi dan aplikasi belum memiliki saldo awal serta akun kewajiban/aset lainnya. Memaksakan selisih sebagai modal atau SHU akan menghasilkan angka yang menyesatkan.</div>';
+  h+='<h6 class="fw-bold mt-4">C. DATA YANG MASIH DIPERLUKAN AGAR NERACA DAPAT DITUTUP</h6><ol style="font-size:12px"><li>Saldo awal kas, setiap rekening bank, piutang, simpanan, dan dana pada awal periode.</li><li>Daftar utang/kewajiban koperasi selain simpanan anggota.</li><li>Aset tetap/peralatan, akumulasi penyusutan, dan aset lain.</li><li>Keputusan klasifikasi simpanan pokok/wajib/sukarela dan dana berdasarkan AD/ART serta kebijakan akuntansi koperasi.</li><li>Modal, cadangan, dan saldo SHU tahun lalu yang telah disahkan.</li></ol>';
+  document.getElementById('hasilLaporan').innerHTML=h;
+}
+function laporanPHU(){
+  _lapLast=['phu'];
+  const y=+$g('lapPHUTahun')||new Date().getFullYear();
+  const jasa=ringkasanJasaTahunan(y);
+  const fmt=v=>'<td class="text-end">'+rupiah(v)+'</td>';
+  let h='<div class="print-header" style="display:block"><h4>LAPORAN PERHITUNGAN HASIL USAHA (PHU) — DRAF INTERNAL</h4><p>KOPKARIN • Tahun buku '+y+'</p></div>';
+  h+='<div class="alert alert-warning py-2" style="font-size:12px"><b>Status: PHU belum dapat dihitung sebagai SHU bersih.</b> Modul saat ini mencatat pendapatan jasa pinjaman, tetapi belum menyediakan buku beban operasional dan jurnal penyesuaian yang lengkap. Nilai jasa yang belum dibayar merupakan jasa ter-tagih/akrual dari jadwal yang sudah jatuh tempo sampai tanggal hari ini.</div>';
+  h+='<table class="table table-bordered table-sm" data-sheet="PHU"><thead><tr><th style="width:70%">Uraian</th><th class="text-end">Jumlah</th></tr></thead><tbody>';
+  h+='<tr class="table-light"><td><b>PENDAPATAN</b></td><td></td></tr>';
+  h+='<tr><td>&nbsp;&nbsp;Pendapatan jasa pinjaman yang sudah diterima</td>'+fmt(jasa.realisasi)+'</tr>';
+  h+='<tr><td>&nbsp;&nbsp;Pendapatan jasa pinjaman sudah ditagihkan, belum diterima</td>'+fmt(jasa.proyeksi)+'</tr>';
+  h+='<tr class="fw-bold"><td>Total pendapatan jasa pinjaman yang ditagihkan</td>'+fmt(jasa.total)+'</tr>';
+  h+='<tr class="table-light"><td><b>BEBAN USAHA</b></td><td></td></tr>';
+  h+='<tr><td>&nbsp;&nbsp;Beban operasional (belum tersedia pencatatan terstruktur)</td>'+fmt(0)+'</tr>';
+  h+='<tr><td>&nbsp;&nbsp;Beban administrasi bank, penyusutan, pajak, dan beban lain (belum direkap)</td>'+fmt(0)+'</tr>';
+  h+='<tr class="table-warning fw-bold"><td>SHU / hasil usaha bersih</td><td class="text-end">BELUM DAPAT DIHITUNG</td></tr>';
+  h+='</tbody></table>';
+  h+='<div class="alert alert-info py-2" style="font-size:12px"><b>Catatan metode:</b><br>• Jasa diterima diambil dari transaksi angsuran tahun '+y+'.<br>• Jasa belum diterima dihitung dari jadwal pinjaman yang tanggal tagihnya sudah jatuh tempo sampai hari ini, dikurangi jasa yang sudah tercatat dibayar pada bulan yang sama.<br>• Jasa untuk bulan yang belum jatuh tempo tidak dimasukkan.<br>• Donasi dan dana sosial/pendidikan tidak otomatis dianggap pendapatan PHU; perlakuannya bergantung pada syarat pemberian dan kebijakan akuntansi.<br>• Beban bernilai nol pada tabel hanya penanda belum tersedia datanya, bukan berarti koperasi tidak mengeluarkan biaya.</div>';
+  h+='<p style="font-size:11px;color:#64748b">Dicetak pada '+tglPanjang(todayStr())+'. Laporan ini merupakan ringkasan manajerial dari data aplikasi, bukan laporan keuangan final yang telah direkonsiliasi.</p>';
+  document.getElementById('hasilLaporan').innerHTML=h;
+}
+
+
+addEventListener('DOMContentLoaded',()=>{ const e=document.getElementById('lapPHUTahun'); if(e){ const y=new Date().getFullYear(); e.innerHTML=Array.from({length:7},(_,i)=>y+2-i).map(v=>'<option value="'+v+'">'+v+'</option>').join(''); e.value=String(y); } });
 function laporanSimpanan(){
   _lapLast = ['simpanan'];
   const anggota = DB.load('anggota').filter(lapDeptOk), mutasi = DB.load('mutasi');
@@ -5844,15 +5955,16 @@ function dCard(cls, ic, lbl, val, sub, opt){
 }
 function renderDashDana(){
   const el = document.getElementById('dashDana'); if (!el) return;
-  const s = danaSaldo(), ORD = ['DANA CADANGAN','DANA SOSIAL','DANA PDK','DANA PENDIDIKAN'], ic = {'DANA CADANGAN':'bi-shield-check','DANA SOSIAL':'bi-heart-pulse','DANA PDK':'bi-briefcase','DANA PENDIDIKAN':'bi-mortarboard'}, cl = {'DANA CADANGAN':'violet','DANA SOSIAL':'teal','DANA PDK':'pink','DANA PENDIDIKAN':'orange'};
-  const tDana = DANA.reduce((z, x) => z + s[x], 0), dn = saldoDonasi(), kekayaan = tDana + dn;
-  const bk = totalBank(), kt = kasTunai(), simp = DB.load('mutasi').reduce((z, m) => m.trx === 'setor' ? z + m.jumlah : z - m.jumlah, 0), kb = kekayaan + kt + bk + simp;
-  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-  set('stBank', rupiah(bk)); set('stKasTunai', rupiah(kt));
-  el.innerHTML = '<div class="col-12 dash-title"><i class="bi bi-layers"></i> Pos Dana &amp; Donasi</div>'
-    + ORD.map(x => dCard(cl[x], ic[x], x, rupiah(s[x] || 0), '', {col: 'col-6 col-md-4 col-xl'})).join('')
-    + dCard('sky', 'bi-gift', 'DANA DONASI', rupiah(dn), donasiPenerima().length + ' penerima', {col: 'col-6 col-md-4 col-xl'})
-    + dCard('navy', 'bi-safe2', 'Kekayaan Koperasi', rupiah(kekayaan), 'Pos dana ' + rupiah(tDana) + ' + Donasi ' + rupiah(dn), {col: 'col-12', wide: true});
+  const s = danaSaldo(), ORD = ['DANA CADANGAN','DANA SOSIAL','DANA PDK','DANA PENDIDIKAN'];
+  const ic = {'DANA CADANGAN':'bi-shield-check','DANA SOSIAL':'bi-heart-pulse','DANA PDK':'bi-briefcase','DANA PENDIDIKAN':'bi-mortarboard'};
+  const cl = {'DANA CADANGAN':'violet','DANA SOSIAL':'teal','DANA PDK':'pink','DANA PENDIDIKAN':'orange'};
+  const bk = totalBank(), kasUtama = +((DB.get('kas',{saldo:0})||{}).saldo)||0;
+  const set = (id,v) => { const e=document.getElementById(id); if(e)e.textContent=v; };
+  set('stBank',rupiah(bk)); set('stKasTunai',rupiah(kasUtama));
+  const dn = saldoDonasi();
+  el.innerHTML = '<div class="col-12"><div class="d-flex justify-content-between align-items-center flex-wrap gap-2"><b style="color:#0a1e3f;font-size:13px">Rincian Saldo Pos Dana &amp; Donasi</b><span class="text-muted" style="font-size:11px">Saldo pos dana ditampilkan terpisah dari kas dan bank</span></div></div>'
+    + ORD.map(x => dCard(cl[x],ic[x],x,rupiah(s[x]||0),'Saldo buku pos dana',{col:'col-6 col-md-3'})).join('')
+    + dCard('sky','bi-gift','SALDO DONASI',rupiah(dn),donasiPenerima().length+' penerima',{col:'col-6 col-md-3'});
 }
 (function(){
   const _ld6 = loadDashboard; loadDashboard = function(){ _ld6(); renderDashDana(); };
